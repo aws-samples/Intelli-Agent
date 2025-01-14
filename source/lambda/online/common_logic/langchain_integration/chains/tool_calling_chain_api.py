@@ -54,11 +54,11 @@ class ToolCallingBaseChain(LLMChain):
         return system_prompt
 
     @classmethod
-    def bind_tools(cls, llm: BaseChatModel, tools: List[BaseTool], fewshot_examples=None, fewshot_template=None, tool_choice='any'):
+    def bind_tools(cls, llm: BaseChatModel, tools: List[BaseTool], fewshot_examples=None, fewshot_template=None):
         tools = [tool.model_copy() for tool in tools]
         if not fewshot_examples:
-            if getattr(llm, "enable_auto_tool_choice", True):
-                return llm.bind_tools(tools, tool_choice=tool_choice)
+            if getattr(llm, "enable_any_tool_choice", False):
+                return llm.bind_tools(tools, tool_choice=llm.any_tool_choice_value )
             return llm.bind_tools(tools)
 
         # add fewshot examples to tool description
@@ -84,8 +84,8 @@ class ToolCallingBaseChain(LLMChain):
 
             tool.description += "\n\n".join(examples_strs)
 
-        if getattr(llm, "enable_auto_tool_choice", True):
-            return llm.bind_tools(tools, tool_choice=tool_choice)
+        if getattr(llm, "enable_any_tool_choice", False):
+            return llm.bind_tools(tools, tool_choice=llm.any_tool_choice_value)
         return llm.bind_tools(tools)
 
     @classmethod
@@ -123,6 +123,7 @@ class ToolCallingBaseChain(LLMChain):
         llm = Model.get_model(
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
+            **kwargs
         )
 
         llm = cls.bind_tools(llm, tools, fewshot_examples,

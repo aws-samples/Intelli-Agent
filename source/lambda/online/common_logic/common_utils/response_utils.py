@@ -139,7 +139,8 @@ def stream_response(event_body: dict, response: dict):
             figure = response.get("extra_response").get("ref_figures", [])
             # Show at most two figures
             if figure:
-                context_msg["ddb_additional_kwargs"]["figure"] = figure[:2]
+                # context_msg["ddb_additional_kwargs"]["figure"] = figure[:2]
+                context_msg["ddb_additional_kwargs"]["figure"] = figure
 
             ref_doc = response.get("extra_response").get("ref_docs", [])
             if ref_doc:

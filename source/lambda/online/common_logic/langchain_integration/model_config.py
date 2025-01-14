@@ -7,7 +7,7 @@ from common_logic.common_utils.constant import LLMModelType
 class ModelConfig:
     model_id: str
     default_model_kwargs: Dict[str, Any] = None
-    enable_auto_tool_choice: bool = True
+    enable_any_tool_choice: bool = True
     enable_prefill: bool = True
 
     def __post_init__(self):
@@ -90,19 +90,19 @@ MODEL_CONFIGS = {
     LLMModelType.NOVA_PRO: ModelConfig(
         model_id=LLMModelType.NOVA_PRO,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
-        enable_auto_tool_choice=False,
+        enable_any_tool_choice=False,
         enable_prefill=False
     ),
     LLMModelType.NOVA_LITE: ModelConfig(
         model_id=LLMModelType.NOVA_LITE,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
-        enable_auto_tool_choice=False,
+        enable_any_tool_choice=False,
         enable_prefill=False
     ),
     LLMModelType.NOVA_MICRO: ModelConfig(
         model_id=LLMModelType.NOVA_MICRO,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
-        enable_auto_tool_choice=False,
+        enable_any_tool_choice=False,
         enable_prefill=False
     ),
     LLMModelType.MIXTRAL_8X7B_INSTRUCT: ModelConfig(
@@ -112,19 +112,19 @@ MODEL_CONFIGS = {
     LLMModelType.LLAMA3_1_70B_INSTRUCT: ModelConfig(
         model_id=LLMModelType.LLAMA3_1_70B_INSTRUCT,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
-        enable_auto_tool_choice=False,
+        enable_any_tool_choice=False,
         enable_prefill=False
     ),
     LLMModelType.LLAMA3_1_70B_INSTRUCT_US: ModelConfig(
         model_id=LLMModelType.LLAMA3_1_70B_INSTRUCT_US,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
-        enable_auto_tool_choice=False,
+        enable_any_tool_choice=False,
         enable_prefill=False
     ),
     LLMModelType.LLAMA3_2_90B_INSTRUCT: ModelConfig(
         model_id=LLMModelType.LLAMA3_2_90B_INSTRUCT,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
-        enable_auto_tool_choice=False,
+        enable_any_tool_choice=False,
         enable_prefill=False
     ),
     LLMModelType.MISTRAL_LARGE_2407: ModelConfig(
@@ -135,13 +135,13 @@ MODEL_CONFIGS = {
     LLMModelType.COHERE_COMMAND_R_PLUS: ModelConfig(
         model_id=LLMModelType.COHERE_COMMAND_R_PLUS,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
-        enable_auto_tool_choice=False,
+        enable_any_tool_choice=False,
         enable_prefill=False
     ),
     LLMModelType.QWEN25_INSTRUCT_72B_AWQ: ModelConfig(
         model_id=LLMModelType.QWEN25_INSTRUCT_72B_AWQ,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
-        enable_auto_tool_choice=True,
+        enable_any_tool_choice=True,
         enable_prefill=True
     )
 }

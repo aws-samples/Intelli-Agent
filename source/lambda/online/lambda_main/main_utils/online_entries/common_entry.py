@@ -618,8 +618,7 @@ def register_rag_tool_from_config(event_body: dict):
                         return_direct=True
                     )
                     registered_tool_names.append(index_name)
-                    logger.info(
-                        f"registered rag tool: {index_name}, description: {description}")
+                    logger.info(f"registered rag tool: {index_name}, description: {description}")
     return registered_tool_names
 
 
@@ -677,12 +676,14 @@ def common_entry(event_body):
     chatbot_config = event_body["chatbot_config"]
     query = event_body["query"]
     use_history = chatbot_config["use_history"]
-    chat_history = event_body["chat_history"] if use_history else []
+    max_rounds_in_memory = event_body["chatbot_config"]["max_rounds_in_memory"]
+    chat_history = event_body["chat_history"][:max_rounds_in_memory] if use_history else []
     stream = event_body["stream"]
     message_id = event_body["custom_message_id"]
     ws_connection_id = event_body["ws_connection_id"]
     enable_trace = chatbot_config["enable_trace"]
     agent_config = event_body["chatbot_config"]["agent_config"]
+    # rag_config = event_body["chatbot_config"]["rag_config"]
 
     # register as rag tool for each aos index
     # print('private_knowledge_config',event_body["chatbot_config"]["private_knowledge_config"])

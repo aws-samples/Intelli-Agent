@@ -6,7 +6,8 @@ from ..model_config import MODEL_CONFIGS
 class LLMChainMeta(type):
     def __new__(cls, name, bases, attrs):
         new_cls = type.__new__(cls, name, bases, attrs)
-        if name == "LLMChain" or name.endswith("BaseChain"):
+        if name == "LLMChain" or name.endswith("BaseChain") \
+            or name.lower().endswith("basechain"):
             return new_cls
         new_cls.model_map[new_cls.get_chain_id()] = new_cls
         return new_cls
