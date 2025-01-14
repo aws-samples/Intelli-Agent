@@ -1,15 +1,21 @@
 import logging
+import os
+import sys
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import List, Optional
 
 import mammoth
 from docx import Document as pyDocument
 from langchain.docstore.document import Document
 from langchain.document_loaders.base import BaseLoader
-
 from llm_bot_dep.loaders.html import CustomHtmlLoader
 from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
+from PIL import Image
+
+# sys.path.append("/home/ubuntu/icyxu/code/solutions/Intelli-Agent/source/lambda/job/dep")
+
 
 logger = logging.getLogger(__name__)
 
@@ -56,25 +62,39 @@ class CustomDocLoader(BaseLoader):
                 for paragraph in section.footer.paragraphs:
                     paragraph.clear()
 
-    def load(self) -> List[Document]:
+    def load(self, bucket_name: str, file_name: str) -> List[Document]:
         """Load from file path."""
         metadata = {"file_path": self.aws_path, "file_type": "docx"}
 
+        # Create a directory for images if it doesn't exist
+        image_dir = "/tmp/doc_images"
+        os.makedirs(image_dir, exist_ok=True)
+
         def _convert_image(image):
-            # Images are excluded
-            return {"src": ""}
+            # Generate unique filename for the image
+            image_filename = f"{uuid.uuid4()}.jpg"
+            image_path = os.path.join(image_dir, image_filename)
+
+            # Convert and save the image
+            with image.open() as image_bytes:
+                img = Image.open(image_bytes)
+                # Convert to RGB if necessary (in case of PNG with transparency)
+                if img.mode in ("RGBA", "P"):
+                    img = img.convert("RGB")
+                img.save(image_path, "JPEG")
+
+            # Return the image path to be used in the HTML
+            return {"src": image_path}
 
         pyDoc = pyDocument(self.file_path)
         self.clean_document(pyDoc)
         pyDoc.save(self.file_path)
 
         with open(self.file_path, "rb") as docx_file:
-            result = mammoth.convert_to_html(
-                docx_file, convert_image=mammoth.images.img_element(_convert_image)
-            )
+            result = mammoth.convert_to_html(docx_file, convert_image=mammoth.images.img_element(_convert_image))
             html_content = result.value
             loader = CustomHtmlLoader(aws_path=self.aws_path)
-            doc = loader.load(html_content)
+            doc = loader.load(html_content, bucket_name, file_name)
             doc.metadata = metadata
 
         return doc
@@ -86,12 +106,27 @@ def process_doc(s3, **kwargs):
     random_uuid = str(uuid.uuid4())[:8]
     bucket_name = kwargs["bucket"]
     key = kwargs["key"]
+    portal_bucket_name = kwargs["portal_bucket_name"]
+    file_name = Path(key).stem
     local_path = f"/tmp/doc-{timestamp_str}-{random_uuid}.docx"
 
     s3.download_file(bucket_name, key, local_path)
+
     loader = CustomDocLoader(file_path=local_path, aws_path=f"s3://{bucket_name}/{key}")
-    doc = loader.load()
+    doc = loader.load(portal_bucket_name, file_name)
     splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
     doc_list = splitter.split_text(doc)
 
     return doc_list
+
+
+# if __name__ == "__main__":
+#     import boto3
+
+#     s3 = boto3.client("s3")
+#     kwargs = {
+#         "res_bucket": "ai-customer-service-sharedconstructaicustomerservi-wywyift3c084",
+#         "bucket": "ai-customer-service-sharedconstructaicustomerservi-wywyift3c084",
+#         "key": "workshop/CATS.docx",
+#     }
+#     process_doc(s3, **kwargs)
