@@ -125,6 +125,7 @@ class ToolRuningMode(ConstantBase):
 class ModelProvider(ConstantBase):
     DMAA = "dmaa"
     BEDROCK = "bedrock"
+    BRCONNECTOR_BEDROCK = "brconnector"
 
 
 class LLMModelType(ConstantBase):

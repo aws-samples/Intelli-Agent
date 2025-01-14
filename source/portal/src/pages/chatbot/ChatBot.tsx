@@ -199,14 +199,15 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       localStorage.removeItem(item);
     });
     // localStorage.()
-    setChatbotOption(chatbotList[0]);
-    setScenario(SCENARIO_LIST[0]);
-    setMaxToken(defaultConfig.maxToken);
-    setMaxRounds(defaultConfig.maxRounds);
-    setTemperature(defaultConfig.temperature);
-    setTopKRetrievals(defaultConfig.topKRetrievals);
-    setScore(defaultConfig.score);
-    setAdditionalConfig('');
+    setChatbotOption(chatbotList[0])
+    setScenario(SCENARIO_LIST[0])
+    setMaxToken(defaultConfig.maxToken)
+    setMaxRounds(defaultConfig.maxRounds)
+    setTemperature(defaultConfig.temperature)
+    setTopKRetrievals(defaultConfig.topKRetrievals)
+    setScore(defaultConfig.score)
+    setUserMessage('')
+    setAdditionalConfig('')
     // setModelOption(optionList?.[0]?.value ?? '')
     setSessionId(uuidv4());
     getWorkspaceList();
@@ -430,13 +431,16 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     }
   };
 
-  document.addEventListener('compositionstart', () => {
-    setIsComposing(true);
-  });
+  const inputElement = document.querySelector('input');
 
-  document.addEventListener('compositionend', () => {
-    setIsComposing(false);
-  });
+  if (inputElement) {
+    inputElement.addEventListener('compositionstart', () => {
+      setIsComposing(true);
+    });
+    inputElement.addEventListener('compositionend', () => {
+      setIsComposing(false);
+    });
+  }
 
   useEffect(() => {
     if (lastMessage !== null) {
@@ -505,23 +509,25 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     }
 
     if (!maxRounds.trim()) {
-      setMaxTokenError('validation.requireMaxRounds');
+      setMaxRoundsError('validation.requireMaxRounds');
       setModelSettingExpand(true);
       return;
     }
+
     if (parseInt(maxRounds) < 0) {
-      setMaxTokenError('validation.maxRoundsRange');
+      setMaxRoundsError('validation.maxRoundsRange');
       setModelSettingExpand(true);
       return;
     }
 
     if (!topKRetrievals.trim()) {
-      setMaxTokenError('validation.requireTopKRetrievals');
+      setTopKRetrievalsError('validation.requireTopKRetrievals');
       setModelSettingExpand(true);
       return;
     }
+
     if (parseInt(topKRetrievals) < 1) {
-      setMaxTokenError('validation.topKRetrievals');
+      setTopKRetrievalsError('validation.topKRetrievals');
       setModelSettingExpand(true);
       return;
     }
@@ -959,7 +965,44 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         />
                       </FormField>
                     </Grid>
-                    {/* </ColumnLayout> */}
+                    <Grid gridDefinition={[ {colspan: 5},{colspan: 6}]}>
+                  <FormField
+                    label={t('maxTokens')}
+                    stretch={true}
+                    errorText={t(maxTokenError)}
+                    description={t('maxTokenDesc')}
+                  >
+                    <Input
+                      type="number"
+                      value={maxToken}
+                      onChange={({ detail }) => {
+                        setMaxTokenError('');
+                        setMaxToken(detail.value);
+                      }}
+                    />
+                  </FormField>
+                  <FormField
+                    label={t('maxRounds')}
+                    stretch={true}
+                    errorText={t(maxRoundsError)}
+                    description={t('maxRoundsDesc')}
+                  >
+                    <Input
+                      type="number"
+                      value={maxRounds}
+                      onChange={({ detail }) => {
+                        if(parseInt(detail.value) < 0 || parseInt(detail.value) > 100){
+                          return
+                        }
+                        setMaxRoundsError('');
+                        setMaxRounds(detail.value);
+                      }}
+                    />
+                  </FormField>
+                  </Grid>
+                  
+                  {showEndpoint && (
+                    <Grid gridDefinition={[{colspan: 11}]}>
                     <FormField
                       label={t('additionalSettings')}
                       errorText={t(additionalConfigError)}
@@ -981,62 +1024,67 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         )}
                       />
                     </FormField>
-                  </SpaceBetween>
-                </ExpandableSection>
-              </div>
-            }
-          >
-            <div className="chat-container mt-10">
-              <div className="chat-message flex-v flex-1 gap-10">
-                {messages.map((msg, index) => (
-                  <div key={identity(index)}>
-                    <Message
-                      showTrace={showTrace}
-                      type={msg.type}
-                      message={msg.message}
+                    </Grid>
+                    )
+                  }
+                  
+                </SpaceBetween>
+                  <div style={{fontSize: 16, fontWeight: 700,marginBottom: 15, marginTop: 35}}>{t('rad')}</div>
+                  <SpaceBetween size="xs" direction="vertical">
+                    <Grid gridDefinition={[{colspan: 3},{colspan: 3},{colspan: 5}]}>
+                  <FormField
+                    label={t('temperature')}
+                    stretch={true}
+                    errorText={t(temperatureError)}
+                    description={t('temperatureDesc')}
+                  >
+                    <Input
+                      type="number"
+                      step={0.01}
+                      value={temperature}
+                      onChange={({ detail }) => {
+                        if(parseFloat(detail.value) < 0 || parseFloat(detail.value) > 1){
+                          return
+                        }
+                        setTemperatureError('');
+                        setTemperature(detail.value);
+                      }}
                     />
-                    {msg.type === 'ai' && index !== 0 && (
-                      <div
-                        className="feedback-buttons"
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'flex-end',
-                          gap: '8px',
-                        }}
-                      >
-                        <Button
-                          iconName={
-                            feedbackGiven[index] === 'thumb_up'
-                              ? 'thumbs-up-filled'
-                              : 'thumbs-up'
-                          }
-                          variant="icon"
-                          onClick={() => handleThumbUpClick(index)}
-                          ariaLabel={t('feedback.helpful')}
-                        />
-                        <Button
-                          iconName={
-                            feedbackGiven[index] === 'thumb_down'
-                              ? 'thumbs-down-filled'
-                              : 'thumbs-down'
-                          }
-                          variant="icon"
-                          onClick={() => handleThumbDownClick(index)}
-                          ariaLabel={t('feedback.notHelpful')}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {aiSpeaking && (
-                  <div>
-                    <Message
-                      aiSpeaking={aiSpeaking}
-                      type="ai"
-                      showTrace={showTrace}
-                      message={{
-                        data: currentAIMessage,
-                        monitoring: currentMonitorMessage,
+                  </FormField>
+                  <FormField
+                    label={t('topKRetrievals')}
+                    stretch={true}
+                    description={t('topKRetrievalsDesc')}
+                    errorText={t(topKRetrievalsError)}
+                  >
+                    <Input
+                      type="number"
+                      value={topKRetrievals}
+                      onChange={({ detail }) => {
+                        if(parseInt(detail.value) < 0 || parseInt(detail.value) > 100){
+                          return
+                        }
+                        setTopKRetrievalsError('');
+                        setTopKRetrievals(detail.value);
+                      }}
+                    />
+                  </FormField>
+                  <FormField
+                    label={t('score')}
+                    stretch={true}
+                    description={t('scoreDesc')}
+                    errorText={t(scoreError)}
+                  >
+                    <Input
+                      type="number"
+                      step={0.01}
+                      value={score}
+                      onChange={({ detail }) => {
+                        if(parseFloat(detail.value) < 0 || parseFloat(detail.value) > 1){
+                          return
+                        }
+                        setScoreError('');
+                        setScore(detail.value);
                       }}
                     />
                     {isMessageEnd && (

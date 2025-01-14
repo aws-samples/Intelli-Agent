@@ -143,6 +143,7 @@ class ConversationSummaryBaseChain(LLMChain):
         llm = Model.get_model(
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
+            **kwargs
         )
         messages_chain = cls.create_messages_chain(
             **kwargs, enable_prefill=llm.enable_prefill)

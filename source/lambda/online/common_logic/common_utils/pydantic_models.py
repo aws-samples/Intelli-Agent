@@ -10,7 +10,8 @@ from common_logic.common_utils.constant import (
     IndexType,
     LLMModelType,
     SceneType,
-    Threshold
+    Threshold,
+    ModelProvider
 )
 
 from common_logic.common_utils.logger_utils import get_logger
@@ -33,7 +34,9 @@ class AllowBaseModel(BaseModel):
 
 
 class LLMConfig(AllowBaseModel):
+    provider: ModelProvider = ModelProvider.BEDROCK
     model_id: LLMModelType = LLMModelType.CLAUDE_3_SONNET
+    base_url: Union[str,None] = None
     model_kwargs: dict = {"temperature": 0.01, "max_tokens": 4096}
 
 
