@@ -22,11 +22,21 @@ import {
   RemovalPolicy,
 } from "aws-cdk-lib";
 import { CloudFrontToS3 } from "@aws-solutions-constructs/aws-cloudfront-s3";
+import { v4 as uuidv4 } from 'uuid';
 
 export interface PortalConstructOutputs {
   portalBucket: s3.Bucket;
   portalUrl: string;
 }
+
+export interface PortalConstructProps {
+  /**
+   * Optional path to the UI source files. Defaults to "../../../portal/dist"
+   */
+  uiSourcePath?: string;
+  responseHeadersPolicyName: string;
+}
+
 /**
  * Construct to provision Portal assets and CloudFront Distribution
  */
@@ -34,7 +44,7 @@ export class PortalConstruct extends Construct implements PortalConstructOutputs
   public portalBucket: s3.Bucket;
   public portalUrl: string;
 
-  constructor(scope: Construct, id: string) {
+  constructor(scope: Construct, id: string, props: PortalConstructProps) {
     super(scope, id);
     const getDefaultBehaviour = () => {
       return {
@@ -42,7 +52,7 @@ export class PortalConstruct extends Construct implements PortalConstructOutputs
           this,
           "ResponseHeadersPolicy",
           {
-            responseHeadersPolicyName: `SecHdr${Aws.REGION}${Aws.STACK_NAME}`,
+            responseHeadersPolicyName: props.responseHeadersPolicyName,
             comment: "AI-Customer-Service Security Headers Policy",
             securityHeadersBehavior: {
               contentTypeOptions: { override: true },
@@ -69,9 +79,12 @@ export class PortalConstruct extends Construct implements PortalConstructOutputs
         ),
       };
     };
+    // const randomUuid = uuidv4();
+
     // Use cloudfrontToS3 solution constructs
     const portal = new CloudFrontToS3(this, "UI", {
       bucketProps: {
+        // bucketName: `ui-construct-asset-${randomUuid}`,
         versioned: false,
         encryption: s3.BucketEncryption.S3_MANAGED,
         accessControl: s3.BucketAccessControl.PRIVATE,
@@ -107,13 +120,15 @@ export class PortalConstruct extends Construct implements PortalConstructOutputs
     this.portalBucket = portal.s3Bucket as s3.Bucket;
     this.portalUrl = portal.cloudFrontWebDistribution.distributionDomainName;
 
+    // Use provided source path or fall back to default
+    const uiSourcePath = props.uiSourcePath || path.join(__dirname, "../../../portal/dist");
+
     // Upload static web assets
     new s3d.BucketDeployment(this, "DeployWebAssets", {
-      sources: [
-        s3d.Source.asset(path.join(__dirname, "../../../portal/dist")),
-      ],
+      sources: [s3d.Source.asset(uiSourcePath)],
       destinationBucket: this.portalBucket,
       prune: false,
     });
   }
 }
+

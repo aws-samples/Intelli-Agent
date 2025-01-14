@@ -20,6 +20,7 @@ import { Role, PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 
 interface LambdaFunctionProps {
+  functionName?: string;
   runtime?: Runtime;
   handler?: string;
   code: Code;
@@ -71,6 +72,13 @@ export class LambdaFunction extends Construct {
         ...functionProps,
         role: props.role,
       };
+    }
+
+    if (props.functionName) {
+      functionProps = {
+        ...functionProps,
+        functionName: props.functionName,
+      };      
     }
 
     this.function = new Function(this, name, functionProps);

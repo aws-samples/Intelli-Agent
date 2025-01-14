@@ -88,7 +88,7 @@
     "temperatureDesc": "Higher values make the output more random",
     "topKRetrievalsDesc": "Number of top documents to retrieve",
     "scoreDesc": "Outputs with a relevance score below the threshold will not be sent to LLM",
-    "endPointDesc":"Endpoint address of LLM",
+    "endPointDesc": "Endpoint address of LLM",
     "modelName": "Model name",
     "noModelFound": "No model found",
     "chatbotName": "Chatbot Name",
@@ -167,6 +167,11 @@
     "embeddingModelName": "Embedding Model",
     "addIndex": "Add Index",
     "addIndexDesc": "Add new index for bot: ",
+    "workspace": "Workspace",
+    "recentChats": "Recent Chats",
+    "new": "New",
+    "referenceDocuments": "Reference Documents",
+    "selectADocumentToPreview": "Select a document to preview its content",
     "button": {
       "login": "Log in to AI Customer Service",
       "reload": "Reload",
@@ -223,7 +228,7 @@
       "repeatedIndexName": "The index is duplicated with a previous entry, please modify it",
       "repeatedIndex": "The index name is already in use. Please choose a different name"
     },
-    "tour":{
+    "tour": {
       "home": "Deploying this solution using the default parameters will build the environment in Amazon Web Services.",
       "chat": "Click here to start chatting with the AI assistant.",
       "session": "Session history contains all your chat history, you can resume the chat by choosing the chat history.",

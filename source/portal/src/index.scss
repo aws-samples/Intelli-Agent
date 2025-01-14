@@ -37,6 +37,10 @@
   margin-top: 10px;
 }
 
+.pd-10 {
+  padding: 10px;
+}
+
 .align-center {
   align-items: center;
 }
@@ -141,4 +145,12 @@
   display: flex;
   justify-content: center;
   margin-top: 80px;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.align-center {
+  align-items: center;
 }
