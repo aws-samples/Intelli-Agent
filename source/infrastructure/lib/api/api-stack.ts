@@ -31,7 +31,7 @@ import { UserConstructOutputs } from "../user/user-construct";
 import { LambdaFunction } from "../shared/lambda-helper";
 import { Constants } from "../shared/constants";
 import { PythonFunction } from "@aws-cdk/aws-lambda-python-alpha";
-import { BundlingFileAccess } from 'aws-cdk-lib/core';
+import { BundlingFileAccess, PhysicalName } from 'aws-cdk-lib/core';
 import { PromptApi } from "./prompt-management";
 import { IntentionApi } from "./intention-management";
 import { ModelApi } from "./model-management";
@@ -43,14 +43,66 @@ interface ApiStackProps extends StackProps {
   modelConstructOutputs: ModelConstructOutputs;
   knowledgeBaseStackOutputs: KnowledgeBaseStackOutputs;
   chatStackOutputs: ChatStackOutputs;
-  userConstructOutputs: UserConstructOutputs;
+  userPoolId: string;
+  oidcClientId: string;
+  // userConstructOutputs: UserConstructOutputs;
 }
 
-export class ApiConstruct extends Construct {
+export interface ApiConstructOutputs {
+  api: apigw.RestApi;
+  auth: apigw.RequestAuthorizer;
+  genMethodOption: any;
+  customAuthorizerLambda: LambdaFunction;
+  wsEndpoint: string;
+}
+
+export class ApiConstruct extends Construct implements ApiConstructOutputs {
   public apiEndpoint: string = "";
   public documentBucket: string = "";
   public wsEndpoint: string = "";
   public wsEndpointV2: string = "";
+  public api: apigw.RestApi;
+  public auth: apigw.RequestAuthorizer;
+  public customAuthorizerLambda: LambdaFunction;
+  public genMethodOption = (api: apigw.RestApi, auth: apigw.RequestAuthorizer, properties: any) => {
+    let responseModel = apigw.Model.EMPTY_MODEL
+    if (properties !== null) {
+      responseModel = new Model(this, `ResponseModel-${Math.random().toString(36).substr(2, 9)}`, {
+        restApi: api,
+        schema: {
+          schema: JsonSchemaVersion.DRAFT4,
+          title: 'ResponsePayload',
+          type: JsonSchemaType.OBJECT,
+          properties,
+        },
+      });
+    }
+    return {
+      authorizer: auth,
+      // apiKeyRequired: true,
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseModels: {
+            'application/json': responseModel,
+          }
+        },
+        {
+          statusCode: '400',
+          responseModels: {
+            'application/json': apigw.Model.EMPTY_MODEL,
+          },
+        },
+        {
+          statusCode: '500',
+          responseModels: {
+            'application/json': apigw.Model.EMPTY_MODEL,
+          },
+        }
+      ]
+    };
+  }
+
   private iamHelper: IAMHelper;
 
   constructor(scope: Construct, id: string, props: ApiStackProps) {
@@ -84,9 +136,13 @@ export class ApiConstruct extends Construct {
             s3.HttpMethods.POST,
             s3.HttpMethods.PUT,
             s3.HttpMethods.DELETE,
+            s3.HttpMethods.HEAD,
           ],
           allowedOrigins: ["*"],
           allowedHeaders: ["*"],
+          exposedHeaders: [
+            "Access-Control-Allow-Origin",
+          ],
         },
       ],
     });
@@ -100,7 +156,7 @@ export class ApiConstruct extends Construct {
     });
 
     // Define the API Gateway
-    const api = new apigw.RestApi(this, `${Constants.SOLUTION_SHORT_NAME.toLowerCase()}-api`, {
+    this.api = new apigw.RestApi(this, `${Constants.SOLUTION_SHORT_NAME.toLowerCase()}-api`, {
       description: `${Constants.SOLUTION_NAME} - Core API`,
       endpointConfiguration: {
         types: [apigw.EndpointType.REGIONAL],
@@ -127,21 +183,22 @@ export class ApiConstruct extends Construct {
       },
     });
 
-    const customAuthorizerLambda = new LambdaFunction(this, "CustomAuthorizerLambda", {
+    this.customAuthorizerLambda = new LambdaFunction(this, "CustomAuthorizerLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/authorizer")),
       handler: "custom_authorizer.lambda_handler",
       environment: {
-        USER_POOL_ID: props.userConstructOutputs.userPool.userPoolId,
+        USER_POOL_ID: props.userPoolId,
         REGION: Aws.REGION,
-        APP_CLIENT_ID: props.userConstructOutputs.oidcClientId,
+        APP_CLIENT_ID: props.oidcClientId,
+        // DEPLOYMENT_TIMESTAMP: Date.now().toString(),
       },
       layers: [apiLambdaAuthorizerLayer],
       statements: [props.sharedConstructOutputs.iamHelper.logStatement],
     });
 
 
-    const auth = new apigw.RequestAuthorizer(this, 'ApiAuthorizer', {
-      handler: customAuthorizerLambda.function,
+    this.auth = new apigw.RequestAuthorizer(this, 'ApiAuthorizer', {
+      handler: this.customAuthorizerLambda.function,
       identitySources: [apigw.IdentitySource.header('Authorization')],
     });
 
@@ -170,7 +227,7 @@ export class ApiConstruct extends Construct {
         statements: [this.iamHelper.s3Statement],
       });
 
-      const apiResourceStepFunction = api.root.addResource("knowledge-base");
+      const apiResourceStepFunction = this.api.root.addResource("knowledge-base");
       const apiKBExecution = apiResourceStepFunction.addResource("executions");
       if (props.knowledgeBaseStackOutputs.sfnOutput !== undefined) {
         // Integration with Step Function to trigger ETL process
@@ -196,8 +253,8 @@ export class ApiConstruct extends Construct {
           "POST",
           new apigw.LambdaIntegration(sfnLambda.function),
           {
-            ...this.genMethodOption(api, auth, null),
-            requestModels: this.genRequestModel(api, {
+            ...this.genMethodOption(this.api, this.auth, null),
+            requestModels: this.genRequestModel(this.api, {
               "chatbotId": { "type": JsonSchemaType.STRING },
               "indexType": { "type": JsonSchemaType.STRING },
               "offline": { "type": JsonSchemaType.STRING },
@@ -213,7 +270,7 @@ export class ApiConstruct extends Construct {
         "GET",
         new apigw.LambdaIntegration(executionManagementLambda.function),
         {
-          ...this.genMethodOption(api, auth, {
+          ...this.genMethodOption(this.api, this.auth, {
             Items: {
               type: JsonSchemaType.ARRAY, items: {
                 type: JsonSchemaType.OBJECT,
@@ -271,11 +328,11 @@ export class ApiConstruct extends Construct {
         "DELETE",
         new apigw.LambdaIntegration(executionManagementLambda.function),
         {
-          ...this.genMethodOption(api, auth, {
+          ...this.genMethodOption(this.api, this.auth, {
             ExecutionIds: { type: JsonSchemaType.ARRAY, items: { type: JsonSchemaType.STRING } },
             Message: { type: JsonSchemaType.STRING }
           }),
-          requestModels: this.genRequestModel(api, {
+          requestModels: this.genRequestModel(this.api, {
             "executionId": { "type": JsonSchemaType.ARRAY, "items": { "type": JsonSchemaType.STRING } },
           })
         }
@@ -286,7 +343,7 @@ export class ApiConstruct extends Construct {
         "GET",
         new apigw.LambdaIntegration(executionManagementLambda.function),
         {
-          ...this.genMethodOption(api, auth, {
+          ...this.genMethodOption(this.api, this.auth, {
             Items: {
               type: JsonSchemaType.ARRAY, items: {
                 type: JsonSchemaType.OBJECT,
@@ -311,7 +368,7 @@ export class ApiConstruct extends Construct {
           // })
         }
       );
-      apiGetExecutionById.addMethod("PUT", new apigw.LambdaIntegration(executionManagementLambda.function), this.genMethodOption(api, auth, null));
+      apiGetExecutionById.addMethod("PUT", new apigw.LambdaIntegration(executionManagementLambda.function), this.genMethodOption(this.api, this.auth, null));
 
 
       const apiUploadDoc = apiResourceStepFunction.addResource("kb-presigned-url");
@@ -320,7 +377,7 @@ export class ApiConstruct extends Construct {
         new apigw.LambdaIntegration(uploadDocLambda.function),
         {
           ...
-          this.genMethodOption(api, auth, {
+          this.genMethodOption(this.api, this.auth, {
             data: {
               type: JsonSchemaType.OBJECT,
               properties: {
@@ -331,7 +388,7 @@ export class ApiConstruct extends Construct {
             },
             message: { type: JsonSchemaType.STRING }
           }),
-          requestModels: this.genRequestModel(api, {
+          requestModels: this.genRequestModel(this.api, {
             "content_type": { "type": JsonSchemaType.STRING },
             "file_name": { "type": JsonSchemaType.STRING },
           })
@@ -358,18 +415,18 @@ export class ApiConstruct extends Construct {
       const lambdaChatbotIntegration = new apigw.LambdaIntegration(chatbotManagementLambda.function, {
         proxy: true,
       });
-      const apiResourceChatbotManagement = api.root.addResource("chatbot-management");
+      const apiResourceChatbotManagement = this.api.root.addResource("chatbot-management");
       // const chatbotResource = apiResourceChatbotManagement.addResource('chatbot');
       const apiResourceCheckDefaultChatbot = apiResourceChatbotManagement.addResource('default-chatbot');
-      apiResourceCheckDefaultChatbot.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
+      apiResourceCheckDefaultChatbot.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(this.api, this.auth, null));
       const apiResourceCheckChatbot = apiResourceChatbotManagement.addResource('check-chatbot');
       apiResourceCheckChatbot.addMethod("POST", lambdaChatbotIntegration, {
-        ...this.genMethodOption(api, auth, {
+        ...this.genMethodOption(this.api, this.auth, {
           item: {type: JsonSchemaType.STRING || JsonSchemaType.NULL},
           reason: {type: JsonSchemaType.STRING || JsonSchemaType.NULL},
           result: {type: JsonSchemaType.BOOLEAN}
         }),
-        requestModels: this.genRequestModel(api, {
+        requestModels: this.genRequestModel(this.api, {
           "chatbotId": { "type": JsonSchemaType.STRING },
           "index": {type: JsonSchemaType.OBJECT,
                     properties: {
@@ -386,22 +443,22 @@ export class ApiConstruct extends Construct {
       });
       const apiResourceCheckIndex = apiResourceChatbotManagement.addResource('check-index');
       apiResourceCheckIndex.addMethod("POST", lambdaChatbotIntegration, {
-        ...this.genMethodOption(api, auth, {
+        ...this.genMethodOption(this.api, this.auth, {
           reason: {type: JsonSchemaType.STRING || JsonSchemaType.NULL},
           result: {type: JsonSchemaType.BOOLEAN}
         }),
-        requestModels: this.genRequestModel(api, {
+        requestModels: this.genRequestModel(this.api, {
           "index": { "type": JsonSchemaType.STRING },
           "model": { "type": JsonSchemaType.STRING },
         })
       });
       const apiResourceListIndex = apiResourceChatbotManagement.addResource('indexes').addResource('{chatbotId}');
-      apiResourceListIndex.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
+      apiResourceListIndex.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(this.api, this.auth, null));
       const apiResourceEditChatBot = apiResourceChatbotManagement.addResource('edit-chatbot');
-      apiResourceEditChatBot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
+      apiResourceEditChatBot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(this.api, this.auth, null));
       const apiResourceChatbots = apiResourceChatbotManagement.addResource("chatbots");
       apiResourceChatbots.addMethod("POST", lambdaChatbotIntegration, {
-        ...this.genMethodOption(api, auth, {
+        ...this.genMethodOption(this.api, this.auth, {
           chatbotId: { type: JsonSchemaType.STRING },
           groupName: { type: JsonSchemaType.STRING },
           indexIds: {
@@ -411,7 +468,7 @@ export class ApiConstruct extends Construct {
           modelType: {type: JsonSchemaType.STRING},
           Message: {type: JsonSchemaType.STRING},
         }),
-        requestModels: this.genRequestModel(api, {
+        requestModels: this.genRequestModel(this.api, {
           "chatbotId": { "type": JsonSchemaType.STRING },
           "index": {type: JsonSchemaType.OBJECT,
                     properties: {
@@ -428,7 +485,7 @@ export class ApiConstruct extends Construct {
         )
       });
       apiResourceChatbots.addMethod("GET", lambdaChatbotIntegration, {
-        ...this.genMethodOption(api, auth, {
+        ...this.genMethodOption(this.api, this.auth, {
           Items: {
             type: JsonSchemaType.ARRAY, items: {
               type: JsonSchemaType.OBJECT,
@@ -467,16 +524,16 @@ export class ApiConstruct extends Construct {
       })
 
       const apiResourceChatbotManagementEmbeddings = apiResourceChatbotManagement.addResource("embeddings")
-      apiResourceChatbotManagementEmbeddings.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
+      apiResourceChatbotManagementEmbeddings.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(this.api, this.auth, null));
 
       const apiResourceChatbotProxy = apiResourceChatbots.addResource("{proxy+}")
-      apiResourceChatbotProxy.addMethod("DELETE", lambdaChatbotIntegration, this.genMethodOption(api, auth, null),);
-      apiResourceChatbotProxy.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null),);
+      apiResourceChatbotProxy.addMethod("DELETE", lambdaChatbotIntegration, this.genMethodOption(this.api, this.auth, null),);
+      apiResourceChatbotProxy.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(this.api, this.auth, null),);
 
       const chatHistoryApi = new ChatHistoryApi(
         scope, "ChatHistoryApi", {
-          api: api,
-          auth: auth,
+          api: this.api,
+          auth: this.auth,
           messagesTableName: messagesTableName,
           sessionsTableName: sessionsTableName,
           iamHelper: this.iamHelper,
@@ -486,8 +543,8 @@ export class ApiConstruct extends Construct {
 
       const promptApi = new PromptApi(
         scope, "PromptApi", {
-          api: api,
-          auth: auth,
+          api: this.api,
+          auth: this.auth,
           promptTableName: props.chatStackOutputs.promptTableName,
           sharedLayer: sharedLayer,
           iamHelper: this.iamHelper,
@@ -498,8 +555,8 @@ export class ApiConstruct extends Construct {
 
       const intentionApi = new IntentionApi(
         scope, "IntentionApi", {
-          api: api,
-          auth: auth,
+          api: this.api,
+          auth: this.auth,
           vpc: vpc!,
           securityGroups: securityGroups!,
           intentionTableName: props.chatStackOutputs.intentionTableName,
@@ -520,8 +577,8 @@ export class ApiConstruct extends Construct {
 
       const modelApi = new ModelApi(
         scope, "ModelApi", {
-          api: api,
-          auth: auth,
+          api: this.api,
+          auth: this.auth,
           modelTable: props.sharedConstructOutputs.modelTable.tableName,
           sharedLayer: sharedLayer,
           iamHelper: this.iamHelper,
@@ -537,8 +594,8 @@ export class ApiConstruct extends Construct {
       );
 
       // Define the API Gateway Method
-      const apiResourceLLM = api.root.addResource("llm");
-      apiResourceLLM.addMethod("POST", lambdaExecutorIntegration, this.genMethodOption(api, auth, null));
+      const apiResourceLLM = this.api.root.addResource("llm");
+      apiResourceLLM.addMethod("POST", lambdaExecutorIntegration, this.genMethodOption(this.api, this.auth, null));
 
       const lambdaDispatcher = new LambdaFunction(this, "lambdaDispatcher", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/dispatcher")),
@@ -551,14 +608,14 @@ export class ApiConstruct extends Construct {
       const webSocketApi = new WebSocketConstruct(this, "WebSocketApi", {
         dispatcherLambda: lambdaDispatcher.function,
         sendMessageLambda: props.chatStackOutputs.lambdaOnlineMain,
-        customAuthorizerLambda: customAuthorizerLambda.function,
+        customAuthorizerLambda: this.customAuthorizerLambda.function,
       });
       let wsStage = webSocketApi.websocketApiStage
       this.wsEndpoint = `${wsStage.api.apiEndpoint}/${wsStage.stageName}/`;
 
     }
 
-    this.apiEndpoint = api.url;
+    this.apiEndpoint = this.api.url;
     this.documentBucket = s3Bucket.bucketName;
     // this.apiKey = apiKeyValue;
   }
@@ -573,45 +630,6 @@ export class ApiConstruct extends Construct {
       counter += 1;
     }
     return apiKeyValue;
-  }
-
-  genMethodOption = (api: apigw.RestApi, auth: apigw.RequestAuthorizer, properties: any) => {
-    let responseModel = apigw.Model.EMPTY_MODEL
-    if (properties !== null) {
-      responseModel = new Model(this, `ResponseModel-${Math.random().toString(36).substr(2, 9)}`, {
-        restApi: api,
-        schema: {
-          schema: JsonSchemaVersion.DRAFT4,
-          title: 'ResponsePayload',
-          type: JsonSchemaType.OBJECT,
-          properties,
-        },
-      });
-    }
-    return {
-      authorizer: auth,
-      // apiKeyRequired: true,
-      methodResponses: [
-        {
-          statusCode: '200',
-          responseModels: {
-            'application/json': responseModel,
-          }
-        },
-        {
-          statusCode: '400',
-          responseModels: {
-            'application/json': apigw.Model.EMPTY_MODEL,
-          },
-        },
-        {
-          statusCode: '500',
-          responseModels: {
-            'application/json': apigw.Model.EMPTY_MODEL,
-          },
-        }
-      ]
-    };
   }
 
   genRequestModel = (api: apigw.RestApi, properties: any) => {
