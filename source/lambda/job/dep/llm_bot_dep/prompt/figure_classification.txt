@@ -1,0 +1,113 @@
+Your task is to determine the type of the given image. Please carefully examine the image. All possible image types and their explanations are contained within the <categories></categories> XML tag. You need to output the "category name" within the <output></output> XML tag.
+
+<categories>
+<category>
+<name>
+Flowcharts
+</name>
+<description>
+Flowcharts are composed of nodes (geometric shapes) and edges (arrows or lines). The Mermaid code defines how nodes and edges are made and accommodates different arrow types, multi-directional arrows, and any linking to and from subgraphs.
+</description>
+</category>
+
+<category>
+<name>
+Sequence diagrams
+</name>
+<description>
+A Sequence diagram is an interaction diagram that shows how processes operate with one another and in what order.
+</description>
+</category>
+
+<category>
+<name>
+Timeline Diagram
+</name>
+<description>
+A timeline is a type of diagram used to illustrate a chronology of events, dates, or periods of time. It is usually presented graphically to indicate the passing of time, and it is usually organized chronologically. A basic timeline presents a list of events in chronological order, usually using dates as markers. A timeline can also be used to show the relationship between events, such as the relationship between the events of a person's life
+</description>
+</category>
+
+<category>
+<name>
+Class diagrams
+</name>
+<description>
+In software engineering, a class diagram in the Unified Modeling Language (UML) is a type of static structure diagram that describes the structure of a system by showing the system's classes, their attributes, operations (or methods), and the relationships among objects.
+</description>
+</category>
+
+<category>
+<name>
+State diagrams
+</name>
+<description>
+A state diagram is a type of diagram used in computer science and related fields to describe the behavior of systems. State diagrams require that the system described is composed of a finite number of states; sometimes, this is indeed the case, while at other times this is a reasonable abstraction.
+</description>
+</category>
+
+<category>
+<name>
+Gantt diagrams
+</name>
+<description>
+A Gantt chart is a type of bar chart, first developed by Karol Adamiecki in 1896, and independently by Henry Gantt in the 1910s, that illustrates a project schedule and the amount of time it would take for any one project to finish. Gantt charts illustrate number of days between the start and finish dates of the terminal elements and summary elements of a project.
+</description>
+</category>
+
+<category>
+<name>
+Entity Relationship Diagrams
+</name>
+<description>
+An entity–relationship model (or ER model) describes interrelated things of interest in a specific domain of knowledge. A basic ER model is composed of entity types (which classify the things of interest) and specifies relationships that can exist between entities (instances of those entity types).
+</description>
+</category>
+
+<category>
+<name>
+XY Chart
+</name>
+<description>
+In the context of mermaid-js, the XY chart is a comprehensive charting module that encompasses various types of charts that utilize both x-axis and y-axis for data representation. Presently, it includes two fundamental chart types: the bar chart and the line chart. These charts are designed to visually display and analyze data that involve two numerical variables.
+</description>
+</category>
+
+<category>
+<name>
+Pie chart diagrams
+</name>
+<description>
+A pie chart (or a circle chart) is a circular statistical graphic, which is divided into slices to illustrate numerical proportion. In a pie chart, the arc length of each slice (and consequently its central angle and area), is proportional to the quantity it represents. While it is named for its resemblance to a pie which has been sliced, there are variations on the way it can be presented.
+</description>
+</category>
+
+<category>
+<name>
+Quadrant Chart
+</name>
+<description>
+A quadrant chart is a visual representation of data that is divided into four quadrants. It is used to plot data points on a two-dimensional grid, with one variable represented on the x-axis and another variable represented on the y-axis. The quadrants are determined by dividing the chart into four equal parts based on a set of criteria that is specific to the data being analyzed. Quadrant charts are often used to identify patterns and trends in data, and to prioritize actions based on the position of data points within the chart. They are commonly used in business, marketing, and risk management, among other fields.
+</description>
+</category>
+
+<category>
+<name>
+Non-Chart Images
+</name>
+<description>
+Non-Chart Images encompass a diverse range of visual content that does not fit into the structured, data-representing format of charts or diagrams. This category includes:
+- Photographs: Captured images representing real-world scenes or subjects.
+- Illustrations: Artistic images or drawings created to visually represent ideas, concepts, or narratives.
+- Screenshots: Digital images capturing the content displayed on a screen at a particular moment.
+- Logos: Graphic symbols or emblems used to identify and represent a company, organization, product, or brand.
+- Cartoons: Illustrated art, often humorous or exaggerated, featuring characters and scenes that convey a story or commentary.
+- Paintings: Artistic creations using mediums such as oil, acrylic, watercolor, or digital tools, representing scenes, subjects, or abstract concepts.
+- 3D Renders: Digital images created using three-dimensional modeling software, representing objects, scenes, or characters in a realistic or stylized manner.
+- Infographics: Visual representations of information combining graphics, charts, and text to communicate messages quickly and clearly.
+- Meme Images: Humorous or satirical images widely shared on the internet, often combining text and pictures to convey jokes or cultural references.
+- Clip Art: Simple, pre-made images or graphics used to illustrate various documents and presentations, including icons, symbols, and basic illustrations.
+These images serve various purposes, from artistic expression and communication to documentation and entertainment, but do not adhere to the structured formats typical of chart-based diagrams.
+</description>
+</category>
+</categories>
