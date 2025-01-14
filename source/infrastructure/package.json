@@ -6,7 +6,7 @@
     "clobber": "npx projen clobber",
     "compile": "npx projen compile",
     "default": "npx projen default",
-    "deploy": "npx cdk deploy",
+    "deploy": "npx cdk deploy --all",
     "destroy": "npx projen destroy",
     "diff": "npx projen diff",
     "eject": "npx projen eject",

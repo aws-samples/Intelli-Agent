@@ -1,0 +1,27 @@
+Your task is to analyze {diagram_type} in an image and provide a detailed description of the workflow. Additionally, you need to:
+
+1. Extract the objects and their relationships from the image.
+2. Transform the extracted workflow into Mermaid chart code.
+
+Follow these steps:
+
+1. Describe the workflow in detail, including all the steps and their relationships.
+2. Extract the objects (steps, decisions, etc.) and their relationships from the workflow.
+3. Use the extracted information to generate the corresponding Mermaid chart code, ensuring generated code strictly follow the Mermaid syntax, e.g. enclosing the node labels in double quotes to ensure that Mermaid correctly interprets the entire label as a single entity, avoiding the parse errors caused by special characters.
+
+Your response should be structured as follows:
+
+<description>
+[Detailed description of the workflow and Mermaid chart template selection]
+</description>
+
+<mermaid>
+[Mermaid chart code representing the workflow]
+</mermaid>
+
+
+Below are example of {diagram_type} mermaid templates. The example include a detailed description of the workflow along with Mermaid chart codes. Use the example as reference when analyzing the workflow diagram in the image.
+
+<example>
+{diagram_example}
+</example>
