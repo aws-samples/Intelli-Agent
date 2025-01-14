@@ -157,7 +157,6 @@ export const ChatMessage: React.FC = () => {
         max_rounds_in_memory: 7,
         group_name: groupName?.[0] ?? 'Admin',
         chatbot_id: 'admin',
-        goods_id: '756327274174',
         chatbot_mode: 'agent',
         use_history: true,
         enable_trace: true,
