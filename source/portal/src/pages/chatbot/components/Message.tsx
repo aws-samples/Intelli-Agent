@@ -17,7 +17,7 @@ import type { IconProps } from '@cloudscape-design/components';
 import { useAppDispatch } from 'src/app/hooks';
 import {
   setActiveDocumentId,
-  setAutoSendMessage,
+  // setAutoSendMessage,
 } from 'src/app/slice/cs-workspace';
 
 interface MessageProps {
@@ -191,7 +191,7 @@ const Message: React.FC<MessageProps> = ({
                         ariaLabel="copy"
                       />
                     </Popover>
-                    <Button
+                    {/* <Button
                       iconName="send"
                       variant="icon"
                       onClick={() => {
@@ -199,7 +199,7 @@ const Message: React.FC<MessageProps> = ({
                         dispatch(setAutoSendMessage(message.data));
                       }}
                       ariaLabel="send"
-                    />
+                    /> */}
                   </div>
                 </div>
               )}
