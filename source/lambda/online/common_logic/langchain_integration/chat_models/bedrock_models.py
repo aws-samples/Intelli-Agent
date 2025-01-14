@@ -18,6 +18,7 @@ logger = get_logger("bedrock_model")
 
 class ChatBedrockConverse(_ChatBedrockConverse):
     enable_any_tool_choice: bool = False
+    any_tool_choice_value:str = 'any'
     enable_prefill: bool = True
 
 
@@ -26,7 +27,7 @@ class BedrockBaseModel(Model):
     default_model_kwargs = {"max_tokens": 2000,
                             "temperature": 0.7, "top_p": 0.9}
     enable_any_tool_choice = False
-    any_tool_choice_value = 'any'
+    any_tool_choice_value:str = 'any'
     model_provider = ModelProvider.BEDROCK
 
     @classmethod

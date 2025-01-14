@@ -50,13 +50,18 @@ class Model(ModeMixins, metaclass=ModelMeta):
         raise NotImplementedError
     
     @classmethod
-    def get_model_id(cls):
-        return f"{cls.model_id}__{cls.model_provider}"
+    def get_model_id(cls,model_id=None,model_provider=None):
+        if model_id is None:
+            model_id = cls.model_id
+        if model_provider is None:
+            model_provider = cls.model_provider
+        return f"{model_id}__{model_provider}"
     @classmethod
     def get_model(cls, model_id, model_kwargs=None, **kwargs):
+        model_provider = kwargs['provider']
         # dynamic load module
         _load_module(model_id)
-        return cls.model_map[cls.get_model_id()].create_model(model_kwargs=model_kwargs, **kwargs)
+        return cls.model_map[cls.get_model_id(model_id=model_id,model_provider=model_provider)].create_model(model_kwargs=model_kwargs, **kwargs)
 
     @classmethod
     def model_id_to_class_name(cls, model_id: str) -> str:
