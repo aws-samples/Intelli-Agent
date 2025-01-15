@@ -13,12 +13,14 @@ current_region = session.region_name
 
 class SageMakerVllmChatModel(_SageMakerVllmChatModel):
     enable_any_tool_choice: bool = False
+    any_tool_choice_value:str = 'any'
     enable_prefill: bool = True
     
 
 class Qwen25Instruct72bAwq(Model):
     model_id = LLMModelType.QWEN25_INSTRUCT_72B_AWQ
     enable_any_tool_choice: bool = False
+    any_tool_choice_value:str = 'any'
     enable_prefill: bool = True
     default_model_kwargs = {
         "max_tokens": 2000,

@@ -15,6 +15,7 @@ logger = get_logger("brconnector_bedrock_model")
 
 class BrconnetorChatOpenAI(ChatOpenAI):
     enable_any_tool_choice: bool = False
+    any_tool_choice_value:str = 'any'
     enable_prefill: bool = True
     
 
