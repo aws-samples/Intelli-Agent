@@ -60,7 +60,7 @@ s3_client = boto3.client("s3")
 
 class figureUnderstand:
     """A class to understand and process figures using LLM.
-    
+
     This class provides methods to analyze images using Claude 3 Sonnet model,
     classify them, and generate appropriate descriptions or representations.
     """
@@ -72,13 +72,13 @@ class figureUnderstand:
 
     def invoke_llm(self, img, prompt, prefix="<output>", stop="</output>"):
         """Invoke the LLM model with an image and prompt.
-        
+
         Args:
             img: Either a base64 encoded string or PIL Image object
             prompt (str): The prompt to send to the model
             prefix (str): Starting tag for the output
             stop (str): Ending tag for the output
-        
+
         Returns:
             str: The model's response with prefix and stop tags
         """
@@ -227,7 +227,7 @@ def process_single_image(
     img_path: str, context: str, image_tag: str, bucket_name: str, file_name: str, idx: int
 ) -> str:
     """Process a single image and return its understanding text.
-    
+
     Args:
         img_path (str): Path to the image file
         context (str): Surrounding text context for the image
@@ -235,10 +235,10 @@ def process_single_image(
         bucket_name (str): S3 bucket name for uploading
         file_name (str): Base file name for S3 path
         idx (int): Index number of the image
-    
+
     Returns:
         str: The processed understanding text for the image, or None if image is too small
-    
+
     Raises:
         Various exceptions during image processing and upload
     """
@@ -263,19 +263,19 @@ def process_single_image(
 
 def process_markdown_images_with_llm(content: str, bucket_name: str, file_name: str) -> str:
     """Process all images in markdown content and upload them to S3.
-    
+
     This function:
     1. Finds all markdown image references in the content
     2. Downloads images if they are URLs
     3. Processes each image with LLM
     4. Uploads images to S3
     5. Replaces image references with processed understanding
-    
+
     Args:
         content (str): The markdown content containing images
         bucket_name (str): S3 bucket name for uploading
         file_name (str): Base file name for S3 path
-    
+
     Returns:
         str: Updated content with processed image understandings
     """
@@ -299,7 +299,7 @@ def process_markdown_images_with_llm(content: str, bucket_name: str, file_name: 
                     img_path = download_image_from_url(img_path)
                 except Exception as e:
                     logger.error(f"Error downloading image from URL {img_path}: {e}")
-                    result += match.group(0)
+                    result += match.group(1)
                     last_end = end
                     continue
 
@@ -314,11 +314,11 @@ def process_markdown_images_with_llm(content: str, bucket_name: str, file_name: 
             if understanding:
                 result += f"\n\n{understanding}\n\n"
             else:
-                result += match.group(0)
+                result += match.group(1)
 
         except Exception as e:
             logger.error(f"Error processing image {idx}: {e}")
-            result += match.group(0)
+            result += match.group(1)
 
         last_end = end
 
