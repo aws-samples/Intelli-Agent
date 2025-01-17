@@ -67,7 +67,6 @@ class CustomHtmlLoader(BaseLoader):
         html_content = self.clean_html(file_content)
         file_content = markdownify.markdownify(html_content, heading_style="ATX")
         file_content = process_markdown_images_with_llm(file_content, bucket_name, file_name)
-        print(file_content)
         doc = Document(
             page_content=file_content,
             metadata={"file_type": "html", "file_path": self.aws_path},
