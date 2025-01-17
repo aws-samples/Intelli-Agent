@@ -27,6 +27,9 @@ class EntryType(ConstantBase):
     COMMON = "common"
     RETAIL = "retail"
 
+class ParamType(ConstantBase):
+    NEST = "nest"
+    FLAT = "flat"
 
 class SceneType(ConstantBase):
     COMMON = "common"

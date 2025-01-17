@@ -5,7 +5,7 @@ env:
     REPOSITORY_URL: "https://github.com/aws-samples/Intelli-Agent.git"
     CODE_BRANCH: "main"
     PROJECT_NAME: "Intelli-Agent"
-    STACK_NAME: "ai-customer-service"
+    STACK_NAME: "api-test-ai-customer-service"
     DEPLOY_STACK: "cdk"
     CLEAN_RESOURCES: "no"
     TEST_FAST: "false"

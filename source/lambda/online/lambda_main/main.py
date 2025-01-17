@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import boto3
 from botocore.exceptions import ClientError
-from common_logic.common_utils.constant import EntryType
+from common_logic.common_utils.constant import EntryType, ParamType
 from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
 from common_logic.common_utils.lambda_invoke_utils import (
     chatbot_lambda_call_wrapper,
@@ -361,6 +361,9 @@ def lambda_handler(event_body: dict, context: dict):
     # set GROUP_NAME for dmaa model initialize
     os.environ['GROUP_NAME'] = event_body.get(
         "chatbot_config", {}).get("group_name", "Admin")
+    param_type = event_body.get("param_type", ParamType.NEST).lower()
+    if(param_type == ParamType.FLAT):
+        __convert_flat_param_to_dict(event_body)
     entry_type = event_body.get("entry_type", EntryType.COMMON).lower()
     try:
         entry_executor = get_entry(entry_type)
@@ -384,3 +387,21 @@ def lambda_handler(event_body: dict, context: dict):
         process_response(event_body, error_response)
         logger.error(f"{traceback.format_exc()}\nAn error occurred: {str(e)}")
         return {"error": str(e)}
+    
+def __convert_flat_param_to_dict(event_body: dict):
+    event_body["chatbot_config"]["max_rounds_in_memory"] = event_body["chatbot_max_rounds_in_memory"]
+    event_body["chatbot_config"]["group_name"] = event_body["chatbot_group_name"]
+    event_body["chatbot_config"]["chatbot_id"] = event_body["chatbot_id"] 
+    event_body["chatbot_config"]["goods_id"] = event_body["chatbot_goods_id"] 
+    event_body["chatbot_config"]["chatbot_mode"] = event_body["chatbot_mode"] 
+    event_body["chatbot_config"]["use_history"] = event_body["chatbot_use_history"] 
+    event_body["chatbot_config"]["enable_trace"] = event_body["chatbot_enable_trace"] 
+    event_body["chatbot_config"]["use_websearch"] = event_body["chatbot_use_websearch"] 
+    event_body["chatbot_config"]["google_api_key"] = event_body["chatbot_google_api_key"]
+    event_body["chatbot_config"]["default_llm_config"]["model_id"] = event_body["llm_model_id"]
+    event_body["chatbot_config"]["default_llm_config"]["endpoint_name"] = event_body["llm_endpoint_name"]
+    event_body["chatbot_config"]["model_kwargs"]["temperature"] = event_body["llm_temperature"]
+    event_body["chatbot_config"]["model_kwargs"]["max_tokens"] = event_body["llm_max_tokens"]
+    event_body["chatbot_config"]["private_knowledge_config"]["top_k"] = event_body["private_knowledge_top_k"]
+    event_body["chatbot_config"]["private_knowledge_config"]["score"] = event_body["private_knowledge_score"]
+    event_body["chatbot_config"]["agent_config"]["only_use_rag_tool"] = event_body["only_use_rag_tool"] 

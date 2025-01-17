@@ -1067,65 +1067,161 @@ components:
           description: A combination with chatbot id, model id and scene, e.g. anthropic.claude-3-haiku-20240307-v1:0__common__titanv2
     LLMRequest:
       type: object
-      required:
-        - entry_type
-        - query
-        - session_id
-        - user_id
-        - chatbot_config
-      properties:
-        entry_type:
-          type: string
-          description: Scenario type, the default is common
-        query:
-          type: string
-          description: Query or question sent to the agent
-        session_id:
-          type: string
-          description: Chat session ID
-        user_id:
-          type: string
-          description: User id
-        chatbot_config:
-          type: object
-          description: Chatbot config used in this chat 
-          required:
-            - agent_config
-            - chatbot_id
-            - chatbot_mode
-            - default_llm_config
-            - enable_trace
-            - group_name
-            - use_history
-          properties:
-            agent_config:
+      oneOf:
+        - properties:
+            entry_type:
+              type: string
+              description: Scenario type, the default is common
+            query:
+              type: string
+              description: Query or question sent to the agent
+            session_id:
+              type: string
+              description: Chat session ID
+            user_id:
+              type: string
+              description: User id
+            chatbot_config:
               type: object
+              description: Chatbot config used in this chat 
+              required:
+                - agent_config
+                - chatbot_id
+                - chatbot_mode
+                - default_llm_config
+                - enable_trace
+                - group_name
+                - max_rounds_in_memory
+                - private_knowledge_config
+                - use_history
               properties:
-                only_use_rag_tool:
+                agent_config:
+                  type: object
+                  properties:
+                    only_use_rag_tool:
+                      type: boolean
+                chatbot_id:
+                  type: string
+                chatbot_mode:
+                  type: string
+                default_llm_config:
+                  type: object
+                  properties:
+                    model_id:
+                      type: string
+                    model_kwargs:
+                      type: object
+                      properties:
+                        max_tokens:
+                          type: integer
+                        temperature:
+                          type: number
+                          format: float
+                enable_trace:
                   type: boolean
+                group_name:
+                  type: string
+                max_rounds_in_memory:
+                  type: integer
+                private_knowledge_config:
+                  type: object
+                  properties:
+                    top_k: 
+                      type: integer
+                    score:
+                      type: number
+                      format: float
+                use_history:
+                  type: boolean
+                use_websearch:
+                  type: boolean
+            param_type:
+              type: string
+              description: The input parameter format (flat/nested)
+          required:
+            - entry_type
+            - query
+            - session_id
+            - user_id
+            - chatbot_config
+        - properties:
+            entry_type:
+              type: string
+              description: Scenario type, the default is common
+            query:
+              type: string
+              description: Query or question sent to the agent
+            session_id:
+              type: string
+              description: Chat session ID
+            user_id:
+              type: string
+              description: User id
+            chatbot_max_rounds_in_memory:
+              type: integer
+              description: Maximum number of rounds of conversation to be stored in memory
+            chatbot_group_name:
+              type: string
             chatbot_id:
+              type: string
+            chatbot_goods_id:
               type: string
             chatbot_mode:
               type: string
-            default_llm_config:
-              type: object
-              properties:
-                model_id:
-                  type: string
-                model_kwargs:
-                  type: object
-                  properties:
-                    max_tokens:
-                      type: integer
-                    temperature:
-                      type: number
-                      format: float
-            enable_trace:
+            chatbot_use_history:
               type: boolean
-            group_name:
+            chatbot_enable_trace:
+              type: boolean
+            chatbot_use_websearch:
+              type: boolean
+            chatbot_google_api_key:
               type: string
-            use_history:
+            llm_model_id:
+              type: string
+            llm_endpoint_name:
+              type: string
+            llm_temperature:
+              type: number
+              format: float
+              description: Higher values make the output more random
+            llm_max_tokens:
+              type: integer
+              description: Max length of tokens that LLM process in a sequence
+            private_knowledge_top_k:
+              type: integer
+              description: Number of top documents to retrieve
+            private_knowledge_score:
+              type: number
+              format: float
+              description: Outputs with a relevance score below the threshold will not be sent to LLM
+            only_use_rag_tool:
               type: boolean
+              description: Specifies whether to restrict the system to using only RAG tools
+            param_type:
+              type: string
+              description: The input parameter format (flat/nested)
+          required:
+            - entry_type
+            - query
+            - session_id
+            - user_id
+            - chatbot_max_rounds_in_memory
+            - chatbot_group_name
+            - chatbot_id 
+            - chatbot_goods_id 
+            - chatbot_mode 
+            - chatbot_use_history 
+            - chatbot_enable_trace 
+            - chatbot_use_websearch 
+            - chatbot_google_api_key
+            - llm_model_id
+            - llm_endpoint_name
+            - llm_temperature
+            - llm_max_tokens
+            - private_knowledge_top_k
+            - private_knowledge_score
+            - only_use_rag_tool
+            - param_type
   securitySchemes:
     aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0:
       type: "apiKey"
