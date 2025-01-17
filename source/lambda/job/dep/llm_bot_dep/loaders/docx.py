@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -13,9 +12,6 @@ from langchain.document_loaders.base import BaseLoader
 from llm_bot_dep.loaders.html import CustomHtmlLoader
 from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
 from PIL import Image
-
-# sys.path.append("/home/ubuntu/icyxu/code/solutions/Intelli-Agent/source/lambda/job/dep")
-
 
 logger = logging.getLogger(__name__)
 
@@ -118,15 +114,3 @@ def process_doc(s3, **kwargs):
     doc_list = splitter.split_text(doc)
 
     return doc_list
-
-
-# if __name__ == "__main__":
-#     import boto3
-
-#     s3 = boto3.client("s3")
-#     kwargs = {
-#         "res_bucket": "ai-customer-service-sharedconstructaicustomerservi-wywyift3c084",
-#         "bucket": "ai-customer-service-sharedconstructaicustomerservi-wywyift3c084",
-#         "key": "workshop/CATS.docx",
-#     }
-#     process_doc(s3, **kwargs)
