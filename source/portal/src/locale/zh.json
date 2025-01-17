@@ -97,7 +97,7 @@
     "temperatureDesc": "数值越大，输出越随机",
     "topKRetrievalsDesc": "获取最关联的文档数",
     "scoreDesc": "相关性得分低于阈值的输出将不会输入到大语言模型",
-    "endPointDesc":"大模型对应的终端",
+    "endPointDesc": "大模型对应的终端",
     "modelName": "模型名称",
     "noModelFound": "未找到模型",
     "chatbotName": "机器人名称",
@@ -167,6 +167,11 @@
     "indexLeft": "尚未配置索引，点击",
     "indexUsedByModel": "该索引已经关联了其他的向量化模型",
     "indexRight": "添加索引.",
+    "workspace": "工作台",
+    "recentChats": "最近会话",
+    "new": "新消息",
+    "referenceDocuments": "参考文档",
+    "selectADocumentToPreview": "选择一个文档以预览其内容",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
@@ -216,7 +221,7 @@
       "indexValid": "索引已经被其他模型使用，请变更索引名称",
       "repeatedIndex": "索引名称和现有索引重复，请更换名称"
     },
-    "tour":{
+    "tour": {
       "home": "使用默认参数部署此解决方案将在亚马逊网络服务（Amazon Web Services）中构建此环境。",
       "chat": "点击此处开始与人工智能助手对话。",
       "session": "会话历史包含您所有的聊天记录，您可以通过选择聊天历史来恢复对话。",

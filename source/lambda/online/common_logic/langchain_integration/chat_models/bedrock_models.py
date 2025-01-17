@@ -3,9 +3,13 @@ import boto3
 from langchain_aws.chat_models import ChatBedrockConverse as _ChatBedrockConverse
 from common_logic.common_utils.constant import (
     MessageType,
-    LLMModelType
+    LLMModelType,
+    ModelProvider
 )
-from common_logic.common_utils.logger_utils import get_logger, llm_messages_print_decorator
+from common_logic.common_utils.logger_utils import (
+    get_logger, 
+    llm_messages_print_decorator
+)
 from . import Model
 from ..model_config import MODEL_CONFIGS
 
@@ -13,7 +17,8 @@ logger = get_logger("bedrock_model")
 
 
 class ChatBedrockConverse(_ChatBedrockConverse):
-    enable_auto_tool_choice: bool = False
+    enable_any_tool_choice: bool = False
+    any_tool_choice_value:str = 'any'
     enable_prefill: bool = True
 
 
@@ -21,7 +26,9 @@ class BedrockBaseModel(Model):
     
     default_model_kwargs = {"max_tokens": 2000,
                             "temperature": 0.7, "top_p": 0.9}
-    enable_auto_tool_choice = False
+    enable_any_tool_choice = False
+    any_tool_choice_value:str = 'any'
+    model_provider = ModelProvider.BEDROCK
 
     @classmethod
     def create_model(cls, model_kwargs=None, **kwargs):
@@ -53,7 +60,7 @@ class BedrockBaseModel(Model):
                 client=client,
                 region_name=region_name,
                 model=cls.model_id,
-                enable_auto_tool_choice=cls.enable_auto_tool_choice,
+                enable_any_tool_choice=cls.enable_any_tool_choice,
                 enable_prefill=cls.enable_prefill,
                 **model_kwargs,
             )
@@ -62,7 +69,7 @@ class BedrockBaseModel(Model):
                 credentials_profile_name=credentials_profile_name,
                 region_name=region_name,
                 model=cls.model_id,
-                enable_auto_tool_choice=cls.enable_auto_tool_choice,
+                enable_any_tool_choice=cls.enable_any_tool_choice,
                 enable_prefill=cls.enable_prefill,
                 **model_kwargs,
             )
