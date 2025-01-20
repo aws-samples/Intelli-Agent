@@ -52,6 +52,7 @@ try:
             "OPERATION_TYPE",
             "PORTAL_BUCKET",
             "BEDROCK_REGION",
+            "CROSS_ACCOUNT_BEDROCK_KEY",
         ],
     )
 except Exception as e:
@@ -86,6 +87,7 @@ except Exception as e:
     args["RES_BUCKET"] = os.environ["RES_BUCKET"]
     args["REGION"] = os.environ["REGION"]
     args["BEDROCK_REGION"] = os.environ["BEDROCK_REGION"]
+    args["CROSS_ACCOUNT_BEDROCK_KEY"] = os.environ["CROSS_ACCOUNT_BEDROCK_KEY"]
     args["PORTAL_BUCKET"] = os.environ.get("PORTAL_BUCKET", None)
 
 from llm_bot_dep import sm_utils
@@ -115,6 +117,7 @@ table_item_id = args["TABLE_ITEM_ID"]
 qa_enhancement = args["QA_ENHANCEMENT"]
 region = args["REGION"]
 bedrock_region = args["BEDROCK_REGION"]
+bedrock_api_key_arn = args["CROSS_ACCOUNT_BEDROCK_KEY"]
 res_bucket = args["RES_BUCKET"]
 s3_bucket = args["S3_BUCKET"]
 s3_prefix = args["S3_PREFIX"]
@@ -737,6 +740,7 @@ def main():
             region_name=region,
             bedrock_region=bedrock_region,
             model_type=embedding_model_type,
+            bedrock_api_key_arn=bedrock_api_key_arn,
         )
         aws_auth = get_aws_auth()
         docsearch = OpenSearchVectorSearch(
