@@ -178,7 +178,7 @@ To deploy this asset, you will incur charges for the use of Amazon Web Services.
     <td rowspan="2">Visiting the UI 10 times per workday generates a combined size of 400MB for online and offline logs. The fixed asset size of the UI is 2.1MB. A 100MB PDF, after being split, generates approximately 300MB of S3 files. Adding the fixed assets of the model, which are 20.9GB, the total S3 usage per month is approximately 21.6GB. <br><br>S3 Standard Storage: 21.6GB<br>PUT Request: 1000/Mon.<br>SELECT Request: 10000/Mon.<br>RETURN/SCAN Data: 1GB/Mon. </td>
   </tr>
   <tr>
-    <td rowspan="11">Core</td>
+    <td rowspan="10">Core</td>
     <td>Amazon S3</td>
     <td>Y</td>
     <td>0.38</td>
