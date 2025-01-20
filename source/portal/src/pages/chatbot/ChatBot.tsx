@@ -27,9 +27,7 @@ import ConfigContext from 'src/context/config-context';
 import { useAuth } from 'react-oidc-context';
 import {
   LLM_BOT_COMMON_MODEL_LIST,
-  LLM_BOT_RETAIL_MODEL_LIST,
   MODEL_TYPE_LIST,
-  RETAIL_GOODS_LIST,
   MODEL_TYPE,
   MAX_TOKEN,
   TEMPERATURE,
@@ -64,7 +62,7 @@ interface ChatBotProps {
 
 const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const { historySessionId } = props;
-  const localScenario = localStorage.getItem(MODEL_TYPE);
+  // const localScenario = localStorage.getItem(MODEL_TYPE);
   const localMaxToken = localStorage.getItem(MAX_TOKEN);
   const localTemperature = localStorage.getItem(TEMPERATURE);
   const localConfig = localStorage.getItem(ADITIONAL_SETTINGS);
