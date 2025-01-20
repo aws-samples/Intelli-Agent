@@ -1,9 +1,11 @@
 import io
 import json
 import logging
+import os
 from typing import Any, Dict, Iterator, List, Mapping, Optional
 
 import boto3
+from botocore.exceptions import ClientError
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain_community.embeddings import (
     BedrockEmbeddings,
@@ -22,6 +24,11 @@ from langchain_core.pydantic_v1 import Extra, root_validator
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+region_name = os.environ["AWS_REGION"]
+session = boto3.session.Session()
+secret_manager_client = session.client(
+    service_name="secretsmanager", region_name=region_name
+)
 
 
 def get_secret_value(secret_arn: str):
