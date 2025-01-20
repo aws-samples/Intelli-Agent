@@ -6,14 +6,11 @@ import mimetypes
 import os
 import re
 import tempfile
-import urllib.request
 from datetime import datetime
-from pathlib import Path
-from urllib.parse import urlparse
+from typing import Union
 
 import boto3
 import requests
-from botocore.exceptions import ClientError
 from PIL import Image
 
 CHART_UNDERSTAND_PROMPT = """
@@ -101,7 +98,7 @@ class figureUnderstand:
             },
             {"role": "assistant", "content": prefix},
         ]
-        model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+        model_id = "anthropic.claude-3-5-sonnet-20241022-v2:0"
         body = json.dumps(
             {
                 "anthropic_version": "bedrock-2023-05-31",
@@ -194,12 +191,28 @@ def encode_image_to_base64(image_path: str) -> str:
         raise
 
 
-def upload_image_to_s3(image_path: str, bucket: str, file_name: str, splitting_type: str, idx: int):
-    # round the timestamp to hours to avoid too many folders
+def upload_image_to_s3(
+    image_data: Union[str, bytes], bucket: str, file_name: str, splitting_type: str, idx: int, is_bytes: bool = False
+):
+    """Upload image to S3 from either a file path or binary data.
+
+    Args:
+        image_data: Either a file path (str) or image binary data (bytes)
+        bucket: S3 bucket name
+        file_name: Base file name for S3 path
+        splitting_type: Type of splitting being performed
+        idx: Index number of the image
+        is_bytes: Whether image_data contains binary data instead of a file path
+    """
     hour_timestamp = datetime.now().strftime("%Y-%m-%d-%H")
     image_name = f"{idx:05d}-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')}.jpg"
     object_key = f"{file_name}/{splitting_type}/{hour_timestamp}/{image_name}"
-    s3_client.upload_file(image_path, bucket, object_key)
+
+    if is_bytes:
+        s3_client.put_object(Bucket=bucket, Key=object_key, Body=image_data)
+    else:
+        s3_client.upload_file(image_data, bucket, object_key)
+
     return object_key
 
 
