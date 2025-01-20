@@ -189,7 +189,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     });
 
     const wsQueryHandler = new PythonFunction(this, "WebSocketQueryHandler", {
-      functionName: `${id}-workspace-ws-query-handler`,
+      functionName: `${id}-workspace-handler`,
       runtime: Runtime.PYTHON_3_12,
       entry: join(__dirname, "../../../lambda/query_handler"),
       index: "websocket_api.py",
