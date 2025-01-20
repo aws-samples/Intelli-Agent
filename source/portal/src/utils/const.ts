@@ -175,10 +175,14 @@ export const LLM_BOT_CHATBOT_LIST: SelectProps.Option[] = [
   },
 ];
 
-export const SCENARIO_LIST: SelectProps.Option[] = [
+export const MODEL_TYPE_LIST: SelectProps.Option[] = [
   {
-    label: 'common',
-    value: 'common',
+    label: 'Bedrock',
+    value: 'Bedrock',
+  },
+  {
+    label: 'Bedrock API',
+    value: 'Bedrock API',
   },
 ];
 
@@ -228,7 +232,7 @@ export const CURRENT_CHAT_BOT = 'current_chat_bot';
 export const USE_CHAT_HISTORY = 'use_chat_history';
 export const ENABLE_TRACE = 'enable_trace';
 export const ONLY_RAG_TOOL = 'only_rag_tool';
-export const SCENARIO = 'scenario';
+export const MODEL_TYPE = 'modelType';
 export const MODEL_OPTION = 'model';
 export const MAX_TOKEN = 'max_token';
 export const TEMPERATURE = 'temperature';

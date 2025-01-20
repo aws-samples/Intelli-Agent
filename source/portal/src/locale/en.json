@@ -82,6 +82,7 @@
     "topKRetrievals": "Top K Retrievals",
     "score": "Relevance Score",
     "scenarioDesc": "Applicable scenario for the current session",
+    "modelTypeDesc": "LLM model type",
     "modelNameDesc": "LLM used in the current session",
     "maxTokenDesc": " Max length of tokens that LLM process in a sequence",
     "maxRoundsDesc": "Max rounds of dialog that saved in memory",
@@ -96,6 +97,7 @@
     "embeddingModel": "Embedding Model Name",
     "noChatbotFound": "No chatbot found",
     "scenario": "Scenario",
+    "modelType": "Model type",
     "maxTokens": "Max Tokens",
     "temperature": "Temperature",
     "sessionHistory": "Recent chats",
@@ -226,7 +228,9 @@
       "tagEmpty": "Tag can not be empty.",
       "indexValid": "Index is used by other model, please change index name",
       "repeatedIndexName": "The index is duplicated with a previous entry, please modify it",
-      "repeatedIndex": "The index name is already in use. Please choose a different name"
+      "repeatedIndex": "The index name is already in use. Please choose a different name",
+      "requireApiEndpoint": "API endpoint is required",
+      "requireApiModelName": "API model name is required"
     },
     "tour": {
       "home": "Deploying this solution using the default parameters will build the environment in Amazon Web Services.",
@@ -286,6 +290,10 @@
       "name": "More Resources",
       "faq": "Frequency Asked Questions",
       "submitIssue": "Submit an Issue"
-    }
+    },
+    "apiEndpoint": "API Endpoint",
+    "apiEndpointDesc": "Enter the Bedrock API endpoint URL",
+    "apiModelName": "API Model Name",
+    "apiModelNameDesc": "Enter the model name for the API"
   }
 }

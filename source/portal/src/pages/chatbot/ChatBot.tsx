@@ -27,10 +27,8 @@ import ConfigContext from 'src/context/config-context';
 import { useAuth } from 'react-oidc-context';
 import {
   LLM_BOT_COMMON_MODEL_LIST,
-  LLM_BOT_RETAIL_MODEL_LIST,
-  SCENARIO_LIST,
-  RETAIL_GOODS_LIST,
-  SCENARIO,
+  MODEL_TYPE_LIST,
+  MODEL_TYPE,
   MAX_TOKEN,
   TEMPERATURE,
   ADITIONAL_SETTINGS,
@@ -64,7 +62,7 @@ interface ChatBotProps {
 
 const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const { historySessionId } = props;
-  const localScenario = localStorage.getItem(SCENARIO);
+  // const localScenario = localStorage.getItem(MODEL_TYPE);
   const localMaxToken = localStorage.getItem(MAX_TOKEN);
   const localTemperature = localStorage.getItem(TEMPERATURE);
   const localConfig = localStorage.getItem(ADITIONAL_SETTINGS);
@@ -106,13 +104,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [showTrace, setShowTrace] = useState(enableTrace);
   const [onlyRAGTool, setOnlyRAGTool] = useState(localStorage.getItem(ONLY_RAG_TOOL) == null || localStorage.getItem(ONLY_RAG_TOOL) == "true" ? true : false);
   const [isComposing, setIsComposing] = useState(false);
-  // const [useWebSearch, setUseWebSearch] = useState(false);
-  // const [googleAPIKey, setGoogleAPIKey] = useState('');
-  const [retailGoods, setRetailGoods] = useState<SelectProps.Option>(
-    RETAIL_GOODS_LIST[0],
-  );
-  const [scenario, setScenario] = useState<SelectProps.Option>(
-    localScenario == null ? SCENARIO_LIST[0] : JSON.parse(localScenario),
+  const [modelType, setModelType] = useState<SelectProps.Option>(
+    MODEL_TYPE_LIST[0],
   );
   const defaultConfig = {
     temperature: '0.01',
@@ -148,6 +141,11 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [modelSettingExpand, setModelSettingExpand] = useState(false);
   const [additionalConfigError, setAdditionalConfigError] = useState('');
 
+  const [apiEndpoint, setApiEndpoint] = useState('');
+  const [apiModelName, setApiModelName] = useState('');
+  const [apiEndpointError, setApiEndpointError] = useState('');
+  const [apiModelNameError, setApiModelNameError] = useState('');
+
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
     [ReadyState.OPEN]: 'success',
@@ -160,12 +158,12 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const fetchData = useAxiosRequest();
 
   const startNewChat = () => {
-    [CURRENT_CHAT_BOT,ENABLE_TRACE,MAX_TOKEN, MODEL_OPTION,ONLY_RAG_TOOL,SCENARIO,TEMPERATURE,USE_CHAT_HISTORY].forEach((item) => {
+    [CURRENT_CHAT_BOT,ENABLE_TRACE,MAX_TOKEN, MODEL_OPTION,ONLY_RAG_TOOL,MODEL_TYPE,TEMPERATURE,USE_CHAT_HISTORY].forEach((item) => {
       localStorage.removeItem(item);
     })
     // localStorage.()
     setChatbotOption(chatbotList[0])
-    setScenario(SCENARIO_LIST[0])
+    setModelType(MODEL_TYPE_LIST[0])
     setMaxToken(defaultConfig.maxToken)
     setMaxRounds(defaultConfig.maxRounds)
     setTemperature(defaultConfig.temperature)
@@ -306,10 +304,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   }, [enableTrace]);
 
   useEffect(() => {
-    if (scenario) {
-      localStorage.setItem(SCENARIO, JSON.stringify(scenario))
+    if (modelType) {
+      localStorage.setItem(MODEL_TYPE, JSON.stringify(modelType))
     }
-  }, [scenario])
+  }, [modelType])
 
   useEffect(() => {
     if (maxRounds) {
@@ -449,10 +447,23 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       return;
     }
     // validate model settings
-    if (!modelOption.trim()) {
-      setModelError('validation.requireModel');
-      setModelSettingExpand(true);
-      return;
+    if (modelType.value === 'Bedrock API') {
+      if (!apiEndpoint.trim()) {
+        setApiEndpointError('validation.requireApiEndpoint');
+        setModelSettingExpand(true);
+        return;
+      }
+      if (!apiModelName.trim()) {
+        setApiModelNameError('validation.requireApiModelName');
+        setModelSettingExpand(true);
+        return;
+      }
+    } else {
+      if (!modelOption.trim()) {
+        setModelError('validation.requireModel');
+        setModelSettingExpand(true);
+        return;
+      }
     }
     if (!temperature.trim()) {
       setTemperatureError('validation.requireTemperature');
@@ -512,7 +523,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       return;
     }
     // validate endpoint
-    if (modelOption === 'qwen2-72B-instruct' && !endPoint.trim()) {
+    if (modelType.value === 'Bedrock API' && !endPoint.trim()) {
       setEndPointError('validation.requireEndPoint');
       setModelSettingExpand(true);
       return;
@@ -533,23 +544,22 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     let message = {
       query: userMessage,
-      entry_type: scenario.value,
+      entry_type: 'common',
       session_id: sessionId,
       user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
       chatbot_config: {
         max_rounds_in_memory: parseInt(maxRounds),
         group_name: groupName?.[0] ?? 'Admin',
         chatbot_id: chatbotOption.value ?? 'admin',
-        goods_id: retailGoods.value,
         chatbot_mode: 'agent',
         use_history: useChatHistory,
         enable_trace: enableTrace,
         use_websearch: true,
         google_api_key: '',
         default_llm_config: {
-          model_id: modelOption,
-          endpoint_name:
-            modelOption === 'qwen2-72B-instruct' ? endPoint.trim() : '',
+          model_id: modelType.value === 'Bedrock API' ? apiModelName : modelOption,
+          endpoint_name: modelType.value === 'Bedrock API' ? apiEndpoint : 
+            (modelOption === 'qwen2-72B-instruct' ? endPoint.trim() : ''),
           model_kwargs: {
             temperature: parseFloat(temperature),
             max_tokens: parseInt(maxToken),
@@ -598,19 +608,16 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   useEffect(() => {
     let optionList: any[] = [];
     const localModel = localStorage.getItem(MODEL_OPTION)
-    if (scenario.value === 'common') {
+    if (modelType.value === 'Bedrock') {
       optionList=LLM_BOT_COMMON_MODEL_LIST;
       setModelList(LLM_BOT_COMMON_MODEL_LIST);
-    } else if (scenario.value === 'retail') {
-      optionList=LLM_BOT_RETAIL_MODEL_LIST;
-      setModelList(LLM_BOT_RETAIL_MODEL_LIST);
     }
     if (localModel) {
       setModelOption(localModel)
     } else {
       setModelOption(optionList?.[0]?.options?.[0].value ?? '');
     }
-  }, [scenario]);
+  }, [modelType]);
 
   useEffect(() => {
     if (modelOption === 'qwen2-72B-instruct') {
@@ -727,31 +734,52 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               headingTagOverride="h4"
               headerText={t('configurations')}
             >
-              {/* <SpaceBetween direction="vertical" size="l"> */}
                 <div style={{fontSize: 16, fontWeight: 700, marginBottom: 15, marginTop: 15}}>{t('common')}</div>
                 <SpaceBetween size="xs" direction="vertical">
                 <Grid gridDefinition={[{colspan: 5},{colspan: 6}]}>
-                {/* <ColumnLayout columns={3} variant="text-grid"> */}
-                  <FormField label={t('scenario')} stretch={true} description={t('scenarioDesc')}>
+                  <FormField label={t('modelType')} stretch={true} description={t('scenarioDesc')}>
                     <Select
-                      options={SCENARIO_LIST}
-                      selectedOption={scenario}
+                      options={MODEL_TYPE_LIST}
+                      selectedOption={modelType}
                       onChange={({ detail }) => {
-                        setScenario(detail.selectedOption);
+                        setModelType(detail.selectedOption);
                       }}
                     />
-                    {scenario.value == 'retail' && (
-                      <div style={{ minWidth: 300 }}>
-                        <Select
-                          options={RETAIL_GOODS_LIST}
-                          selectedOption={retailGoods}
-                          onChange={({ detail }) => {
-                            setRetailGoods(detail.selectedOption);
-                          }}
-                        />
-                      </div>
-                    )}
                   </FormField>
+                  {modelType.value === 'Bedrock API' ? (
+                    <SpaceBetween size="xs" direction="vertical">
+                      <FormField
+                        label={t('apiEndpoint')}
+                        stretch={true}
+                        errorText={t(apiEndpointError)}
+                        description={t('apiEndpointDesc')}
+                      >
+                        <Input
+                          value={apiEndpoint}
+                          onChange={({ detail }) => {
+                            setApiEndpointError('');
+                            setApiEndpoint(detail.value);
+                          }}
+                          placeholder="https://api.example.com/v1"
+                        />
+                      </FormField>
+                      <FormField
+                        label={t('apiModelName')}
+                        stretch={true}
+                        errorText={t(apiModelNameError)}
+                        description={t('apiModelNameDesc')}
+                      >
+                        <Input
+                          value={apiModelName}
+                          onChange={({ detail }) => {
+                            setApiModelNameError('');
+                            setApiModelName(detail.value);
+                          }}
+                          placeholder="model-name"
+                        />
+                      </FormField>
+                    </SpaceBetween>
+                  ) : (
                     <FormField
                       label={t('modelName')}
                       stretch={true}
@@ -769,8 +797,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         empty={t('noModelFound')}
                       />
                     </FormField>
-                    </Grid>
-                    <Grid gridDefinition={[ {colspan: 5},{colspan: 6}]}>
+                  )}
+                  </Grid>
+                  <Grid gridDefinition={[ {colspan: 5},{colspan: 6}]}>
                   <FormField
                     label={t('maxTokens')}
                     stretch={true}
@@ -888,7 +917,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                     />
                   </FormField>
                   </Grid>
-                {/* </ColumnLayout> */}
                 <FormField
                   label={t('additionalSettings')}
                   errorText={t(additionalConfigError)}
@@ -973,8 +1001,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           )}
         </div>
         
-        {/* {historySessionId?(<></>): */}
-        {/* ( */}
         <div className="flex-v gap-10">
           <div className="flex gap-5 send-message">
             <Select
@@ -1054,7 +1080,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
             </div>
           </div>
         </div>
-        {/* )} */}
       </div>
     </Container>
       </ContentLayout>
