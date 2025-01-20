@@ -91,6 +91,7 @@
     "topKRetrievals": "召回最关联的K条",
     "score": "相关度分数",
     "scenarioDesc": "当前会话的应用场景",
+    "modelTypeDesc": "LLM 模型类型",
     "modelNameDesc": "当前会话使用的大语言模型",
     "maxTokenDesc": "序列中处理的最大token长度",
     "maxRoundsDesc": "保存在上下文中的记忆最大轮数",
@@ -106,6 +107,7 @@
     "embeddingModelName": "向量化模型",
     "embeddingModelDesc": "用于此机器人的向量化操作",
     "scenario": "场景",
+    "modelType": "模型类型",
     "maxTokens": "最大 Token 数",
     "temperature": "温度",
     "sessionHistory": "历史记录",
@@ -219,7 +221,9 @@
       "indexNameEmpty": "索引名称不能为空",
       "tagEmpty": "标签不能为空",
       "indexValid": "索引已经被其他模型使用，请变更索引名称",
-      "repeatedIndex": "索引名称和现有索引重复，请更换名称"
+      "repeatedIndex": "索引名称和现有索引重复，请更换名称",
+      "requireApiEndpoint": "请输入API端点",
+      "requireApiModelName": "请输入API模型名称"
     },
     "tour": {
       "home": "使用默认参数部署此解决方案将在亚马逊网络服务（Amazon Web Services）中构建此环境。",
@@ -279,6 +283,10 @@
       "name": "更多资源",
       "faq": "常见问题",
       "submitIssue": "提交问题"
-    }
+    },
+    "apiEndpoint": "API 端点",
+    "apiEndpointDesc": "输入 Bedrock API 端点 URL",
+    "apiModelName": "API 模型名称",
+    "apiModelNameDesc": "输入 API 使用的模型名称"
   }
 }
