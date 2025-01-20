@@ -313,6 +313,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
         "--QA_ENHANCEMENT.$": "$.qaEnhance",
         "--REGION": process.env.CDK_DEFAULT_REGION || "-",
         "--BEDROCK_REGION": props.config.chat.bedrockRegion,
+        "--CROSS_ACCOUNT_BEDROCK_KEY": props.config.chat.crossAccountBedrockKey,
         "--RES_BUCKET": this.glueResultBucket.bucketName,
         "--S3_BUCKET.$": "$.s3Bucket",
         "--S3_PREFIX.$": "$.s3Prefix",

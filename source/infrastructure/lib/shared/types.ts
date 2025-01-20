@@ -28,6 +28,7 @@ export interface SystemConfig {
   chat: {
     enabled: boolean;
     bedrockRegion: string;
+    crossAccountBedrockKey: string;
     bedrockAk?: string;
     bedrockSk?: string;
     useOpenSourceLLM: boolean;

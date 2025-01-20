@@ -112,6 +112,7 @@ async function getAwsAccountAndRegion() {
       options.knowledgeBaseModelEcrImageTag = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
       options.enableChat = config.chat.enabled;
       options.bedrockRegion = config.chat.bedrockRegion;
+      options.crossAccountBedrockKey = config.chat.crossAccountBedrockKey;
       options.enableConnect = config.chat.amazonConnect.enabled;
       options.useOpenSourceLLM = config.chat.useOpenSourceLLM;
       options.defaultEmbedding = config.model.embeddingsModels && config.model.embeddingsModels.length > 0
@@ -337,6 +338,21 @@ async function processCreateOptions(options: any): Promise<void> {
       },
     },
     {
+      type: "input",
+      name: "crossAccountBedrockKey",
+      message: "If you don't need to use cross-account Bedrock functionality, you can press Enter to skip this step. When invoking Bedrock across accounts, you need to provide an API key, which should be stored in the Secrets Manager of your current account. Please enter the ARN of the API key, for example: arn:aws:secretsmanager:us-west-2:<aws_account_id>:secret:SampleAPIKey-AqZDIw",
+      initial: options.crossAccountBedrockKey,
+      validate(crossAccountBedrockKey: string) {
+        if ( crossAccountBedrockKey.includes('arn:aws:secretsmanager') || crossAccountBedrockKey.trim() === '') {
+          return true;
+        }
+        return "Enter a valid ARN or press Enter to skip it";
+      },
+      skip(): boolean {
+        return (!(this as any).state.answers.enableChat);
+      },
+    },    
+    {
       type: "confirm",
       name: "useOpenSourceLLM",
       message: "Do you want to use open source LLM(eg. Qwen, ChatGLM, IntermLM)?",
@@ -484,6 +500,7 @@ async function processCreateOptions(options: any): Promise<void> {
     chat: {
       enabled: answers.enableChat,
       bedrockRegion: answers.bedrockRegion,
+      crossAccountBedrockKey: answers.crossAccountBedrockKey,
       useOpenSourceLLM: answers.useOpenSourceLLM,
       amazonConnect: {
         enabled: answers.enableConnect,
