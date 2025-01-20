@@ -32,6 +32,28 @@ To deploy this asset, you will incur charges for the use of Amazon Web Services.
     <td>Y</td>
     <td>0.38</td>
   </tr>
+   <tr>
+    <td>Amazon Glue</td>
+    <td>Y</td>
+    <td>0.41</td>
+    <td>Glue service Type：AWS Glue ETL jobs and interactive sessions<br>Costage： 1 DPU per job x 0.93 hours (3350 seconds)</td>
+  </tr>
+  <tr>
+    <td>Amazon Sagemaker</td>
+    <td>N</td>
+    <td>37.12</td>
+    <td>
+    PDF:<br>SageMaker Type: SageMaker Asynchronous Inference<br>Instance Type: ml.g4dn.2xlarge<br><br>1 models / 1 models per endpoint = 1.00 endpoint(s)<br>endpoints rounded up by 1 (1.000000) = 1 endpoint(s) (rounded up)<br>1 endpoint(s) x 1 instances per endpoint x 1.90 hours per day x 20 day per month = 38.00 instance hours per month<br>38.00 hours per month x 0.94 USD per hour instance cost = 35.72 USD (monthly On-Demand cost)<br>10 GB per month x 0.14 USD = 1.40 USD
+    </td>
+  </tr>
+  <tr>
+    <td>AWS Lambda</td>
+    <td>Y</td>
+    <td>0.00</td>
+    <td>
+    Architecture: x86_64 <br>requests: 20000/Mon.<br>The Lambda free tier includes 1M free requests per month and 400,000 GB-seconds of compute time per month.
+    </td>
+  </tr>
 </table>
 
 | Module               | Service   | Required | price($/Mon) | Note                                                                                                                |
