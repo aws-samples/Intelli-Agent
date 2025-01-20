@@ -4,18 +4,10 @@ To deploy this asset, you will incur charges for the use of Amazon Web Services.
 
 ## Model 1: Full deployment
 
-| **Module**           | **AWS Service**                         | **Required** | **Estimated price per month (USD $)** ｜ **Note** |
-|-------------------------|-----------------------------------|
-| Deployment Region       | US East (N. Virginia) (`us-east-1`) |
-| Latest Version Date     | July 2024                        |
-| Operating Days per Month| 20                               |
-| Max Tokens per Session  | 4096                             |
-| Inference Model         | `anthropic.claude-3-sonnet`      |
-
-| Module               | AWS Service (BOM)   | Required | Configuration                        | Estimated price per month (USD $) | Note                                                                                                                |
-|----------------------|---------------------|----------|--------------------------------------|------------------------------------|---------------------------------------------------------------------------------------------------------------------|
-| Console              | Amazon CloudFront  | Y        |                                      | 0.00                               | Starting from December 1, 2021, the first 1TB of data transferred to the internet each month is free.               |
-| Console              | Amazon S3          | Y        | Standard Storage: 216GB, PUT: 1000, SELECT: 10,000 | 0.38                  | Visiting the UI 10 times/workday generates logs and assets totaling ~216GB/month.                                   |
+| Module               | AWS Service (BOM)   | Required | Estimated price per month (USD $) | Note                                                                                                                |
+|----------------------|---------------------|----------|------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| Console              | Amazon CloudFront  | Y        | 0.00                               | Starting from December 1, 2021, the first 1 TB of data transferred to the internet each month and 10 million HTTP/HTTPS requests from all edge locations will be free. <br>Data Transfer < 1TB|
+|                      | Amazon S3          | Y        | 0.38                  | Visiting the UI 10 times per workday generates a combined size of 400MB for online and offline logs. The fixed asset size of the UI is 2.1MB. A 100MB PDF, after being split, generates approximately 300MB of S3 files. Adding the fixed assets of the model, which are 20.9GB, the total S3 usage per month is approximately 21.6GB. <br>S3 Standard Storage: 21.6GBPUT Request: 1000/Mon.SELECT Request: 10000/Mon.RETURN/SCAN Data: 1GB/Mon. |
 | Console              | Amazon Glue        |          | Glue service type: AWS Glue ETL jobs | 0.41                               | 1 DPU per job x 0.83 hours                                                                                          |
 | Core                 | Amazon SageMaker   | N        | Instance type: ml.m5d.4xlarge        | 371.2                             | 38.00 instance hours/month x 0.94 USD + 10GB/month x 0.14 USD                                                       |
 | Core                 | AWS Lambda         | Y        | x86_64 architecture, 20,000 requests| 0.00                               | Lambda free tier includes 1M free requests/month and 400,000 GB-seconds of compute time per month.                  |
