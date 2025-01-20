@@ -4,7 +4,18 @@ To deploy this asset, you will incur charges for the use of Amazon Web Services.
 
 ## Model 1: Full deployment
 
-| Module               | AWS Service (BOM)   | Required | Estimated price per month (USD $) | Note                                                                                                                |
+<table>
+  <tr>
+    <th>Header 1</th>
+    <th>Header 2</th>
+    <th>Header 3</th>
+  </tr>
+  <tr>
+    <td colspan="3">Merged Content</td>
+  </tr>
+</table>
+
+| Module               | Service   | Required | price($/Mon) | Note                                                                                                                |
 |----------------------|---------------------|----------|------------------------------------|---------------------------------------------------------------------------------------------------------------------|
 | Console              | Amazon CloudFront  | Y        | 0.00                               | Starting from December 1, 2021, the first 1 TB of data transferred to the internet each month and 10 million HTTP/HTTPS requests from all edge locations will be free. <br><br>Data Transfer < 1TB|
 |                      | Amazon S3          | Y        | 0.38                  | Visiting the UI 10 times per workday generates a combined size of 400MB for online and offline logs. The fixed asset size of the UI is 2.1MB. A 100MB PDF, after being split, generates approximately 300MB of S3 files. Adding the fixed assets of the model, which are 20.9GB, the total S3 usage per month is approximately 21.6GB. <br><br>S3 Standard Storage: 21.6GB<br>PUT Request: 1000/Mon.<br>SELECT Request: 10000/Mon.<br>RETURN/SCAN Data: 1GB/Mon. |
