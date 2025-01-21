@@ -44,6 +44,8 @@ import {
   BR_API_MODEL_LIST,
   OPENAI_API_MODEL_LIST,
   SHOW_FIGURES,
+  API_ENDPOINT,
+  API_KEY_ARN,
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';
@@ -61,10 +63,6 @@ interface MessageType {
 interface ChatBotProps {
   historySessionId?: string;
 }
-
-// Add these constants near the top with the other constants
-const API_ENDPOINT = 'API_ENDPOINT';
-const API_KEY_ARN = 'API_KEY_ARN';
 
 const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const { historySessionId } = props;
