@@ -11,10 +11,8 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, StackProps, NestedStack, Stack, PhysicalName } from "aws-cdk-lib";
-import * as iam from "aws-cdk-lib/aws-iam";
+import { Aws, Duration, StackProps, Stack } from "aws-cdk-lib";
 import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
-import { v4 as uuidv4 } from 'uuid';
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import { PythonFunction } from "@aws-cdk/aws-lambda-python-alpha";
 import { Construct } from "constructs";
@@ -25,19 +23,14 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import { Constants } from "../shared/constants";
 import { LambdaLayers } from "../shared/lambda-layers";
 import { IAMHelper } from "../shared/iam-helper";
-import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { SystemConfig } from "../shared/types";
-import { SharedConstruct, SharedConstructOutputs } from "../shared/shared-construct";
+import { SharedConstructOutputs } from "../shared/shared-construct";
 import { LambdaFunction } from "../shared/lambda-helper";
-import { Runtime, Code, Function, Architecture } from "aws-cdk-lib/aws-lambda";
+import { Runtime, Code } from "aws-cdk-lib/aws-lambda";
 import { ApiConstructOutputs } from "../api/api-stack";
-import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { WSWebSocketConstruct } from "./websocket-api";
 import { QueueConstruct } from "../chat/chat-queue";
-import { PortalConstruct } from "../ui/ui-portal";
-import { UserConstruct } from "../user/user-construct";
 import { UiExportsConstruct } from "../ui/ui-exports";
-
 
 
 interface WorkspaceProps extends StackProps {
@@ -79,26 +72,12 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
       name: "sessionId",
       type: dynamodb.AttributeType.STRING,
     }
-    const userIdAttr = {
-      name: "userId",
-      type: dynamodb.AttributeType.STRING,
-    }
     const messageIdAttr = {
       name: "messageId",
       type: dynamodb.AttributeType.STRING,
     }
-    const timestampAttr = {
-      name: "createTimestamp",
-      type: dynamodb.AttributeType.STRING,
-    }
 
     const customerSessionsTable = new DynamoDBTable(this, "CustomerSession", sessionIdAttr).table;
-    // customerSessionsTable.addGlobalSecondaryIndex({
-    //   indexName: this.byTimestampIndex,
-    //   partitionKey: { name: "status", type: dynamodb.AttributeType.STRING },
-    //   sortKey: timestampAttr,
-    //   projectionType: dynamodb.ProjectionType.ALL,
-    // });
 
     const customerMessagesTable = new DynamoDBTable(this, "CustomerMessage", messageIdAttr, sessionIdAttr).table;
     customerMessagesTable.addGlobalSecondaryIndex({
@@ -154,7 +133,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
 
     const customAuthorizerLambda = new LambdaFunction(this, "CustomAuthorizerLambda", {
-      functionName: `${id}-workspace-authorizer`,
+      // functionName: `${id}-ws-authorizer`,
       code: Code.fromAsset(join(__dirname, "../../../lambda/authorizer")),
       handler: "custom_authorizer.lambda_handler",
       environment: {
@@ -180,7 +159,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     apiResourceMessages.addMethod("GET", new apigw.LambdaIntegration(restQueryHandler), genMethodOption(workspaceApi, auth, null),);
     
     const wsDispatcher = new LambdaFunction(this, "WorkspaceDispatcher", {
-      functionName: `${id}-workspace-dispatcher`,
+      // functionName: `${id}-ws-dispatcher`,
       code: Code.fromAsset(join(__dirname, "../../../lambda/workspace")),
       environment: {
         SQS_QUEUE_URL: chatQueueConstruct.messageQueue.queueUrl,
@@ -189,7 +168,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     });
 
     const wsQueryHandler = new PythonFunction(this, "WebSocketQueryHandler", {
-      functionName: `${id}-workspace-ws-query-handler`,
+      // functionName: `${id}-ws-query-handler`,
       runtime: Runtime.PYTHON_3_12,
       entry: join(__dirname, "../../../lambda/query_handler"),
       index: "websocket_api.py",

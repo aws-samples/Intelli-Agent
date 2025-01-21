@@ -91,7 +91,7 @@
     "topKRetrievals": "召回最关联的K条",
     "score": "相关度分数",
     "scenarioDesc": "当前会话的应用场景",
-    "modelTypeDesc": "LLM 模型类型",
+    "modelTypeDesc": "LLM 模型供应商",
     "modelNameDesc": "当前会话使用的大语言模型",
     "maxTokenDesc": "序列中处理的最大token长度",
     "maxRoundsDesc": "保存在上下文中的记忆最大轮数",
@@ -107,7 +107,7 @@
     "embeddingModelName": "向量化模型",
     "embeddingModelDesc": "用于此机器人的向量化操作",
     "scenario": "场景",
-    "modelType": "模型类型",
+    "modelType": "模型供应商",
     "maxTokens": "最大 Token 数",
     "temperature": "温度",
     "sessionHistory": "历史记录",
@@ -285,8 +285,10 @@
       "submitIssue": "提交问题"
     },
     "apiEndpoint": "API 端点",
-    "apiEndpointDesc": "输入 Bedrock API 端点 URL",
+    "apiEndpointDesc": "输入 API 端点 URL",
     "apiModelName": "API 模型名称",
-    "apiModelNameDesc": "输入 API 使用的模型名称"
+    "apiModelNameDesc": "输入 API 使用的模型名称",
+    "apiKeyArn": "API 密钥 ARN",
+    "apiKeyArnDesc": "输入存储在 AWS Secrets Manager 中用于 Bedrock/OpenAI 的 API 密钥的 ARN"
   }
 }

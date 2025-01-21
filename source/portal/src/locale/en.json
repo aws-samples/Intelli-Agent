@@ -82,7 +82,7 @@
     "topKRetrievals": "Top K Retrievals",
     "score": "Relevance Score",
     "scenarioDesc": "Applicable scenario for the current session",
-    "modelTypeDesc": "LLM model type",
+    "modelTypeDesc": "LLM model provider",
     "modelNameDesc": "LLM used in the current session",
     "maxTokenDesc": " Max length of tokens that LLM process in a sequence",
     "maxRoundsDesc": "Max rounds of dialog that saved in memory",
@@ -97,7 +97,7 @@
     "embeddingModel": "Embedding Model Name",
     "noChatbotFound": "No chatbot found",
     "scenario": "Scenario",
-    "modelType": "Model type",
+    "modelType": "Model provider",
     "maxTokens": "Max Tokens",
     "temperature": "Temperature",
     "sessionHistory": "Recent chats",
@@ -292,8 +292,10 @@
       "submitIssue": "Submit an Issue"
     },
     "apiEndpoint": "API Endpoint",
-    "apiEndpointDesc": "Enter the Bedrock API endpoint URL",
+    "apiEndpointDesc": "Enter the API endpoint URL",
     "apiModelName": "API Model Name",
-    "apiModelNameDesc": "Enter the model name for the API"
+    "apiModelNameDesc": "Enter the model name for the API",
+    "apiKeyArn": "API Key ARN",
+    "apiKeyArnDesc": "Enter the ARN of the secret in AWS Secrets Manager that stores the API key for Bedrock/OpenAI"
   }
 }
