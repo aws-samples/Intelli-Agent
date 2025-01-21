@@ -42,9 +42,9 @@ class LLMConfig(AllowBaseModel):
     model_kwargs: dict = {"temperature": 0.01, "max_tokens": 4096}
 
     def model_post_init(self, __context: Any) -> None:
-        if self.br_api_key_arn is not None and self.base_url is not None:
+        if self.br_api_key_arn is not None and len(self.br_api_key_arn) > 0:
             self.br_api_key = get_secret_value(self.br_api_key_arn)
-        if self.openai_api_key_arn is not None and self.base_url is not None:
+        if self.openai_api_key_arn is not None and len(self.openai_api_key_arn) > 0:
             self.openai_api_key = get_secret_value(self.openai_api_key_arn)
 
 
