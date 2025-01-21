@@ -39,6 +39,17 @@ const embeddingModels = [
   }
 ];
 
+const apiInferenceProviders = [
+  {
+    provider: "bedrock",
+    name: "Bedrock API",
+  },
+  {
+    provider: "openai",
+    name: "OpenAI API",
+  },
+];
+
 const supportedRegions = Object.values(SupportedRegion) as string[];
 const supportedBedrockRegions = Object.values(SupportedBedrockRegion) as string[];
 
@@ -112,7 +123,10 @@ async function getAwsAccountAndRegion() {
       options.knowledgeBaseModelEcrImageTag = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
       options.enableChat = config.chat.enabled;
       options.bedrockRegion = config.chat.bedrockRegion;
-      options.crossAccountBedrockKey = config.chat.crossAccountBedrockKey;
+      options.enableApiInference = config.chat.apiInference.enabled;
+      options.apiInferenceProvider = config.chat.apiInference.apiInferenceProvider;
+      options.apiEndpoint = config.chat.apiInference.apiEndpoint;
+      options.apiKey = config.chat.apiInference.apiKey;
       options.enableConnect = config.chat.amazonConnect.enabled;
       options.useOpenSourceLLM = config.chat.useOpenSourceLLM;
       options.defaultEmbedding = config.model.embeddingsModels && config.model.embeddingsModels.length > 0
@@ -338,18 +352,55 @@ async function processCreateOptions(options: any): Promise<void> {
       },
     },
     {
+      type: "confirm",
+      name: "enableApiInference",
+      message: "Compared to local deployment, would you prefer to access the model via API calls?",
+      initial: options.enableApiInference ?? false,
+      skip(): boolean {
+        return (!(this as any).state.answers.enableChat);
+      },
+    },
+    {
+      type: "select",
+      name: "apiInferenceProvider",
+      message: "Select an API inference provider, it is used for LLM invocation and generating embedding",
+      choices: apiInferenceProviders.map((m) => ({ name: m.name, value: m })),
+      initial: options.apiInferenceProvider,
+      skip(): boolean {
+        return (!(this as any).state.answers.enableApiInference &&
+          !(this as any).state.answers.enableChat);
+      },
+    },
+    {
       type: "input",
-      name: "crossAccountBedrockKey",
-      message: "If you don't need to use cross-account Bedrock or connect OpenAI API, you can press Enter to skip this step. When invoking Bedrock across accounts or OpenAI API, you need to provide an API key, which should be stored in the Secrets Manager of your current account. Please enter the ARN of the API key, for example: arn:aws:secretsmanager:us-west-2:<aws_account_id>:secret:SampleAPIKey",
-      initial: options.crossAccountBedrockKey,
-      validate(crossAccountBedrockKey: string) {
-        if ( crossAccountBedrockKey.includes('arn:aws:secretsmanager') || crossAccountBedrockKey.trim() === '') {
+      name: "apiEndpoint",
+      message: "API endpoint to invoke models, e.g. https://api.example.com/v1",
+      initial: options.apiEndpoint,
+      validate(apiEndpoint: string) {
+        if (apiEndpoint.includes('http')) {
+          return true;
+        }
+        return "Enter a valid API endpoint, e.g. https://api.example.com/v1";
+      },
+      skip(): boolean {
+        return (!(this as any).state.answers.enableApiInference &&
+          !(this as any).state.answers.enableChat);
+      },
+    },  
+    {
+      type: "input",
+      name: "apiKey",
+      message: "When invoking Bedrock API or OpenAI API, you need to provide an API key, which should be stored in the Secrets Manager of your current account. Please enter the ARN of the API key, for example: arn:aws:secretsmanager:<region>:<account_id>:secret:SampleAPIKey",
+      initial: options.apiKey,
+      validate(apiKey: string) {
+        if (apiKey.includes('arn:aws:secretsmanager')) {
           return true;
         }
         return "Enter a valid ARN or press Enter to skip it";
       },
       skip(): boolean {
-        return (!(this as any).state.answers.enableChat);
+        return (!(this as any).state.answers.enableApiInference &&
+          !(this as any).state.answers.enableChat);
       },
     },    
     {
@@ -388,23 +439,6 @@ async function processCreateOptions(options: any): Promise<void> {
           !(this as any).state.answers.enableChat);
       },
     },
-    // {
-    //   type: "select",
-    //   name: "defaultLlm",
-    //   message: "Select a llm model",
-    //   choices: llms.map((m) => ({ name: m.name, value: m })),
-    //   initial: options.defaultLlm,
-    //   validate(value: string) {
-    //     if ((this as any).state.answers.enableChat) {
-    //       return value ? true : "Select a default llm model";
-    //     }
-
-    //     return true;
-    //   },
-    //   skip(): boolean {
-    //     return !(this as any).state.answers.enableChat;
-    //   },
-    // },
     {
       type: "input",
       name: "sagemakerModelS3Bucket",
@@ -500,7 +534,12 @@ async function processCreateOptions(options: any): Promise<void> {
     chat: {
       enabled: answers.enableChat,
       bedrockRegion: answers.bedrockRegion,
-      crossAccountBedrockKey: answers.crossAccountBedrockKey,
+      apiInference: {
+        enabled: answers.enableApiInference,
+        apiInferenceProvider: answers.apiInferenceProvider,
+        apiEndpoint: answers.apiEndpoint,
+        apiKey: answers.apiKey,
+      },
       useOpenSourceLLM: answers.useOpenSourceLLM,
       amazonConnect: {
         enabled: answers.enableConnect,
