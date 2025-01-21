@@ -35,17 +35,16 @@ class LLMConfig(AllowBaseModel):
     provider: ModelProvider = ModelProvider.BEDROCK
     model_id: LLMModelType = LLMModelType.CLAUDE_3_SONNET
     base_url: Union[str,None] = None
-    br_api_key_arn: Union[str,None] = None
-    openai_api_key_arn: Union[str,None] = None
-    br_api_key: Union[str,None] = None
-    openai_api_key: Union[str,None] = None
+    api_key_arn: Union[str,None] = None
+    api_key: Union[str,None] = None
     model_kwargs: dict = {"temperature": 0.01, "max_tokens": 4096}
 
     def model_post_init(self, __context: Any) -> None:
-        if self.br_api_key_arn is not None and len(self.br_api_key_arn) > 0:
-            self.br_api_key = get_secret_value(self.br_api_key_arn)
-        if self.openai_api_key_arn is not None and len(self.openai_api_key_arn) > 0:
-            self.openai_api_key = get_secret_value(self.openai_api_key_arn)
+        pass
+        # if self.api_key_arn is not None and len(self.br_api_key_arn) > 0:
+        #     self.br_api_key = get_secret_value(self.br_api_key_arn)
+        # if self.openai_api_key_arn is not None and len(self.openai_api_key_arn) > 0:
+        #     self.openai_api_key = get_secret_value(self.openai_api_key_arn)
 
 
 class QueryRewriteConfig(LLMConfig):
