@@ -38,14 +38,11 @@ class LLMConfig(AllowBaseModel):
     api_key_arn: Union[str,None] = None
     api_key: Union[str,None] = None
     model_kwargs: dict = {"temperature": 0.01, "max_tokens": 4096}
-    api_key: Union[str,None] = None 
 
     def model_post_init(self, __context: Any) -> None:
-        if self.br_api_key is None and self.br_api_key_arn is not None and self.base_url is not None:
-            self.br_api_key = get_secret_value(self.br_api_key_arn)
-        if self.openai_api_key is None and self.openai_api_key_arn is not None and self.base_url is not None:
-            self.openai_api_key = get_secret_value(self.openai_api_key_arn)
-
+        if self.provider in [ModelProvider.BRCONNECTOR_BEDROCK, ModelProvider.OPENAI] and \
+            self.api_key_arn is not None:
+            self.api_key = get_secret_value(self.api_key_arn)
 
 class QueryRewriteConfig(LLMConfig):
     rewrite_first_message: bool = False

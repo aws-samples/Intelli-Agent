@@ -483,48 +483,56 @@ def SagemakerEndpointVectorOrCross(
 
 
 def getCustomEmbeddings(
-    endpoint_name: str, region_name: str, bedrock_region: str, model_type: str, bedrock_api_key_arn: str = None
+    endpoint_name: str, region_name: str, bedrock_region: str, model_type: str, api_inference_enabled: str = "false",
+    api_inference_provider: str = "Bedrock API", api_inference_endpoint: str = None, api_key_arn: str = None
 ) -> SagemakerEndpointEmbeddings:
-    client = boto3.client("sagemaker-runtime", region_name=region_name)
-    bedrock_client = boto3.client("bedrock-runtime", region_name=bedrock_region)
     embeddings = None
-    if model_type == "bedrock":
-        content_handler = BedrockEmbeddings()
-        embeddings = BedrockEmbeddings(
-            client=bedrock_client,
-            model_id=endpoint_name,
-            normalize=True,
-        )
-    elif model_type == "brconnector":
-        embeddings = OpenAIEmbeddings(
-            model=endpoint_name,
-            api_key=get_secret_value(bedrock_api_key_arn)
-        )
-    elif model_type == "openai":
-        embeddings = OpenAIEmbeddings(
-            model=endpoint_name,
-            api_key=get_secret_value(openai_api_key_arn)
-        )
+    if api_inference_enabled == "false":
+        # Use local models
+        client = boto3.client("sagemaker-runtime", region_name=region_name)
+        bedrock_client = boto3.client("bedrock-runtime", region_name=bedrock_region)
+        if model_type == "bedrock":
+            content_handler = BedrockEmbeddings()
+            embeddings = BedrockEmbeddings(
+                client=bedrock_client,
+                model_id=endpoint_name,
+                normalize=True,
+            )
+        elif model_type == "bce":
+            content_handler = vectorContentHandler()
+            embeddings = SagemakerEndpointEmbeddings(
+                client=client,
+                endpoint_name=endpoint_name,
+                content_handler=content_handler,
+                endpoint_kwargs={"TargetModel": "bce_embedding_model.tar.gz"},
+            )
+        # compatible with both m3 and bce.
+        else:
+            content_handler = m3ContentHandler()
+            model_kwargs = {}
+            model_kwargs["batch_size"] = 12
+            model_kwargs["max_length"] = 512
+            model_kwargs["return_type"] = "dense"
+            embeddings = SagemakerEndpointEmbeddings(
+                client=client,
+                endpoint_name=endpoint_name,
+                model_kwargs=model_kwargs,
+                content_handler=content_handler,
+            )
+        return embeddings
 
-    elif model_type == "bce":
-        content_handler = vectorContentHandler()
-        embeddings = SagemakerEndpointEmbeddings(
-            client=client,
-            endpoint_name=endpoint_name,
-            content_handler=content_handler,
-            endpoint_kwargs={"TargetModel": "bce_embedding_model.tar.gz"},
+    # API inference from Bedrock API or OpenAI API
+    if api_inference_provider == "Bedrock API":
+        embeddings = OpenAIEmbeddings(
+            model=endpoint_name,
+            api_key=get_secret_value(api_key_arn)
         )
-    # compatible with both m3 and bce.
+    elif api_inference_provider == "OpenAI API":
+        embeddings = OpenAIEmbeddings(
+            model=endpoint_name,
+            api_key=get_secret_value(api_key_arn)
+        )
     else:
-        content_handler = m3ContentHandler()
-        model_kwargs = {}
-        model_kwargs["batch_size"] = 12
-        model_kwargs["max_length"] = 512
-        model_kwargs["return_type"] = "dense"
-        embeddings = SagemakerEndpointEmbeddings(
-            client=client,
-            endpoint_name=endpoint_name,
-            model_kwargs=model_kwargs,
-            content_handler=content_handler,
-        )
+        raise ValueError(f"Unsupported API inference provider: {api_inference_provider}")
+
     return embeddings

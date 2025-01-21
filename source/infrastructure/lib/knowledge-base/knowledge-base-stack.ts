@@ -313,7 +313,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
         "--QA_ENHANCEMENT.$": "$.qaEnhance",
         "--REGION": process.env.CDK_DEFAULT_REGION || "-",
         "--BEDROCK_REGION": props.config.chat.bedrockRegion,
-        "--API_INFERENCE_ENABLED": props.config.chat.apiInference.enabled,
+        "--API_INFERENCE_ENABLED": props.config.chat.apiInference.enabled.toString(),
         "--API_INFERENCE_PROVIDER": props.config.chat.apiInference.apiInferenceProvider,
         "--API_ENDPOINT": props.config.chat.apiInference.apiEndpoint,
         "--API_KEY_ARN": props.config.chat.apiInference.apiKey,

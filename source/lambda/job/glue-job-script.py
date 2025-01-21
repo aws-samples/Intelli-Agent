@@ -52,7 +52,10 @@ try:
             "OPERATION_TYPE",
             "PORTAL_BUCKET",
             "BEDROCK_REGION",
-            "CROSS_ACCOUNT_BEDROCK_KEY",
+            "API_INFERENCE_ENABLED",
+            "API_INFERENCE_PROVIDER",
+            "API_ENDPOINT",
+            "API_KEY_ARN",
         ],
     )
 except Exception as e:
@@ -117,7 +120,10 @@ table_item_id = args["TABLE_ITEM_ID"]
 qa_enhancement = args["QA_ENHANCEMENT"]
 region = args["REGION"]
 bedrock_region = args["BEDROCK_REGION"]
-bedrock_api_key_arn = args["CROSS_ACCOUNT_BEDROCK_KEY"]
+api_inference_enabled = args["API_INFERENCE_ENABLED"]
+api_inference_provider = args["API_INFERENCE_PROVIDER"]
+api_inference_endpoint = args["API_ENDPOINT"]
+api_key_arn = args["API_KEY_ARN"]
 res_bucket = args["RES_BUCKET"]
 s3_bucket = args["S3_BUCKET"]
 s3_prefix = args["S3_PREFIX"]
@@ -740,7 +746,10 @@ def main():
             region_name=region,
             bedrock_region=bedrock_region,
             model_type=embedding_model_type,
-            bedrock_api_key_arn=bedrock_api_key_arn,
+            api_inference_enabled=api_inference_enabled,
+            api_inference_provider=api_inference_provider,
+            api_inference_endpoint=api_inference_endpoint,
+            api_key_arn=api_key_arn,
         )
         aws_auth = get_aws_auth()
         docsearch = OpenSearchVectorSearch(

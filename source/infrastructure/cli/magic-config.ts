@@ -42,11 +42,11 @@ const embeddingModels = [
 const apiInferenceProviders = [
   {
     provider: "bedrock",
-    name: "Bedrock-API",
+    name: "Bedrock API",
   },
   {
     provider: "openai",
-    name: "OpenAI-API",
+    name: "OpenAI API",
   },
 ];
 
