@@ -83,141 +83,121 @@ class LLMChain(metaclass=LLMChainMeta):
 
 
 def _import_conversation_summary_chain():
-    from .conversation_summary_chain import chain_classes
-    from .conversation_summary_chain import (
-        Internlm2Chat7BConversationSummaryChain,
-        Internlm2Chat20BConversationSummaryChain,
-    )
+    from . import conversation_summary_chain
+    # from .conversation_summary_chain import (
+    #     Internlm2Chat7BConversationSummaryChain,
+    #     Internlm2Chat20BConversationSummaryChain,
+    # )
 
 
 def _import_rag_chain():
-    from .rag_chain import chain_classes
-    from .rag_chain import (
-        Baichuan2Chat13B4BitsKnowledgeQaChain,
-    )
+    from . import rag_chain
+    
 
 
 def _import_chat_chain():
-    from .chat_chain import chain_classes
-    from .chat_chain import (
-        Internlm2Chat7BChatChain,
-        Internlm2Chat20BChatChain,
-        Baichuan2Chat13B4BitsChatChain,
-    )
+    from . import chat_chain
 
 
 def _import_tool_calling_chain_api():
-    from .tool_calling_chain_api import chain_classes
+    from . import tool_calling_chain_api
 
 
-def _import_intention_chain():
-    from .intention_chain import (
-        Claude21IntentRecognitionChain,
-        Claude2IntentRecognitionChain,
-        ClaudeInstanceIntentRecognitionChain,
-        Claude3HaikuIntentRecognitionChain,
-        Claude3SonnetIntentRecognitionChain,
-        Internlm2Chat7BIntentRecognitionChain,
-        Internlm2Chat20BIntentRecognitionChain,
-    )
+# def _import_intention_chain():
+#     from . import intention_chain
+
+# def _import_query_rewrite_chain():
+#     from . import query_rewrite_chain
+#     # from .query_rewrite_chain import (
+#     #     Internlm2Chat20BQueryRewriteChain,
+#     #     Internlm2Chat7BQueryRewriteChain,
+#     # )
 
 
-def _import_query_rewrite_chain():
-    from .query_rewrite_chain import chain_classes
-    from .query_rewrite_chain import (
-        Internlm2Chat20BQueryRewriteChain,
-        Internlm2Chat7BQueryRewriteChain,
-    )
+# def _import_translate_chain():
+#     from . import translate_chain
+
+# def _import_mkt_conversation_summary_chains():
+#     from marketing_chains.mkt_conversation_summary import (
+#         Claude21MKTConversationSummaryChain,
+#         ClaudeInstanceMKTConversationSummaryChain,
+#         Claude2MKTConversationSummaryChain,
+#         Claude3HaikuMKTConversationSummaryChain,
+#         Claude3SonnetMKTConversationSummaryChain,
+#         Internlm2Chat7BMKTConversationSummaryChain,
+#         Internlm2Chat20BMKTConversationSummaryChain
+#     )
 
 
-def _import_translate_chain():
-    from .translate_chain import (
-        Internlm2Chat7BTranslateChain,
-        Internlm2Chat20BTranslateChain
-    )
+# def _import_mkt_rag_chain():
+#     from marketing_chains.mkt_rag_chain import (
+#         Internlm2Chat7BKnowledgeQaChain,
+#         Internlm2Chat20BKnowledgeQaChain
+#     )
 
 
-def _import_mkt_conversation_summary_chains():
-    from marketing_chains.mkt_conversation_summary import (
-        Claude21MKTConversationSummaryChain,
-        ClaudeInstanceMKTConversationSummaryChain,
-        Claude2MKTConversationSummaryChain,
-        Claude3HaikuMKTConversationSummaryChain,
-        Claude3SonnetMKTConversationSummaryChain,
-        Internlm2Chat7BMKTConversationSummaryChain,
-        Internlm2Chat20BMKTConversationSummaryChain
-    )
+# def _import_stepback_chain():
+#     from .stepback_chain import (
+#         Claude21StepBackChain,
+#         ClaudeInstanceStepBackChain,
+#         Claude2StepBackChain,
+#         Claude3HaikuStepBackChain,
+#         Claude3SonnetStepBackChain,
+#         Internlm2Chat7BStepBackChain,
+#         Internlm2Chat20BStepBackChain
+#     )
 
 
-def _import_mkt_rag_chain():
-    from marketing_chains.mkt_rag_chain import (
-        Internlm2Chat7BKnowledgeQaChain,
-        Internlm2Chat20BKnowledgeQaChain
-    )
+# def _import_hyde_chain():
+#     from .hyde_chain import (
+#         Claude21HydeChain,
+#         Claude2HydeChain,
+#         Claude3HaikuHydeChain,
+#         Claude3SonnetHydeChain,
+#         ClaudeInstanceHydeChain,
+#         Internlm2Chat20BHydeChain,
+#         Internlm2Chat7BHydeChain,
+#         NovaProHydeChain
+#     )
 
 
-def _import_stepback_chain():
-    from .stepback_chain import (
-        Claude21StepBackChain,
-        ClaudeInstanceStepBackChain,
-        Claude2StepBackChain,
-        Claude3HaikuStepBackChain,
-        Claude3SonnetStepBackChain,
-        Internlm2Chat7BStepBackChain,
-        Internlm2Chat20BStepBackChain
-    )
+# def _import_tool_calling_chain_claude_xml():
+#     from .tool_calling_chain_claude_xml import (
+#         Claude21ToolCallingChain,
+#         Claude3HaikuToolCallingChain,
+#         Claude2ToolCallingChain,
+#         Claude3SonnetToolCallingChain,
+#         ClaudeInstanceToolCallingChain,
+#         NovaProToolCallingChain
+#     )
 
 
-def _import_hyde_chain():
-    from .hyde_chain import (
-        Claude21HydeChain,
-        Claude2HydeChain,
-        Claude3HaikuHydeChain,
-        Claude3SonnetHydeChain,
-        ClaudeInstanceHydeChain,
-        Internlm2Chat20BHydeChain,
-        Internlm2Chat7BHydeChain,
-        NovaProHydeChain
-    )
+# def _import_retail_conversation_summary_chain():
+#     from .retail_chains.retail_conversation_summary_chain import (
+#         Claude2RetailConversationSummaryChain,
+#         Claude21RetailConversationSummaryChain,
+#         Claude3HaikuRetailConversationSummaryChain,
+#         Claude3SonnetRetailConversationSummaryChain,
+#         ClaudeInstanceRetailConversationSummaryChain
+#     )
 
 
-def _import_tool_calling_chain_claude_xml():
-    from .tool_calling_chain_claude_xml import (
-        Claude21ToolCallingChain,
-        Claude3HaikuToolCallingChain,
-        Claude2ToolCallingChain,
-        Claude3SonnetToolCallingChain,
-        ClaudeInstanceToolCallingChain,
-        NovaProToolCallingChain
-    )
+# def _import_retail_tool_calling_chain_claude_xml():
+#     from .retail_chains.retail_tool_calling_chain_claude_xml import (
+#         Claude2RetailToolCallingChain,
+#         Claude21RetailToolCallingChain,
+#         ClaudeInstanceRetailToolCallingChain,
+#         Claude3SonnetRetailToolCallingChain,
+#         Claude3HaikuRetailToolCallingChain
+#     )
 
 
-def _import_retail_conversation_summary_chain():
-    from .retail_chains.retail_conversation_summary_chain import (
-        Claude2RetailConversationSummaryChain,
-        Claude21RetailConversationSummaryChain,
-        Claude3HaikuRetailConversationSummaryChain,
-        Claude3SonnetRetailConversationSummaryChain,
-        ClaudeInstanceRetailConversationSummaryChain
-    )
-
-
-def _import_retail_tool_calling_chain_claude_xml():
-    from .retail_chains.retail_tool_calling_chain_claude_xml import (
-        Claude2RetailToolCallingChain,
-        Claude21RetailToolCallingChain,
-        ClaudeInstanceRetailToolCallingChain,
-        Claude3SonnetRetailToolCallingChain,
-        Claude3HaikuRetailToolCallingChain
-    )
-
-
-def _import_auto_evaluation_chain():
-    from .retail_chains.auto_evaluation_chain import (
-        Claude3HaikuAutoEvaluationChain,
-        Claude21AutoEvaluationChain,
-        Claude2AutoEvaluationChain
-    )
+# def _import_auto_evaluation_chain():
+#     from .retail_chains.auto_evaluation_chain import (
+#         Claude3HaikuAutoEvaluationChain,
+#         Claude21AutoEvaluationChain,
+#         Claude2AutoEvaluationChain
+#     )
 
 
 def _load_module(intent_type):
@@ -229,17 +209,17 @@ def _load_module(intent_type):
 CHAIN_MODULE_LOAD_FN_MAP = {
     LLMTaskType.CHAT: _import_chat_chain,
     LLMTaskType.CONVERSATION_SUMMARY_TYPE: _import_conversation_summary_chain,
-    LLMTaskType.INTENT_RECOGNITION_TYPE: _import_intention_chain,
+    # LLMTaskType.INTENT_RECOGNITION_TYPE: _import_intention_chain,
     LLMTaskType.RAG: _import_rag_chain,
-    LLMTaskType.QUERY_TRANSLATE_TYPE: _import_translate_chain,
-    LLMTaskType.MKT_CONVERSATION_SUMMARY_TYPE: _import_mkt_conversation_summary_chains,
-    LLMTaskType.MTK_RAG: _import_mkt_rag_chain,
-    LLMTaskType.STEPBACK_PROMPTING_TYPE: _import_stepback_chain,
-    LLMTaskType.HYDE_TYPE: _import_hyde_chain,
-    LLMTaskType.QUERY_REWRITE_TYPE: _import_query_rewrite_chain,
-    LLMTaskType.TOOL_CALLING_XML: _import_tool_calling_chain_claude_xml,
+    # LLMTaskType.QUERY_TRANSLATE_TYPE: _import_translate_chain,
+    # LLMTaskType.MKT_CONVERSATION_SUMMARY_TYPE: _import_mkt_conversation_summary_chains,
+    # LLMTaskType.MTK_RAG: _import_mkt_rag_chain,
+    # LLMTaskType.STEPBACK_PROMPTING_TYPE: _import_stepback_chain,
+    # LLMTaskType.HYDE_TYPE: _import_hyde_chain,
+    # LLMTaskType.QUERY_REWRITE_TYPE: _import_query_rewrite_chain,
+    # LLMTaskType.TOOL_CALLING_XML: _import_tool_calling_chain_claude_xml,
     LLMTaskType.TOOL_CALLING_API: _import_tool_calling_chain_api,
-    LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE: _import_retail_conversation_summary_chain,
-    LLMTaskType.RETAIL_TOOL_CALLING: _import_retail_tool_calling_chain_claude_xml,
-    LLMTaskType.AUTO_EVALUATION: _import_auto_evaluation_chain
+    # LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE: _import_retail_conversation_summary_chain,
+    # LLMTaskType.RETAIL_TOOL_CALLING: _import_retail_tool_calling_chain_claude_xml,
+    # LLMTaskType.AUTO_EVALUATION: _import_auto_evaluation_chain
 }
