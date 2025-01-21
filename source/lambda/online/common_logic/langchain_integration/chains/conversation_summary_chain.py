@@ -7,7 +7,7 @@ from langchain.schema.runnable import (
 
 
 from ..chat_models import Model
-from .chat_chain import Internlm2Chat7BChatChain
+# from .chat_chain import Internlm2Chat7BChatChain
 from . import LLMChain
 from common_logic.common_utils.constant import (
     MessageType,
@@ -26,7 +26,11 @@ from langchain.prompts import (
     HumanMessagePromptTemplate,
     ChatPromptTemplate
 )
-from ..model_config import MODEL_CONFIGS
+from ..model_config import (
+    BEDROCK_MODEL_CONFIGS,
+    OPENAI_MODEL_CONFIGS,
+    QWEN25_MODEL_CONFIGS
+)
 from common_logic.common_utils.prompt_utils import get_prompt_template
 from common_logic.common_utils.logger_utils import get_logger, print_llm_messages
 
@@ -152,63 +156,84 @@ class ConversationSummaryBaseChain(LLMChain):
         return chain
 
 
-class Internlm2Chat20BConversationSummaryChain(Internlm2Chat7BChatChain):
-    model_id = LLMModelType.INTERNLM2_CHAT_20B
-    default_model_kwargs = {
-        "max_new_tokens": 300,
-        "temperature": 0.1,
-        "stop_tokens": ["\n\n"],
-    }
+ConversationSummaryBaseChain.create_for_chains(BEDROCK_MODEL_CONFIGS,LLMTaskType.CONVERSATION_SUMMARY_TYPE)
+ConversationSummaryBaseChain.create_for_chains(OPENAI_MODEL_CONFIGS,LLMTaskType.CONVERSATION_SUMMARY_TYPE)
+ConversationSummaryBaseChain.create_for_chains(QWEN25_MODEL_CONFIGS,LLMTaskType.CONVERSATION_SUMMARY_TYPE)
 
-    @classmethod
-    def create_prompt(cls, x, system_prompt=None):
-        chat_history = x["chat_history"]
-        conversational_contexts = []
-        for his in chat_history:
-            role = his['role']
-            assert role in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE]
-            if role == HUMAN_MESSAGE_TYPE:
-                conversational_contexts.append(f"USER: {his['content']}")
-            else:
-                conversational_contexts.append(f"AI: {his['content']}")
-        if system_prompt is None:
-            system_prompt = get_prompt_template(
-                model_id=cls.model_id,
-                task_type=cls.intent_type,
-                prompt_name="system_prompt"
-            ).prompt_template
+# class Internlm2Chat20BConversationSummaryChain(Internlm2Chat7BChatChain):
+#     model_id = LLMModelType.INTERNLM2_CHAT_20B
+#     default_model_kwargs = {
+#         "max_new_tokens": 300,
+#         "temperature": 0.1,
+#         "stop_tokens": ["\n\n"],
+#     }
 
-        conversational_context = "\n".join(conversational_contexts)
-        prompt = cls.build_prompt(
-            system_prompt.format(
-                history=conversational_context, question=x["query"]
-            )
-        )
-        prompt = prompt + "Standalone Question: "
-        return prompt
+#     @classmethod
+#     def create_prompt(cls, x, system_prompt=None):
+#         chat_history = x["chat_history"]
+#         conversational_contexts = []
+#         for his in chat_history:
+#             role = his['role']
+#             assert role in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE]
+#             if role == HUMAN_MESSAGE_TYPE:
+#                 conversational_contexts.append(f"USER: {his['content']}")
+#             else:
+#                 conversational_contexts.append(f"AI: {his['content']}")
+#         if system_prompt is None:
+#             system_prompt = get_prompt_template(
+#                 model_id=cls.model_id,
+#                 task_type=cls.intent_type,
+#                 prompt_name="system_prompt"
+#             ).prompt_template
 
-
-class Internlm2Chat7BConversationSummaryChain(Internlm2Chat20BConversationSummaryChain):
-    model_id = LLMModelType.INTERNLM2_CHAT_7B
-
-
-class Qwen2Instruct72BConversationSummaryChain(ConversationSummaryBaseChain):
-    model_id = LLMModelType.QWEN25_INSTRUCT_72B_AWQ
+#         conversational_context = "\n".join(conversational_contexts)
+#         prompt = cls.build_prompt(
+#             system_prompt.format(
+#                 history=conversational_context, question=x["query"]
+#             )
+#         )
+#         prompt = prompt + "Standalone Question: "
+#         return prompt
 
 
-class Qwen2Instruct72BConversationSummaryChain(ConversationSummaryBaseChain):
-    model_id = LLMModelType.QWEN15INSTRUCT32B
+# class Internlm2Chat7BConversationSummaryChain(Internlm2Chat20BConversationSummaryChain):
+#     model_id = LLMModelType.INTERNLM2_CHAT_7B
 
 
-class Qwen2Instruct7BConversationSummaryChain(ConversationSummaryBaseChain):
-    model_id = LLMModelType.QWEN2INSTRUCT7B
+# class Qwen2Instruct72BConversationSummaryChain(ConversationSummaryBaseChain):
+#     model_id = LLMModelType.QWEN25_INSTRUCT_72B_AWQ
 
 
-class GLM4Chat9BConversationSummaryChain(ConversationSummaryBaseChain):
-    model_id = LLMModelType.GLM_4_9B_CHAT
+# class Qwen2Instruct72BConversationSummaryChain(ConversationSummaryBaseChain):
+#     model_id = LLMModelType.QWEN15INSTRUCT32B
 
 
-chain_classes = {
-    f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.CONVERSATION_SUMMARY_TYPE)}": ConversationSummaryBaseChain.create_for_model(model_id, LLMTaskType.CONVERSATION_SUMMARY_TYPE)
-    for model_id in MODEL_CONFIGS
-}
+# class Qwen2Instruct7BConversationSummaryChain(ConversationSummaryBaseChain):
+#     model_id = LLMModelType.QWEN2INSTRUCT7B
+
+
+# class GLM4Chat9BConversationSummaryChain(ConversationSummaryBaseChain):
+#     model_id = LLMModelType.GLM_4_9B_CHAT
+
+
+
+# class ChatGPT35ConversationSummaryChain(ConversationSummaryBaseChain):
+#     model_id = LLMModelType.GPT3D5TURBO0125
+
+
+# class ChatGPT4TurboConversationSummaryChain(ConversationSummaryBaseChain):
+#     model_id = LLMModelType.GPT4TURBO20240409
+
+
+# class ChatGPT4oConversationSummaryChain(ConversationSummaryBaseChain):
+#     model_id = LLMModelType.GPT4O20240806
+
+
+# class ChatGPT4oMiniConversationSummaryChain(ConversationSummaryBaseChain):
+#     model_id = LLMModelType.GPT4OMINI20240718
+
+
+# chain_classes = {
+#     f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.CONVERSATION_SUMMARY_TYPE)}": ConversationSummaryBaseChain.create_for_model(model_id, LLMTaskType.CONVERSATION_SUMMARY_TYPE)
+#     for model_id in MODEL_CONFIGS
+# }

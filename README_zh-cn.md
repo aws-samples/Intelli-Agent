@@ -485,6 +485,9 @@ aws s3 cp source/lambda/job/dep/dist/llm_bot_dep-0.1.0-py3-none-any.whl s3://<Yo
 ## 测试
 参考[测试文档](https://github.com/aws-samples/Intelli-Agent/blob/dev/tests/README.md)获取更多测试信息。
 
+## 成本
+参考[成本文档](COST_zh-cn.md)获取更多信息。
+
 ## 贡献
 参考[贡献文档](CONTRIBUTING.md#security-issue-notifications)获取更多信息。
 

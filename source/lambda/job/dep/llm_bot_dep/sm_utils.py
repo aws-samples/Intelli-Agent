@@ -21,6 +21,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_core.outputs import GenerationChunk
 from langchain_core.pydantic_v1 import Extra, root_validator
+from langchain_community.embeddings.openai import OpenAIEmbeddings
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -494,6 +495,17 @@ def getCustomEmbeddings(
             model_id=endpoint_name,
             normalize=True,
         )
+    elif model_type == "brconnector":
+        embeddings = OpenAIEmbeddings(
+            model=endpoint_name,
+            api_key=get_secret_value(bedrock_api_key_arn)
+        )
+    elif model_type == "openai":
+        embeddings = OpenAIEmbeddings(
+            model=endpoint_name,
+            api_key=get_secret_value(openai_api_key_arn)
+        )
+
     elif model_type == "bce":
         content_handler = vectorContentHandler()
         embeddings = SagemakerEndpointEmbeddings(
