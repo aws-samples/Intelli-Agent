@@ -41,6 +41,9 @@ import {
   SCORE,
   ROUND,
   HISTORY_CHATBOT_ID,
+  BR_API_MODEL_LIST,
+  OPENAI_API_MODEL_LIST,
+  SHOW_FIGURES,
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';
@@ -59,6 +62,9 @@ interface ChatBotProps {
   historySessionId?: string;
 }
 
+// Add these constants near the top with the other constants
+const API_ENDPOINT = 'API_ENDPOINT';
+const API_KEY_ARN = 'API_KEY_ARN';
 
 const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const { historySessionId } = props;
@@ -69,6 +75,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const localRound = localStorage.getItem(ROUND);
   const localTopKRetrievals = localStorage.getItem(TOPK);
   const localScore = localStorage.getItem(SCORE);
+  const localApiEndpoint = localStorage.getItem(API_ENDPOINT);
+  const localApiKeyArn = localStorage.getItem(API_KEY_ARN);
   const config = useContext(ConfigContext);
   const { t } = useTranslation();
   const auth = useAuth();
@@ -96,7 +104,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [currentAIMessageId, setCurrentAIMessageId] = useState('');
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [modelOption, setModelOption] = useState('');
+  // const [brModelOption, setBrApiModelOption] = useState('');
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
+  // const [brApiModelList, setBrApiModelList] = useState<SelectProps.Option[]>([]);
   const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
   const [chatbotOption, setChatbotOption] = useState<SelectProps.Option>(null as any);
   const [useChatHistory, setUseChatHistory] = useState(localStorage.getItem(USE_CHAT_HISTORY) == null || localStorage.getItem(USE_CHAT_HISTORY) == "true" ? true : false);
@@ -133,18 +143,15 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [endPointError, setEndPointError] = useState('');
   const [showMessageError, setShowMessageError] = useState(false);
   const [isMessageEnd, setIsMessageEnd] = useState(false);
-
-  // validation
   const [modelError, setModelError] = useState('');
   const [temperatureError, setTemperatureError] = useState('');
   const [maxTokenError, setMaxTokenError] = useState('');
   const [modelSettingExpand, setModelSettingExpand] = useState(false);
   const [additionalConfigError, setAdditionalConfigError] = useState('');
-
-  const [apiEndpoint, setApiEndpoint] = useState('');
-  const [apiModelName, setApiModelName] = useState('');
-  const [apiEndpointError, setApiEndpointError] = useState('');
-  const [apiModelNameError, setApiModelNameError] = useState('');
+  const [apiEndpointError, setApiEndpointError] = useState(''); 
+  const [apiKeyArnError, setApiKeyArnError] = useState('');
+  const [apiEndpoint, setApiEndpoint] = useState(localApiEndpoint ?? '');
+  const [apiKeyArn, setApiKeyArn] = useState(localApiKeyArn ?? '');
 
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
@@ -355,6 +362,18 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     }
   }, [additionalConfig])
 
+  useEffect(() => {
+    if (apiEndpoint) {
+      localStorage.setItem(API_ENDPOINT, apiEndpoint);
+    }
+  }, [apiEndpoint]);
+
+  useEffect(() => {
+    if (apiKeyArn) {
+      localStorage.setItem(API_KEY_ARN, apiKeyArn);
+    }
+  }, [apiKeyArn]);
+
   const handleAIMessage = (message: MessageDataType) => {
     console.info('handleAIMessage:', message);
     if (message.message_type === 'START') {
@@ -450,11 +469,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     if (modelType.value === 'Bedrock API') {
       if (!apiEndpoint.trim()) {
         setApiEndpointError('validation.requireApiEndpoint');
-        setModelSettingExpand(true);
-        return;
-      }
-      if (!apiModelName.trim()) {
-        setApiModelNameError('validation.requireApiModelName');
         setModelSettingExpand(true);
         return;
       }
@@ -557,9 +571,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         use_websearch: true,
         google_api_key: '',
         default_llm_config: {
-          model_id: modelType.value === 'Bedrock API' ? apiModelName : modelOption,
-          endpoint_name: modelType.value === 'Bedrock API' ? apiEndpoint : 
-            (modelOption === 'qwen2-72B-instruct' ? endPoint.trim() : ''),
+          model_id: modelOption,
+          endpoint_name: modelOption === 'qwen2-72B-instruct' ? endPoint.trim() : '',
           model_kwargs: {
             temperature: parseFloat(temperature),
             max_tokens: parseInt(maxToken),
@@ -611,6 +624,12 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     if (modelType.value === 'Bedrock') {
       optionList=LLM_BOT_COMMON_MODEL_LIST;
       setModelList(LLM_BOT_COMMON_MODEL_LIST);
+    } else if (modelType.value === 'Bedrock API') {
+      optionList=BR_API_MODEL_LIST;
+      setModelList(BR_API_MODEL_LIST);
+    } else if (modelType.value === 'OpenAI API') {
+      optionList=OPENAI_API_MODEL_LIST;
+      setModelList(OPENAI_API_MODEL_LIST);
     }
     if (localModel) {
       setModelOption(localModel)
@@ -673,7 +692,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   };
 
   // Initialize showFigures from local storage
-  const localShowFigures = localStorage.getItem('SHOW_FIGURES');
+  const localShowFigures = localStorage.getItem(SHOW_FIGURES);
   const [showFigures, setShowFigures] = useState(localShowFigures === null || localShowFigures === "true");
 
   useEffect(() => {
@@ -746,8 +765,25 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                       }}
                     />
                   </FormField>
-                  {modelType.value === 'Bedrock API' ? (
+                  {modelType.value === 'Bedrock API' || modelType.value === 'OpenAI API' ? (
                     <SpaceBetween size="xs" direction="vertical">
+                      <FormField
+                        label={t('modelName')}
+                        stretch={true}
+                        errorText={t(modelError)}
+                        description={t('modelNameDesc')}
+                      >
+                        <Autosuggest
+                          onChange={({ detail }) => {
+                            setModelError('');
+                            setModelOption(detail.value);
+                          }}
+                          value={modelOption}
+                          options={modelList}
+                          placeholder={t('validation.requireModel')}
+                          empty={t('noModelFound')}
+                        />
+                      </FormField>
                       <FormField
                         label={t('apiEndpoint')}
                         stretch={true}
@@ -764,18 +800,18 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         />
                       </FormField>
                       <FormField
-                        label={t('apiModelName')}
+                        label={t('apiKeyArn')}
                         stretch={true}
-                        errorText={t(apiModelNameError)}
-                        description={t('apiModelNameDesc')}
+                        errorText={t(apiKeyArnError)}
+                        description={t('apiKeyArnDesc')}
                       >
                         <Input
-                          value={apiModelName}
+                          value={apiKeyArn}
                           onChange={({ detail }) => {
-                            setApiModelNameError('');
-                            setApiModelName(detail.value);
+                            setApiKeyArnError('');
+                            setApiKeyArn(detail.value);
                           }}
-                          placeholder="model-name"
+                          placeholder="arn:aws:secretsmanager:region:account:secret:name"
                         />
                       </FormField>
                     </SpaceBetween>

@@ -140,6 +140,57 @@ export const LLM_BOT_COMMON_MODEL_LIST = [
   },
 ];
 
+export const BR_API_MODEL_LIST = [
+  {
+    label: 'Amazon Nova',
+    options: [
+      { label: 'us.amazon.nova-pro-v1:0', value: 'us.amazon.nova-pro-v1:0' },
+      { label: 'us.amazon.nova-lite-v1:0', value: 'us.amazon.nova-lite-v1:0' },
+      {
+        label: 'us.amazon.nova-micro-v1:0',
+        value: 'us.amazon.nova-micro-v1:0',
+      },
+    ],
+  },
+  {
+    label: 'Claude',
+    options: [
+      {
+        label: 'anthropic.claude-3-sonnet-20240229-v1:0',
+        value: 'anthropic.claude-3-sonnet-20240229-v1:0',
+      },
+      {
+        label: 'us.anthropic.claude-3-opus-20240229-v1:0',
+        value: 'us.anthropic.claude-3-opus-20240229-v1:0',
+      },
+      {
+        label: 'anthropic.claude-3-haiku-20240307-v1:0',
+        value: 'anthropic.claude-3-haiku-20240307-v1:0',
+      },
+      {
+        label: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+        value: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+      },
+      {
+        label: 'anthropic.claude-3-5-haiku-20241022-v1:0',
+        value: 'anthropic.claude-3-5-haiku-20241022-v1:0',
+      },
+    ],
+  },
+];
+
+export const OPENAI_API_MODEL_LIST = [
+  {
+    label: 'OpenAI',
+    options: [
+      { label: 'gpt-4o-2024-08-06', value: 'gpt-4o-2024-08-06' },
+      { label: 'gpt-4o-mini-2024-07-18', value: 'gpt-4o-mini-2024-07-18' },
+      { label: 'gpt-4-turbo-2024-04-09', value: 'gpt-4-turbo-2024-04-09' },
+      { label: 'gpt-3.5-turbo-0125', value: 'gpt-3.5-turbo-0125' },
+    ],
+  }, 
+];
+
 export const LLM_BOT_RETAIL_MODEL_LIST = [
   {
     label: 'Qwen',
@@ -183,6 +234,10 @@ export const MODEL_TYPE_LIST: SelectProps.Option[] = [
   {
     label: 'Bedrock API',
     value: 'Bedrock API',
+  },
+  {
+    label: 'OpenAI API',
+    value: 'OpenAI API',
   },
 ];
 
@@ -241,3 +296,6 @@ export const TOPK = 'topK';
 export const SCORE = 'score';
 export const ADITIONAL_SETTINGS = 'additional_settings';
 export const HISTORY_CHATBOT_ID = 'history_chatbot_id';
+export const API_ENDPOINT = 'API_ENDPOINT';
+export const API_KEY_ARN = 'API_KEY_ARN';
+export const SHOW_FIGURES = 'SHOW_FIGURES';

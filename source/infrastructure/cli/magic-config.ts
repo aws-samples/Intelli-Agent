@@ -340,7 +340,7 @@ async function processCreateOptions(options: any): Promise<void> {
     {
       type: "input",
       name: "crossAccountBedrockKey",
-      message: "If you don't need to use cross-account Bedrock functionality, you can press Enter to skip this step. When invoking Bedrock across accounts, you need to provide an API key, which should be stored in the Secrets Manager of your current account. Please enter the ARN of the API key, for example: arn:aws:secretsmanager:us-west-2:<aws_account_id>:secret:SampleAPIKey-AqZDIw",
+      message: "If you don't need to use cross-account Bedrock or connect OpenAI API, you can press Enter to skip this step. When invoking Bedrock across accounts or OpenAI API, you need to provide an API key, which should be stored in the Secrets Manager of your current account. Please enter the ARN of the API key, for example: arn:aws:secretsmanager:us-west-2:<aws_account_id>:secret:SampleAPIKey",
       initial: options.crossAccountBedrockKey,
       validate(crossAccountBedrockKey: string) {
         if ( crossAccountBedrockKey.includes('arn:aws:secretsmanager') || crossAccountBedrockKey.trim() === '') {
