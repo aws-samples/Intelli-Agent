@@ -127,9 +127,9 @@ class ToolRuningMode(ConstantBase):
 
 class ModelProvider(ConstantBase):
     DMAA = "dmaa"
-    BEDROCK = "bedrock"
-    BRCONNECTOR_BEDROCK = "brconnector"
-    OPENAI = "openai"
+    BEDROCK = "Bedrock"
+    BRCONNECTOR_BEDROCK = "Bedrock API"
+    OPENAI = "OpenAI API"
 
 
 class LLMModelType(ConstantBase):

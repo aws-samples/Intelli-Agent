@@ -571,6 +571,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         default_llm_config: {
           model_id: modelOption,
           endpoint_name: modelOption === 'qwen2-72B-instruct' ? endPoint.trim() : '',
+          provider: modelType.value,
+          base_url: (modelType.value === 'Bedrock API' || 'OpenAI API') ? apiEndpoint.trim() : '',
+          api_key_arn: (modelType.value === 'Bedrock API' || 'OpenAI API') ? apiKeyArn.trim() : '',
           model_kwargs: {
             temperature: parseFloat(temperature),
             max_tokens: parseInt(maxToken),
