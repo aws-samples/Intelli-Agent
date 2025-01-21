@@ -257,7 +257,7 @@ async function processCreateOptions(options: any): Promise<void> {
       message: "Do you want to use a custom domain for your knowledge base?",
       initial: options.useCustomDomain ?? false,
       skip(): boolean {
-        if ( !(this as any).state.answers.enableKnowledgeBase ||
+        if (!(this as any).state.answers.enableKnowledgeBase ||
           (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
           (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch") {
           return true;
@@ -277,7 +277,7 @@ async function processCreateOptions(options: any): Promise<void> {
           : "Enter a valid OpenSearch domain endpoint (e.g., https://search-domain-region-id.region.es.amazonaws.com)";
       },
       skip(): boolean {
-        if ( !(this as any).state.answers.enableKnowledgeBase ||
+        if (!(this as any).state.answers.enableKnowledgeBase ||
           (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
           (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch" ||
           !(this as any).state.answers.useCustomDomain) {
@@ -357,7 +357,10 @@ async function processCreateOptions(options: any): Promise<void> {
       message: "Compared to local deployment, would you prefer to access the model via API calls?",
       initial: options.enableApiInference ?? false,
       skip(): boolean {
-        return (!(this as any).state.answers.enableChat);
+        if (!(this as any).state.answers.enableChat) {
+          return true;
+        }
+        return false;
       },
     },
     {
@@ -367,8 +370,11 @@ async function processCreateOptions(options: any): Promise<void> {
       choices: apiInferenceProviders.map((m) => ({ name: m.name, value: m })),
       initial: options.apiInferenceProvider,
       skip(): boolean {
-        return (!(this as any).state.answers.enableApiInference &&
-          !(this as any).state.answers.enableChat);
+        if (!(this as any).state.answers.enableApiInference ||
+          !(this as any).state.answers.enableChat) {
+          return true;
+        }
+        return false;
       },
     },
     {
@@ -377,32 +383,38 @@ async function processCreateOptions(options: any): Promise<void> {
       message: "API endpoint to invoke models, e.g. https://api.example.com/v1",
       initial: options.apiEndpoint,
       validate(apiEndpoint: string) {
-        if (apiEndpoint.includes('http')) {
-          return true;
-        }
-        return "Enter a valid API endpoint, e.g. https://api.example.com/v1";
+        return (this as any).skipped ||
+          RegExp(/^https?:\/\//).test(apiEndpoint)
+          ? true
+          : "Enter a valid API endpoint, e.g. https://api.example.com/v1";
       },
       skip(): boolean {
-        return (!(this as any).state.answers.enableApiInference &&
-          !(this as any).state.answers.enableChat);
+        if (!(this as any).state.answers.enableApiInference ||
+          !(this as any).state.answers.enableChat) {
+          return true;
+        }
+        return false;
       },
-    },  
+    },
     {
       type: "input",
       name: "apiKey",
       message: "When invoking Bedrock API or OpenAI API, you need to provide an API key, which should be stored in the Secrets Manager of your current account. Please enter the ARN of the API key, for example: arn:aws:secretsmanager:<region>:<account_id>:secret:SampleAPIKey",
       initial: options.apiKey,
       validate(apiKey: string) {
-        if (apiKey.includes('arn:aws:secretsmanager')) {
-          return true;
-        }
-        return "Enter a valid ARN or press Enter to skip it";
+        return (this as any).skipped ||
+          RegExp(/^arn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[a-zA-Z0-9-_/]+$/).test(apiKey)
+          ? true
+          : "Enter a valid Secrets Manager ARN (e.g., arn:aws:secretsmanager:region:123456789012:secret:mysecret)";
       },
       skip(): boolean {
-        return (!(this as any).state.answers.enableApiInference &&
-          !(this as any).state.answers.enableChat);
+        if (!(this as any).state.answers.enableApiInference ||
+          !(this as any).state.answers.enableChat) {
+          return true;
+        }
+        return false;
       },
-    },    
+    },
     {
       type: "confirm",
       name: "useOpenSourceLLM",
