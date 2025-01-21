@@ -1,6 +1,6 @@
 from typing import Any
 from common_logic.common_utils.constant import LLMTaskType
-from ..model_config import MODEL_CONFIGS
+from ..model_config import ModelConfig
 
 
 class LLMChainMeta(type):
@@ -56,9 +56,11 @@ class LLMChain(metaclass=LLMChainMeta):
         return ''.join(cleaned_parts) + intent_type.capitalize() + "Chain"
 
     @classmethod
-    def create_for_model(cls, model_id: str, intent_type: str):
+    def create_for_chain(cls, model_config: ModelConfig, intent_type: str):
         """Factory method to create a chain for a specific model"""
-        config = MODEL_CONFIGS[model_id]
+        # config = MODEL_CONFIGS[model_id]
+        config = model_config
+        model_id = model_config.model_id
 
         # Create a new class dynamically
         chain_class = type(
@@ -71,6 +73,13 @@ class LLMChain(metaclass=LLMChainMeta):
             }
         )
         return chain_class
+    
+    
+    @classmethod
+    def create_for_chains(cls, model_configs: list[ModelConfig], intent_type: str):
+        for config in model_configs:
+            cls.create_for_chain(config,intent_type=intent_type)
+
 
 
 def _import_conversation_summary_chain():

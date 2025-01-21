@@ -22,7 +22,11 @@ from common_logic.common_utils.time_utils import get_china_now
 
 from . import LLMChain
 from ..chat_models import Model
-from ..model_config import MODEL_CONFIGS
+from ..model_config import (
+    BEDROCK_MODEL_CONFIGS,
+    OPENAI_MODEL_CONFIGS,
+    QWEN25_MODEL_CONFIGS
+)
 
 
 class ToolCallingBaseChain(LLMChain):
@@ -142,7 +146,26 @@ class ToolCallingBaseChain(LLMChain):
         return chain
 
 
-chain_classes = {
-    f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.TOOL_CALLING_API)}": ToolCallingBaseChain.create_for_model(model_id, LLMTaskType.TOOL_CALLING_API)
-    for model_id in MODEL_CONFIGS
-}
+ToolCallingBaseChain.create_for_chains(BEDROCK_MODEL_CONFIGS,LLMTaskType.TOOL_CALLING_API)
+ToolCallingBaseChain.create_for_chains(OPENAI_MODEL_CONFIGS,LLMTaskType.TOOL_CALLING_API)
+ToolCallingBaseChain.create_for_chains(QWEN25_MODEL_CONFIGS,LLMTaskType.TOOL_CALLING_API)
+# class ChatGPT35ToolCallingChain(ToolCallingBaseChain):
+#     model_id = LLMModelType.GPT3D5TURBO0125
+
+
+# class ChatGPT4TurboToolCallingChain(ToolCallingBaseChain):
+#     model_id = LLMModelType.GPT4TURBO20240409
+
+
+# class ChatGPT4oToolCallingChain(ToolCallingBaseChain):
+#     model_id = LLMModelType.GPT4O20240806
+
+
+# class ChatGPT4oMiniToolCallingChain(ToolCallingBaseChain):
+#     model_id = LLMModelType.GPT4OMINI20240718
+
+
+# chain_classes = {
+#     f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.TOOL_CALLING_API)}": ToolCallingBaseChain.create_for_model(model_id, LLMTaskType.TOOL_CALLING_API)
+#     for model_id in MODEL_CONFIGS
+# }
