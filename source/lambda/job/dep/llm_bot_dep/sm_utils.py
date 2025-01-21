@@ -525,7 +525,8 @@ def getCustomEmbeddings(
     if api_inference_provider == "Bedrock API":
         embeddings = OpenAIEmbeddings(
             model=endpoint_name,
-            api_key=get_secret_value(api_key_arn)
+            api_key=get_secret_value(api_key_arn),
+            base_url=api_inference_endpoint
         )
     elif api_inference_provider == "OpenAI API":
         embeddings = OpenAIEmbeddings(
