@@ -1,8 +1,11 @@
 {
   "translation": {
-    "name": "AI Customer Service",
+    "name": "Multi-modal Enterprise Knowledge Base in Manufacturing",
+    "welcome": "欢迎使用 Multi-modal Enterprise Knowledge Base in Manufacturing",
+    "mead": "制造",
+    "projectDescription": "Multi-modal Enterprise Knowledge Base in Manufacturing 提供一个高效简洁的工作流程，用于开发可扩展的、生产级别的、基于 agent（代理）的应用",
+    "solutionName": "Multi-modal Enterprise Knowledge Base in Manufacturing",
     "desc": "描述",
-    "welcome": "欢迎使用 AI Customer Service",
     "you": "你",
     "welcomeMessage": "您好，我今天有什么可以帮助您？",
     "server": "服务器",
@@ -240,11 +243,8 @@
       "next": "下一步",
       "skip": "跳过向导"
     },
-    "solutionName": "AI Customer Service",
     "subTitle": "构建基于代理的应用程序的优化工作流",
-    "projectDescription": "AI Customer Service提供一个高效简洁的工作流程，用于开发可扩展的、生产级别的、基于 agent（代理）的应用",
     "awsSolutionGuidance": "Amazon Web Services 解决方案指南",
-    "mead": "媒体与广告",
     "homeSidebar": "首页",
     "chatbotDetail": "机器人详情",
     "featuresAndBenefits": {
@@ -259,18 +259,18 @@
       },
       "feat3": {
         "name": "Intention detection",
-        "desc": "desc"
+        "desc": "Desc"
       },
       "feat4": {
         "name": "Management and governance",
-        "desc": "desc"
+        "desc": "Desc"
       }
     },
     "useCases": {
       "name": "使用案例",
       "case1": {
-        "name": "MEAD use case",
-        "desc": "desc"
+        "name": "Use case",
+        "desc": "Desc"
       }
     },
     "gettingStarted": {
