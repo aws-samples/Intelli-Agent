@@ -54,6 +54,10 @@ intention_table_name = os.getenv("INTENTION_TABLE_NAME", "intention")
 chatbot_table_name = os.getenv("CHATBOT_TABLE_NAME", "chatbot")
 index_table_name = os.getenv("INDEX_TABLE_NAME", "index")
 model_table_name = os.getenv("MODEL_TABLE_NAME", "model")
+api_inference_enabled = os.getenv["API_INFERENCE_ENABLED"]
+api_inference_provider = os.getenv["API_INFERENCE_PROVIDER"]
+api_inference_endpoint = os.getenv["API_ENDPOINT"]
+api_key_arn = os.getenv["API_KEY_ARN"]
 dynamodb_client = boto3.resource("dynamodb")
 intention_table = dynamodb_client.Table(intention_table_name)
 index_table = dynamodb_client.Table(index_table_name)
@@ -459,7 +463,14 @@ def __save_2_aos(
     if kb_enabled:
         embedding_info = get_embedding_info(embedding_model_endpoint)
         embedding_function = sm_utils.getCustomEmbeddings(
-            embedding_model_endpoint, region, embedding_info.get("ModelType")
+            embedding_model_endpoint,
+            region_name=region,
+            bedrock_region=bedrock_region,
+            model_type=embedding_info.get("ModelType"),
+            api_inference_enabled=api_inference_enabled,
+            api_inference_provider=api_inference_provider,
+            api_inference_endpoint=api_inference_endpoint,
+            api_key_arn=api_key_arn,
         )
         docsearch = OpenSearchVectorSearch(
             index_name=index,
