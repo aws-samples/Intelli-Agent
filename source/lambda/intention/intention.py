@@ -463,7 +463,7 @@ def __save_2_aos(
     if kb_enabled:
         embedding_info = get_embedding_info(embedding_model_endpoint)
         embedding_function = sm_utils.getCustomEmbeddings(
-            embedding_model_endpoint,
+            endpoint_name=embedding_model_endpoint,
             region_name=region,
             bedrock_region=bedrock_region,
             model_type=embedding_info.get("ModelType"),
