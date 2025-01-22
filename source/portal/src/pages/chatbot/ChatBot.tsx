@@ -64,6 +64,23 @@ interface ChatBotProps {
   historySessionId?: string;
 }
 
+const isValidUrl = (url: string): boolean => {
+  try {
+    new URL(url);
+    return url.startsWith('http://') || url.startsWith('https://');
+  } catch {
+    return false;
+  }
+};
+
+const isValidArn = (arn: string): boolean => {
+  // AWS Global and China ARN patterns
+  // arn:aws:secretsmanager:region:account-id:secret:name
+  // arn:aws-cn:secretsmanager:region:account-id:secret:name
+  const arnPattern = /^arn:aws(?:-cn)?:secretsmanager:[a-z0-9-]+:\d{12}:secret:.+$/;
+  return arnPattern.test(arn);
+};
+
 const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const { historySessionId } = props;
   // const localScenario = localStorage.getItem(MODEL_TYPE);
@@ -794,8 +811,13 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         <Input
                           value={apiEndpoint}
                           onChange={({ detail }) => {
-                            setApiEndpointError('');
-                            setApiEndpoint(detail.value);
+                            const value = detail.value;
+                            if (value === '' || isValidUrl(value)) {
+                              setApiEndpointError('');
+                            } else {
+                              setApiEndpointError('Invalid url, please type in a valid HTTPS or HTTP url');
+                            }
+                            setApiEndpoint(value);
                           }}
                           placeholder="https://api.example.com/v1"
                         />
@@ -809,8 +831,13 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         <Input
                           value={apiKeyArn}
                           onChange={({ detail }) => {
-                            setApiKeyArnError('');
-                            setApiKeyArn(detail.value);
+                            const value = detail.value;
+                            if (value === '' || isValidArn(value)) {
+                              setApiKeyArnError('');
+                            } else {
+                              setApiKeyArnError('Invalid ARN, please type in a valid secret ARN from AWS Secrets Manager');
+                            }
+                            setApiKeyArn(value);
                           }}
                           placeholder="arn:aws:secretsmanager:region:account:secret:name"
                         />
