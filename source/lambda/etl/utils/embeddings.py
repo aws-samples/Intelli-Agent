@@ -20,13 +20,6 @@ def get_embedding_info(embedding_endpoint_name):
         embeddings_model_name = "bge-m3"
         embeddings_model_dimensions = 1024
         embeddings_model_type = "m3"
-
-    elif "embedding" in embedding_endpoint_name:
-        embeddings_model_provider = "Netease"
-        embeddings_model_name = "bce_embedding_model.tar.gz"
-        embeddings_model_dimensions = 768
-        embeddings_model_type = "bce"
-
     elif "cohere" in embedding_endpoint_name:
         embeddings_model_provider = "Cohere"
         embeddings_model_name = "cohere.embed-english-v3"
@@ -42,6 +35,21 @@ def get_embedding_info(embedding_endpoint_name):
         embeddings_model_name = "amazon.titan-embed-text-v2:0"
         embeddings_model_dimensions = 1024
         embeddings_model_type = "bedrock"
+    elif "text-embedding-3-small" in embedding_endpoint_name:
+        embeddings_model_provider = "OpenAI API"
+        embeddings_model_name = "text-embedding-3-small"
+        embeddings_model_dimensions = 1536
+        embeddings_model_type = "OpenAI API"
+    elif "text-embedding-3-large" in embedding_endpoint_name:
+        embeddings_model_provider = "OpenAI API"
+        embeddings_model_name = "text-embedding-3-large"
+        embeddings_model_dimensions = 3072
+        embeddings_model_type = "OpenAI API"  
+    elif "embedding" in embedding_endpoint_name:
+        embeddings_model_provider = "Netease"
+        embeddings_model_name = "bce_embedding_model.tar.gz"
+        embeddings_model_dimensions = 768
+        embeddings_model_type = "bce"
     else:
         embeddings_model_provider = "Not Found"
         embeddings_model_name = "Not Found"

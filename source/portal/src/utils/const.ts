@@ -280,6 +280,28 @@ export const EMBEDDING_MODEL_LIST = [
   },
 ];
 
+export const BEDROCK_API_EMBEDDING_MODEL_LIST = [
+  {
+    model_id: 'amazon.titan-embed-text-v2:0',
+    model_name: 'amazon.titan-embed-text-v2:0',
+  },
+  {
+    model_id: 'amazon.titan-embed-text-v1',
+    model_name: 'amazon.titan-embed-text-v1',
+  },
+];
+
+export const OPENAI_API_EMBEDDING_MODEL_LIST = [
+  {
+    model_id: 'text-embedding-3-small',
+    model_name: 'text-embedding-3-small',
+  },
+  {
+    model_id: 'text-embedding-3-large',
+    model_name: 'text-embedding-3-large',
+  },
+];
+
 export const RESOURCE_QQ_TEMPLATE =
   'https://ai-customer-service-resources.s3.us-west-2.amazonaws.com/qq_match_template.xlsx';
 

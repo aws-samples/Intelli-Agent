@@ -36,7 +36,19 @@ const embeddingModels = [
     name: "bce-embedding-and-bge-reranker",
     commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
     dimensions: 768,
-  }
+  },
+  {
+    provider: "OpenAI API",
+    name: "text-embedding-3-small",
+    commitId: "",
+    dimensions: 1536,
+  },
+  {
+    provider: "OpenAI API",
+    name: "text-embedding-3-large",
+    commitId: "",
+    dimensions: 3072,
+  },
 ];
 
 const apiInferenceProviders = [

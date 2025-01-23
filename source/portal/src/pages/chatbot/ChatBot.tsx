@@ -119,9 +119,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [currentAIMessageId, setCurrentAIMessageId] = useState('');
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [modelOption, setModelOption] = useState('');
-  // const [brModelOption, setBrApiModelOption] = useState('');
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
-  // const [brApiModelList, setBrApiModelList] = useState<SelectProps.Option[]>([]);
   const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
   const [chatbotOption, setChatbotOption] = useState<SelectProps.Option>(null as any);
   const [useChatHistory, setUseChatHistory] = useState(localStorage.getItem(USE_CHAT_HISTORY) == null || localStorage.getItem(USE_CHAT_HISTORY) == "true" ? true : false);
@@ -774,7 +772,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                 <div style={{fontSize: 16, fontWeight: 700, marginBottom: 15, marginTop: 15}}>{t('common')}</div>
                 <SpaceBetween size="xs" direction="vertical">
                 <Grid gridDefinition={[{colspan: 5},{colspan: 6}]}>
-                  <FormField label={t('modelType')} stretch={true} description={t('scenarioDesc')}>
+                  <FormField label={t('modelProvider')} stretch={true} description={t('scenarioDesc')}>
                     <Select
                       options={MODEL_TYPE_LIST}
                       selectedOption={modelType}

@@ -1,8 +1,11 @@
 {
   "translation": {
-    "name": "AI Customer Service",
+    "name": "Multi-modal Enterprise Knowledge Base in Manufacturing",
+    "welcome": "Welcome to Multi-modal Enterprise Knowledge Base in Manufacturing",
+    "mead": "Manufacturing",
+    "projectDescription": "Multi-modal Enterprise Knowledge Base in Manufacturing offers a streamlined workflow for developing scalable, production-grade agent-based applications",
+    "solutionName": "Multi-modal Enterprise Knowledge Base in Manufacturing",
     "desc": "Description",
-    "welcome": "Welcome to AI Customer Service",
     "you": "Y o u",
     "welcomeMessage": "Hello, how can I help you today?",
     "server": "Server",
@@ -98,6 +101,7 @@
     "noChatbotFound": "No chatbot found",
     "scenario": "Scenario",
     "modelType": "Model provider",
+    "modelProvider": "Model provider",
     "maxTokens": "Max Tokens",
     "temperature": "Temperature",
     "sessionHistory": "Recent chats",
@@ -175,7 +179,7 @@
     "referenceDocuments": "Reference Documents",
     "selectADocumentToPreview": "Select a document to preview its content",
     "button": {
-      "login": "Log in to AI Customer Service",
+      "login": "Log in to Multi-modal Enterprise Knowledge Base in Manufacturing",
       "reload": "Reload",
       "send": "Send",
       "modelSettings": "Model Settings",
@@ -247,11 +251,8 @@
       "next": "Next",
       "skip": "Skip tour"
     },
-    "solutionName": "AI Customer Service",
     "subTitle": "Streamlined Workflow for Building Agent-Based Applications",
-    "projectDescription": "AI Customer Service offers a streamlined workflow for developing scalable, production-grade agent-based applications",
     "awsSolutionGuidance": "Amazon Web Services Solution Guidance",
-    "mead": "Media & Advertisement",
     "homeSidebar": "Home",
     "chatbotDetail": "ChatBot Detail",
     "featuresAndBenefits": {
@@ -266,18 +267,18 @@
       },
       "feat3": {
         "name": "Intention detection",
-        "desc": "desc"
+        "desc": "Desc"
       },
       "feat4": {
         "name": "Management and governance",
-        "desc": "desc"
+        "desc": "Desc"
       }
     },
     "useCases": {
       "name": "Use cases",
       "case1": {
-        "name": "MEAD use case",
-        "desc": "desc"
+        "name": "Use case",
+        "desc": "Desc"
       }
     },
     "gettingStarted": {
