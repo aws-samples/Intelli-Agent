@@ -127,8 +127,9 @@ class ToolRuningMode(ConstantBase):
 
 class ModelProvider(ConstantBase):
     DMAA = "dmaa"
-    BEDROCK = "bedrock"
-    BRCONNECTOR_BEDROCK = "brconnector"
+    BEDROCK = "Bedrock"
+    BRCONNECTOR_BEDROCK = "Bedrock API"
+    OPENAI = "OpenAI API"
 
 
 class LLMModelType(ConstantBase):
@@ -146,9 +147,13 @@ class LLMModelType(ConstantBase):
     INTERNLM2_CHAT_7B = "internlm2-chat-7b"
     INTERNLM2_CHAT_20B = "internlm2-chat-20b"
     GLM_4_9B_CHAT = "glm-4-9b-chat"
-    CHATGPT_35_TURBO_0125 = "gpt-3.5-turbo-0125"
-    CHATGPT_4_TURBO = "gpt-4-turbo"
-    CHATGPT_4O = "gpt-4o"
+    # CHATGPT_35_TURBO_0125 = "gpt-3.5-turbo-0125"
+    # CHATGPT_4_TURBO = "gpt-4-turbo"
+    # CHATGPT_4O = "gpt-4o"
+    GPT3D5TURBO0125 = "gpt-3.5-turbo-0125"
+    GPT4O20240806 = "gpt-4o-2024-08-06"
+    GPT4OMINI20240718= "gpt-4o-mini-2024-07-18"
+    GPT4TURBO20240409 = "gpt-4-turbo-2024-04-09"
     QWEN2INSTRUCT7B = "qwen2-7B-instruct"
     QWEN25_INSTRUCT_72B_AWQ = "Qwen2.5-72B-Instruct-AWQ"
     QWEN15INSTRUCT32B = "qwen1_5-32B-instruct"
@@ -171,8 +176,6 @@ class LLMModelType(ConstantBase):
     CLAUDE_3_5_SONNET_APAC = "apac.anthropic.claude-3-5-sonnet-20240620-v1:0"
     CLAUDE_3_HAIKU_APAC = "apac.anthropic.claude-3-haiku-20240307-v1:0"
     LLAMA3_1_70B_INSTRUCT_US = "us.meta.llama3-1-70b-instruct-v1:0"
-
-
 
 
 class EmbeddingModelType(ConstantBase):

@@ -239,12 +239,18 @@ export type ChatbotItem = {
   LastModifiedTime: string;
   ModelName: string;
   SortKey: string;
+  ModelProvider: string;
 };
 
 export type ChatbotDetailResponse = {
   chatbotId: string;
   updateTime: string;
-  model: { model_endpoint: string; model_name: string };
+  model: {
+    model_endpoint: string;
+    model_name: string;
+    model_provider: string;
+    base_url: string;
+  };
   index: IndexItem[];
 };
 
@@ -253,6 +259,8 @@ export type ChatbotItemDetail = {
   updateTime: string;
   model: string;
   index: IndexItem[];
+  modelProvider: string;
+  baseUrl: string;
 };
 
 export type ChatbotResponse = {

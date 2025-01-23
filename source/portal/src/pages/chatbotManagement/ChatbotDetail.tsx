@@ -224,7 +224,9 @@ const ChatbotDetail: React.FC = () => {
         chatbotId: data.chatbotId,
         model: data.model?.model_name,
         index: data.index,
-        updateTime: data.updateTime
+        updateTime: data.updateTime,
+        modelProvider: data.model?.model_provider,
+        baseUrl: data.model?.base_url
       };
       setChatbotDetail(chatbotDetail)
       // setIndexList(chatbotDetail.index)
@@ -277,14 +279,34 @@ const ChatbotDetail: React.FC = () => {
           <SpaceBetween direction="vertical" size="xs">
             
             <div className="mt-10">
-            <Grid
-      gridDefinition={[{ colspan: 4 }, { colspan: 4 }, { colspan: 4 }]}
+    <Grid
+      gridDefinition={[
+        { colspan: 3 },
+        { colspan: 3 },
+        { colspan: 3 },
+        { colspan: 3 },
+        { colspan: 3 }  
+      ]}
     >
       <div>
       <FormField
       description={id}
       
       label={t("chatbotName")}
+    >
+    </FormField>
+      </div>
+      <div>
+      <FormField
+      description={chatbotDetail?.modelProvider}
+      label={t("modelProvider")}
+    >
+    </FormField>
+      </div>
+      <div>
+      <FormField
+      description={chatbotDetail?.baseUrl}
+      label={t("apiEndpoint")}
     >
     </FormField>
       </div>

@@ -36,6 +36,12 @@ export function getConfig(): SystemConfig {
     chat: {
       enabled: true,
       bedrockRegion: "us-east-1",
+      apiInference: {
+        enabled: false,
+        apiInferenceProvider: "",
+        apiEndpoint: "",
+        apiKey: ""
+      },
       bedrockAk: "",
       bedrockSk: "",
       useOpenSourceLLM: true,

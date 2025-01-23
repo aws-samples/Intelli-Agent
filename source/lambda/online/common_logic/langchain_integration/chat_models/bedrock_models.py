@@ -11,7 +11,9 @@ from common_logic.common_utils.logger_utils import (
     llm_messages_print_decorator
 )
 from . import Model
-from ..model_config import MODEL_CONFIGS
+from ..model_config import (
+    BEDROCK_MODEL_CONFIGS
+)
 
 logger = get_logger("bedrock_model")
 
@@ -79,7 +81,9 @@ class BedrockBaseModel(Model):
         return llm
 
 
-model_classes = {
-    f"{Model.model_id_to_class_name(model_id)}": BedrockBaseModel.create_for_model(model_id)
-    for model_id in MODEL_CONFIGS
-}
+BedrockBaseModel.create_for_models(BEDROCK_MODEL_CONFIGS)
+
+# model_classes = {
+#     f"{Model.model_id_to_class_name(model_id)}": BedrockBaseModel.create_for_model(model_config)
+#     for model_id,model_config in BEDROCK_MODEL_CONFIGS
+# }

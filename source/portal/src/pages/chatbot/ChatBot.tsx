@@ -41,6 +41,11 @@ import {
   SCORE,
   ROUND,
   HISTORY_CHATBOT_ID,
+  BR_API_MODEL_LIST,
+  OPENAI_API_MODEL_LIST,
+  SHOW_FIGURES,
+  API_ENDPOINT,
+  API_KEY_ARN,
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';
@@ -59,6 +64,22 @@ interface ChatBotProps {
   historySessionId?: string;
 }
 
+const isValidUrl = (url: string): boolean => {
+  try {
+    new URL(url);
+    return url.startsWith('http://') || url.startsWith('https://');
+  } catch {
+    return false;
+  }
+};
+
+const isValidArn = (arn: string): boolean => {
+  // AWS Global and China ARN patterns
+  // arn:aws:secretsmanager:region:account-id:secret:name
+  // arn:aws-cn:secretsmanager:region:account-id:secret:name
+  const arnPattern = /^arn:aws(?:-cn)?:secretsmanager:[a-z0-9-]+:\d{12}:secret:.+$/;
+  return arnPattern.test(arn);
+};
 
 const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const { historySessionId } = props;
@@ -69,6 +90,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const localRound = localStorage.getItem(ROUND);
   const localTopKRetrievals = localStorage.getItem(TOPK);
   const localScore = localStorage.getItem(SCORE);
+  const localApiEndpoint = localStorage.getItem(API_ENDPOINT);
+  const localApiKeyArn = localStorage.getItem(API_KEY_ARN);
   const config = useContext(ConfigContext);
   const { t } = useTranslation();
   const auth = useAuth();
@@ -133,18 +156,15 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [endPointError, setEndPointError] = useState('');
   const [showMessageError, setShowMessageError] = useState(false);
   const [isMessageEnd, setIsMessageEnd] = useState(false);
-
-  // validation
   const [modelError, setModelError] = useState('');
   const [temperatureError, setTemperatureError] = useState('');
   const [maxTokenError, setMaxTokenError] = useState('');
   const [modelSettingExpand, setModelSettingExpand] = useState(false);
   const [additionalConfigError, setAdditionalConfigError] = useState('');
-
-  const [apiEndpoint, setApiEndpoint] = useState('');
-  const [apiModelName, setApiModelName] = useState('');
-  const [apiEndpointError, setApiEndpointError] = useState('');
-  const [apiModelNameError, setApiModelNameError] = useState('');
+  const [apiEndpointError, setApiEndpointError] = useState(''); 
+  const [apiKeyArnError, setApiKeyArnError] = useState('');
+  const [apiEndpoint, setApiEndpoint] = useState(localApiEndpoint ?? '');
+  const [apiKeyArn, setApiKeyArn] = useState(localApiKeyArn ?? '');
 
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
@@ -355,6 +375,18 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     }
   }, [additionalConfig])
 
+  useEffect(() => {
+    if (apiEndpoint) {
+      localStorage.setItem(API_ENDPOINT, apiEndpoint);
+    }
+  }, [apiEndpoint]);
+
+  useEffect(() => {
+    if (apiKeyArn) {
+      localStorage.setItem(API_KEY_ARN, apiKeyArn);
+    }
+  }, [apiKeyArn]);
+
   const handleAIMessage = (message: MessageDataType) => {
     console.info('handleAIMessage:', message);
     if (message.message_type === 'START') {
@@ -450,11 +482,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     if (modelType.value === 'Bedrock API') {
       if (!apiEndpoint.trim()) {
         setApiEndpointError('validation.requireApiEndpoint');
-        setModelSettingExpand(true);
-        return;
-      }
-      if (!apiModelName.trim()) {
-        setApiModelNameError('validation.requireApiModelName');
         setModelSettingExpand(true);
         return;
       }
@@ -557,9 +584,11 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         use_websearch: true,
         google_api_key: '',
         default_llm_config: {
-          model_id: modelType.value === 'Bedrock API' ? apiModelName : modelOption,
-          endpoint_name: modelType.value === 'Bedrock API' ? apiEndpoint : 
-            (modelOption === 'qwen2-72B-instruct' ? endPoint.trim() : ''),
+          model_id: modelOption,
+          endpoint_name: modelOption === 'qwen2-72B-instruct' ? endPoint.trim() : '',
+          provider: modelType.value,
+          base_url: (modelType.value === 'Bedrock API' || 'OpenAI API') ? apiEndpoint.trim() : '',
+          api_key_arn: (modelType.value === 'Bedrock API' || 'OpenAI API') ? apiKeyArn.trim() : '',
           model_kwargs: {
             temperature: parseFloat(temperature),
             max_tokens: parseInt(maxToken),
@@ -611,6 +640,12 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     if (modelType.value === 'Bedrock') {
       optionList=LLM_BOT_COMMON_MODEL_LIST;
       setModelList(LLM_BOT_COMMON_MODEL_LIST);
+    } else if (modelType.value === 'Bedrock API') {
+      optionList=BR_API_MODEL_LIST;
+      setModelList(BR_API_MODEL_LIST);
+    } else if (modelType.value === 'OpenAI API') {
+      optionList=OPENAI_API_MODEL_LIST;
+      setModelList(OPENAI_API_MODEL_LIST);
     }
     if (localModel) {
       setModelOption(localModel)
@@ -673,7 +708,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   };
 
   // Initialize showFigures from local storage
-  const localShowFigures = localStorage.getItem('SHOW_FIGURES');
+  const localShowFigures = localStorage.getItem(SHOW_FIGURES);
   const [showFigures, setShowFigures] = useState(localShowFigures === null || localShowFigures === "true");
 
   useEffect(() => {
@@ -737,7 +772,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                 <div style={{fontSize: 16, fontWeight: 700, marginBottom: 15, marginTop: 15}}>{t('common')}</div>
                 <SpaceBetween size="xs" direction="vertical">
                 <Grid gridDefinition={[{colspan: 5},{colspan: 6}]}>
-                  <FormField label={t('modelType')} stretch={true} description={t('scenarioDesc')}>
+                  <FormField label={t('modelProvider')} stretch={true} description={t('scenarioDesc')}>
                     <Select
                       options={MODEL_TYPE_LIST}
                       selectedOption={modelType}
@@ -746,8 +781,25 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                       }}
                     />
                   </FormField>
-                  {modelType.value === 'Bedrock API' ? (
+                  {modelType.value === 'Bedrock API' || modelType.value === 'OpenAI API' ? (
                     <SpaceBetween size="xs" direction="vertical">
+                      <FormField
+                        label={t('modelName')}
+                        stretch={true}
+                        errorText={t(modelError)}
+                        description={t('modelNameDesc')}
+                      >
+                        <Autosuggest
+                          onChange={({ detail }) => {
+                            setModelError('');
+                            setModelOption(detail.value);
+                          }}
+                          value={modelOption}
+                          options={modelList}
+                          placeholder={t('validation.requireModel')}
+                          empty={t('noModelFound')}
+                        />
+                      </FormField>
                       <FormField
                         label={t('apiEndpoint')}
                         stretch={true}
@@ -757,25 +809,35 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         <Input
                           value={apiEndpoint}
                           onChange={({ detail }) => {
-                            setApiEndpointError('');
-                            setApiEndpoint(detail.value);
+                            const value = detail.value;
+                            if (value === '' || isValidUrl(value)) {
+                              setApiEndpointError('');
+                            } else {
+                              setApiEndpointError('Invalid url, please type in a valid HTTPS or HTTP url');
+                            }
+                            setApiEndpoint(value);
                           }}
                           placeholder="https://api.example.com/v1"
                         />
                       </FormField>
                       <FormField
-                        label={t('apiModelName')}
+                        label={t('apiKeyArn')}
                         stretch={true}
-                        errorText={t(apiModelNameError)}
-                        description={t('apiModelNameDesc')}
+                        errorText={t(apiKeyArnError)}
+                        description={t('apiKeyArnDesc')}
                       >
                         <Input
-                          value={apiModelName}
+                          value={apiKeyArn}
                           onChange={({ detail }) => {
-                            setApiModelNameError('');
-                            setApiModelName(detail.value);
+                            const value = detail.value;
+                            if (value === '' || isValidArn(value)) {
+                              setApiKeyArnError('');
+                            } else {
+                              setApiKeyArnError('Invalid ARN, please type in a valid secret ARN from AWS Secrets Manager');
+                            }
+                            setApiKeyArn(value);
                           }}
-                          placeholder="model-name"
+                          placeholder="arn:aws:secretsmanager:region:account:secret:name"
                         />
                       </FormField>
                     </SpaceBetween>
