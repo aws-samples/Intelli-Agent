@@ -56,6 +56,8 @@ try:
             "API_INFERENCE_PROVIDER",
             "API_ENDPOINT",
             "API_KEY_ARN",
+            "MODEL_TABLE",
+            "GROUP_NAME",
         ],
     )
 except Exception as e:
@@ -128,9 +130,11 @@ res_bucket = args["RES_BUCKET"]
 s3_bucket = args["S3_BUCKET"]
 s3_prefix = args["S3_PREFIX"]
 chatbot_id = args["CHATBOT_ID"]
+group_name = args["GROUP_NAME"]
 aos_index_name = args["INDEX_ID"]
 embedding_model_type = args["EMBEDDING_MODEL_TYPE"]
 chatbot_table = args["CHATBOT_TABLE"]
+model_table = args["MODEL_TABLE"]
 index_type = args["INDEX_TYPE"]
 # Valid Operation types: "create", "delete", "update", "extract_only"
 operation_type = args["OPERATION_TYPE"]
@@ -746,10 +750,9 @@ def main():
             region_name=region,
             bedrock_region=bedrock_region,
             model_type=embedding_model_type,
-            api_inference_enabled=api_inference_enabled,
-            api_inference_provider=api_inference_provider,
-            api_inference_endpoint=api_inference_endpoint,
-            api_key_arn=api_key_arn,
+            group_name=group_name,
+            chatbot_id=chatbot_id,
+            model_table=model_table
         )
         aws_auth = get_aws_auth()
         docsearch = OpenSearchVectorSearch(

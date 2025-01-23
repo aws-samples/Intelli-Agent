@@ -31,6 +31,38 @@ secret_manager_client = session.client(
 )
 
 
+def get_model_details(group_name: str, chatbot_id: str, table_name: str):
+    """Get model details from DynamoDB table
+
+    Args:
+        group_name (str): The partition key (group name)
+        chatbot_id (str): Used to construct the model ID
+        table_name (str): DynamoDB table name
+
+    Returns:
+        dict: Model details from DynamoDB
+    """
+    dynamodb = boto3.resource("dynamodb")
+    table = dynamodb.Table(table_name)
+    model_id = f"{chatbot_id}-embedding"
+
+    try:
+        response = table.get_item(
+            Key={
+                "groupName": group_name,
+                "modelId": model_id
+            }
+        )
+
+        if "Item" not in response:
+            raise Exception(f"No model found for group {group_name} and model ID {model_id}")
+
+        return response["Item"]
+    except Exception as e:
+        logger.error(f"Error retrieving model details: {str(e)}")
+        raise Exception(f"Failed to get model details: {str(e)}")
+
+
 def get_secret_value(secret_arn: str):
     """Get secret value from secret manager
 
@@ -480,13 +512,23 @@ def SagemakerEndpointVectorOrCross(
     )
     return genericModel(prompt=prompt, stop=stop, **kwargs)
 
-
 def getCustomEmbeddings(
-    endpoint_name: str, region_name: str, bedrock_region: str, model_type: str, api_inference_enabled: str = "false",
-    api_inference_provider: str = "Bedrock API", api_inference_endpoint: str = None, api_key_arn: str = None
+    endpoint_name: str,
+    region_name: str,
+    bedrock_region: str,
+    model_type: str,
+    group_name: str,
+    chatbot_id: str,
+    model_table: str
 ) -> SagemakerEndpointEmbeddings:
     embeddings = None
-    if api_inference_enabled == "false":
+    model_details = get_model_details(group_name, chatbot_id, model_table)
+    model_provider = model_details["parameter"].get("ModelProvider", "Bedrock")
+    base_url = model_details["parameter"].get("BaseUrl", "")
+    api_key_arn = model_details["parameter"].get("ApiKeyArn", "")
+    logger.info(model_details)
+
+    if model_provider not in ["Bedrock API", "OpenAI API"]:
         # Use local models
         client = boto3.client("sagemaker-runtime", region_name=region_name)
         bedrock_client = boto3.client("bedrock-runtime", region_name=bedrock_region)
@@ -521,17 +563,19 @@ def getCustomEmbeddings(
         return embeddings
 
     # API inference from Bedrock API or OpenAI API
-    if api_inference_provider == "Bedrock API":
+    if model_provider == "Bedrock API":
         embeddings = OpenAIEmbeddings(
             model=endpoint_name,
             api_key=get_secret_value(api_key_arn),
-            base_url=api_inference_endpoint
+            base_url=base_url
         )
-    elif api_inference_provider == "OpenAI API":
+        logger.info(model_provider)
+    elif model_provider == "OpenAI API":
         embeddings = OpenAIEmbeddings(
             model=endpoint_name,
             api_key=get_secret_value(api_key_arn)
         )
+        logger.info(model_provider)
     else:
         raise ValueError(f"Unsupported API inference provider: {api_inference_provider}")
 
