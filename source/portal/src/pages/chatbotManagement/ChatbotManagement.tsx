@@ -28,7 +28,7 @@ import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import { formatTime } from 'src/utils/utils';
 import ConfigContext from 'src/context/config-context';
-import { API_ENDPOINT, API_KEY_ARN, BEDROCK_API_EMBEDDING_MODEL_LIST, EMBEDDING_MODEL_LIST, INDEX_TYPE_OPTIONS, MODEL_OPTION, MODEL_TYPE_LIST, OPENAI_API_EMBEDDING_MODEL_LIST } from 'src/utils/const';
+import { API_ENDPOINT, API_KEY_ARN, BEDROCK_API_EMBEDDING_MODEL_LIST, EMBEDDING_MODEL_LIST, INDEX_TYPE_OPTIONS, MODEL_TYPE_LIST, OPENAI_API_EMBEDDING_MODEL_LIST } from 'src/utils/const';
 import { useNavigate } from 'react-router-dom';
 import RightModal from '../right-modal';
 import minus from 'src/assets/images/minus.png';
@@ -308,6 +308,9 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
         url: 'chatbot-management/chatbots',
         method: 'post',
         data: {
+          modelProvider: modelType.value,
+          baseUrl: apiEndpoint,
+          apiKeyArn: apiKeyArn,
           chatbotId: chatbotName,
           modelId: modelOption.value,
           modelName: modelOption.label,
@@ -439,6 +442,12 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
               cell: (item: ChatbotItem) => item.ChatbotId,
               isRowHeader: true,
             },
+            {
+              id: 'modelProvider',
+              header: t('modelProvider'),
+              cell: (item: ChatbotItem) => item.ModelProvider,
+              isRowHeader: true,
+            },            
             {
               id: 'modelId',
               header: t('modelName'),
@@ -595,7 +604,7 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
             />
           </FormField>
           <FormField
-            label={t('modelType')}
+            label={t('modelProvider')}
             stretch={true}
             description={t('scenarioDesc')}
           >

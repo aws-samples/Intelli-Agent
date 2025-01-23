@@ -772,7 +772,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                 <div style={{fontSize: 16, fontWeight: 700, marginBottom: 15, marginTop: 15}}>{t('common')}</div>
                 <SpaceBetween size="xs" direction="vertical">
                 <Grid gridDefinition={[{colspan: 5},{colspan: 6}]}>
-                  <FormField label={t('modelType')} stretch={true} description={t('scenarioDesc')}>
+                  <FormField label={t('modelProvider')} stretch={true} description={t('scenarioDesc')}>
                     <Select
                       options={MODEL_TYPE_LIST}
                       selectedOption={modelType}

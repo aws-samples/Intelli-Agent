@@ -300,10 +300,6 @@ export const OPENAI_API_EMBEDDING_MODEL_LIST = [
     model_id: 'text-embedding-3-large',
     model_name: 'text-embedding-3-large',
   },
-  {
-    model_id: 'text-embedding-ada-002',
-    model_name: 'text-embedding-ada-002',
-  },
 ];
 
 export const RESOURCE_QQ_TEMPLATE =

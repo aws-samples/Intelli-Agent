@@ -101,6 +101,7 @@
     "noChatbotFound": "No chatbot found",
     "scenario": "Scenario",
     "modelType": "Model provider",
+    "modelProvider": "Model provider",
     "maxTokens": "Max Tokens",
     "temperature": "Temperature",
     "sessionHistory": "Recent chats",

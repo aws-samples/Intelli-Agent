@@ -55,7 +55,6 @@ def create_chatbot(event, group_name):
     chatbot_id = request_body.get("chatbotId", group_name.lower())
     model_provider = request_body.get("modelProvider", ModelProvider.BEDROCK.value)
     base_url = request_body.get("baseUrl", "")
-    api_endpoint = request_body.get("apiEndpoint", "")
     api_key_arn = request_body.get("apiKeyArn", "")
     chatbot_description = request_body.get(
         "chatbotDescription", "Answer question based on search result"
@@ -72,7 +71,6 @@ def create_chatbot(event, group_name):
         chatbot_embedding,
         model_provider,
         base_url,
-        api_endpoint,
         api_key_arn,
         create_time
     )
@@ -156,6 +154,7 @@ def __list_chatbot(event, group_name):
             item_json["ModelId"] = chatbot_model_item.get("modelId", "")
             item_json["LastModifiedTime"] = item.get(
                 "updateTime", {"S": ""})["S"]
+            item_json["ModelProvider"] = chatbot_model_item["parameter"].get("ModelProvider", "")
             page_json.append(item_json)
         page_json.sort(key=lambda x: x["LastModifiedTime"], reverse=True)
         output["Items"] = page_json
@@ -194,6 +193,8 @@ def __get_chatbot(event, group_name):
         model = model_item.get("parameter", {})
         model_endpoint = model.get("ModelEndpoint", {})
         model_name = model.get("ModelName", {})
+        model_provider = model.get("ModelProvider", "")
+        base_url = model.get("BaseUrl", "")
         chatbot_index = []
         for key, value in chatbot_index_ids.items():
             v = value.get('value',{})
@@ -215,7 +216,9 @@ def __get_chatbot(event, group_name):
             "updateTime": update_time,
             "model": {
                 "model_endpoint": model_endpoint,
-                "model_name": model_name
+                "model_name": model_name,
+                "model_provider": model_provider,
+                "base_url": base_url
             },
             "index": chatbot_index,
         }

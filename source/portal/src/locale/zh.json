@@ -111,6 +111,7 @@
     "embeddingModelDesc": "用于此机器人的向量化操作",
     "scenario": "场景",
     "modelType": "模型供应商",
+    "modelProvider": "模型供应商",
     "maxTokens": "最大 Token 数",
     "temperature": "温度",
     "sessionHistory": "历史记录",
