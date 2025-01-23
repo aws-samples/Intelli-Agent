@@ -31,14 +31,23 @@ def update_model(model_table, item_key, model_parameter):
     )
 
 
-def initiate_model(model_table, group_name, model_id, embedding_endpoint, create_time=None):
+def initiate_model(model_table, group_name, model_id, embedding_endpoint, model_provider, base_url, api_endpoint, api_key_arn, create_time=None):
     existing_item = item_exist(model_table, {"groupName": group_name, "modelId": model_id})
     embedding_info = get_embedding_info(embedding_endpoint)
     embedding_info["ModelEndpoint"] = embedding_endpoint
+    embedding_info["ModelProvider"] = model_provider
+    embedding_info["BaseUrl"] = base_url
+    embedding_info["ApiEndpoint"] = api_endpoint
+    embedding_info["ApiKeyArn"] = api_key_arn
+    
     if existing_item:
         existing_embedding_endpoint = existing_item["parameter"]["ModelEndpoint"]
         if existing_embedding_endpoint != embedding_endpoint:
             embedding_info = get_embedding_info(embedding_endpoint)
+            embedding_info["ModelProvider"] = model_provider
+            embedding_info["BaseUrl"] = base_url
+            embedding_info["ApiEndpoint"] = api_endpoint
+            embedding_info["ApiKeyArn"] = api_key_arn
             update_model(
                 model_table,
                 {"groupName": group_name, "modelId": model_id},

@@ -478,17 +478,10 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
                     variant="primary"
                     onClick={() => {
                       setChatbotName('')
-                      setChatbotNameError('')
-                      // setQdIndex('')
-                      // setQqIndex('')
-                      // setIntentionIndex('')
-                      // setQdIndexDesc(t('defaultIndexDesc'))
-                      // setQqIndexDesc(t('defaultIndexDesc'))
-                      // setIntentionIndexDesc(t('defaultIndexDesc'))
+                      setChatbotNameError('') 
                       setLoadingSave(false)
                       getModelList('create')
                       setUseDefaultIndex(true)
-                      // getChatbotById('create');
                       setShowCreate(true);
                     }}
                   >

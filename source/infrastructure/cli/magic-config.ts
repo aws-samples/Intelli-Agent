@@ -36,8 +36,24 @@ const embeddingModels = [
     name: "bce-embedding-and-bge-reranker",
     commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
     dimensions: 768,
-  }
+  },
+  {
+    provider: "OpenAI API",
+    name: "openai",
+    commitId: "",
+    dimensions: 1024,
+  },
 ];
+// TODO: 
+// "BaseUrl": "",
+// "ModelProvider": "Titan",
+// "ApiKey": "",
+
+// class ModelProvider(ConstantBase):
+//     DMAA = "dmaa"
+//     BEDROCK = "Bedrock"
+//     BRCONNECTOR_BEDROCK = "Bedrock API"
+//     OPENAI = "OpenAI API"
 
 const apiInferenceProviders = [
   {

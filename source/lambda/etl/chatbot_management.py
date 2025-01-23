@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import time
 from datetime import datetime, timezone
 
 import boto3
@@ -13,6 +12,8 @@ from utils.ddb_utils import (
     initiate_index,
     initiate_model
 )
+from constant import ModelProvider
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -52,6 +53,10 @@ resp_header = {
 def create_chatbot(event, group_name):
     request_body = json.loads(event["body"])
     chatbot_id = request_body.get("chatbotId", group_name.lower())
+    model_provider = request_body.get("modelProvider", ModelProvider.BEDROCK.value)
+    base_url = request_body.get("baseUrl", "")
+    api_endpoint = request_body.get("apiEndpoint", "")
+    api_key_arn = request_body.get("apiKeyArn", "")
     chatbot_description = request_body.get(
         "chatbotDescription", "Answer question based on search result"
     )
@@ -61,7 +66,16 @@ def create_chatbot(event, group_name):
     create_time = str(datetime.now(timezone.utc))
 
     model_type = initiate_model(
-        model_table, group_name, model_id, chatbot_embedding, create_time)
+        model_table,
+        group_name,
+        model_id,
+        chatbot_embedding,
+        model_provider,
+        base_url,
+        api_endpoint,
+        api_key_arn,
+        create_time
+    )
     index = request_body.get("index", {"qq":{"admin-qq-default": "Answer question based on search result"},"qd":{"admin-qd-default": "Answer question based on search result"},"intention":{"admin-intention-default": "Answer question based on search result"}})
     for index_type in index:
         index_ids = list(index[index_type].keys())
