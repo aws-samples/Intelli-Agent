@@ -37,30 +37,8 @@ const embeddingModels = [
     commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
     dimensions: 768,
   },
-  {
-    provider: "OpenAI API",
-    name: "text-embedding-3-small",
-    commitId: "",
-    dimensions: 1536,
-  },
-  {
-    provider: "OpenAI API",
-    name: "text-embedding-3-large",
-    commitId: "",
-    dimensions: 3072,
-  },
 ];
 
-const apiInferenceProviders = [
-  {
-    provider: "bedrock",
-    name: "Bedrock API",
-  },
-  {
-    provider: "openai",
-    name: "OpenAI API",
-  },
-];
 
 const supportedRegions = Object.values(SupportedRegion) as string[];
 const supportedBedrockRegions = Object.values(SupportedBedrockRegion) as string[];
@@ -135,10 +113,6 @@ async function getAwsAccountAndRegion() {
       options.knowledgeBaseModelEcrImageTag = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
       options.enableChat = config.chat.enabled;
       options.bedrockRegion = config.chat.bedrockRegion;
-      options.enableApiInference = config.chat.apiInference.enabled;
-      options.apiInferenceProvider = config.chat.apiInference.apiInferenceProvider;
-      options.apiEndpoint = config.chat.apiInference.apiEndpoint;
-      options.apiKey = config.chat.apiInference.apiKey;
       options.enableConnect = config.chat.amazonConnect.enabled;
       options.useOpenSourceLLM = config.chat.useOpenSourceLLM;
       options.defaultEmbedding = config.model.embeddingsModels && config.model.embeddingsModels.length > 0
@@ -365,70 +339,6 @@ async function processCreateOptions(options: any): Promise<void> {
     },
     {
       type: "confirm",
-      name: "enableApiInference",
-      message: "Compared to local deployment, would you prefer to access the model via API calls?",
-      initial: options.enableApiInference ?? false,
-      skip(): boolean {
-        if (!(this as any).state.answers.enableChat) {
-          return true;
-        }
-        return false;
-      },
-    },
-    {
-      type: "select",
-      name: "apiInferenceProvider",
-      message: "Select an API inference provider, it is used for LLM invocation and generating embedding",
-      choices: apiInferenceProviders.map((m) => ({ name: m.name, value: m })),
-      initial: options.apiInferenceProvider,
-      skip(): boolean {
-        if (!(this as any).state.answers.enableApiInference ||
-          !(this as any).state.answers.enableChat) {
-          return true;
-        }
-        return false;
-      },
-    },
-    {
-      type: "input",
-      name: "apiEndpoint",
-      message: "API endpoint to invoke models, e.g. https://api.example.com/v1",
-      initial: options.apiEndpoint,
-      validate(apiEndpoint: string) {
-        return (this as any).skipped ||
-          RegExp(/^https?:\/\//).test(apiEndpoint)
-          ? true
-          : "Enter a valid API endpoint, e.g. https://api.example.com/v1";
-      },
-      skip(): boolean {
-        if (!(this as any).state.answers.enableApiInference ||
-          !(this as any).state.answers.enableChat) {
-          return true;
-        }
-        return false;
-      },
-    },
-    {
-      type: "input",
-      name: "apiKey",
-      message: "When invoking Bedrock API or OpenAI API, you need to provide an API key, which should be stored in the Secrets Manager of your current account. Please enter the ARN of the API key, for example: arn:aws:secretsmanager:<region>:<account_id>:secret:SampleAPIKey",
-      initial: options.apiKey,
-      validate(apiKey: string) {
-        return (this as any).skipped ||
-          RegExp(/^arn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[a-zA-Z0-9-_/]+$/).test(apiKey)
-          ? true
-          : "Enter a valid Secrets Manager ARN (e.g., arn:aws:secretsmanager:region:123456789012:secret:mysecret)";
-      },
-      skip(): boolean {
-        if (!(this as any).state.answers.enableApiInference ||
-          !(this as any).state.answers.enableChat) {
-          return true;
-        }
-        return false;
-      },
-    },
-    {
-      type: "confirm",
       name: "useOpenSourceLLM",
       message: "Do you want to use open source LLM(eg. Qwen, ChatGLM, IntermLM)?",
       initial: options.useOpenSourceLLM ?? true,
@@ -558,12 +468,6 @@ async function processCreateOptions(options: any): Promise<void> {
     chat: {
       enabled: answers.enableChat,
       bedrockRegion: answers.bedrockRegion,
-      apiInference: {
-        enabled: answers.enableApiInference,
-        apiInferenceProvider: answers.apiInferenceProvider,
-        apiEndpoint: answers.apiEndpoint,
-        apiKey: answers.apiKey,
-      },
       useOpenSourceLLM: answers.useOpenSourceLLM,
       amazonConnect: {
         enabled: answers.enableConnect,

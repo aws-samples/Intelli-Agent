@@ -569,14 +569,12 @@ def getCustomEmbeddings(
             api_key=get_secret_value(api_key_arn),
             base_url=base_url
         )
-        logger.info(model_provider)
     elif model_provider == "OpenAI API":
         embeddings = OpenAIEmbeddings(
             model=endpoint_name,
             api_key=get_secret_value(api_key_arn),
             base_url=base_url
         )
-        logger.info(model_provider)
     else:
         raise ValueError(f"Unsupported API inference provider: {model_provider}")
 

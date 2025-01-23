@@ -100,10 +100,6 @@ export class IntentionApi extends Construct {
         KNOWLEDGE_BASE_ENABLED: this.config.knowledgeBase.enabled.toString(),
         KNOWLEDGE_BASE_TYPE: JSON.stringify(this.config.knowledgeBase.knowledgeBaseType || {}),
         BEDROCK_REGION: this.config.chat.bedrockRegion,
-        API_INFERENCE_ENABLED: this.config.chat.apiInference.enabled.toString(),
-        API_INFERENCE_PROVIDER: this.config.chat.apiInference.apiInferenceProvider,
-        API_ENDPOINT: this.config.chat.apiInference.apiEndpoint,
-        API_KEY_ARN: this.config.chat.apiInference.apiKey,
       },
       layers: [this.sharedLayer],
     });

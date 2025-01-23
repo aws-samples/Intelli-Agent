@@ -27,5 +27,6 @@ setup(
         "pdfminer.six==20221105",
         "smart-open==7.0.4",
         "pillow==10.0.1",
+        "tiktoken==0.8.0"
     ],
 )

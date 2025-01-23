@@ -54,10 +54,6 @@ intention_table_name = os.getenv("INTENTION_TABLE_NAME", "intention")
 chatbot_table_name = os.getenv("CHATBOT_TABLE_NAME", "chatbot")
 index_table_name = os.getenv("INDEX_TABLE_NAME", "index")
 model_table_name = os.getenv("MODEL_TABLE_NAME", "model")
-api_inference_enabled = os.getenv["API_INFERENCE_ENABLED"]
-api_inference_provider = os.getenv["API_INFERENCE_PROVIDER"]
-api_inference_endpoint = os.getenv["API_ENDPOINT"]
-api_key_arn = os.getenv["API_KEY_ARN"]
 dynamodb_client = boto3.resource("dynamodb")
 intention_table = dynamodb_client.Table(intention_table_name)
 index_table = dynamodb_client.Table(index_table_name)
@@ -419,6 +415,8 @@ def __create_execution(event, context, email, group_name):
         valid_qa_list,
         bucket,
         prefix,
+        group_name,
+        input_body.get("chatbotId")
     )
 
     return {
@@ -457,7 +455,13 @@ def convert_qa_list(qa_list: list, bucket: str, prefix: str) -> List[Document]:
 
 
 def __save_2_aos(
-    modelId: str, index: str, qaListParam: list, bucket: str, prefix: str
+    modelId: str,
+    index: str,
+    qaListParam: list,
+    bucket: str,
+    prefix: str,
+    group_name: str,
+    chatbot_id: str
 ):
     qaList = __deduplicate_by_key(qaListParam, "question")
     if kb_enabled:
@@ -467,10 +471,9 @@ def __save_2_aos(
             region_name=region,
             bedrock_region=bedrock_region,
             model_type=embedding_info.get("ModelType"),
-            api_inference_enabled=api_inference_enabled,
-            api_inference_provider=api_inference_provider,
-            api_inference_endpoint=api_inference_endpoint,
-            api_key_arn=api_key_arn,
+            group_name=group_name,
+            chatbot_id=chatbot_id,
+            model_table=model_table_name
         )
         docsearch = OpenSearchVectorSearch(
             index_name=index,
