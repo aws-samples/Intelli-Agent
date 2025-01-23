@@ -16,7 +16,7 @@ import {
   SpaceBetween,
   Table,
   Toggle,
-  Link
+  Link,
 } from '@cloudscape-design/components';
 import {
   ChatbotItem,
@@ -28,7 +28,7 @@ import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import { formatTime } from 'src/utils/utils';
 import ConfigContext from 'src/context/config-context';
-import { EMBEDDING_MODEL_LIST, INDEX_TYPE_OPTIONS } from 'src/utils/const';
+import { API_ENDPOINT, API_KEY_ARN, BEDROCK_API_EMBEDDING_MODEL_LIST, EMBEDDING_MODEL_LIST, INDEX_TYPE_OPTIONS, MODEL_OPTION, MODEL_TYPE_LIST, OPENAI_API_EMBEDDING_MODEL_LIST } from 'src/utils/const';
 import { useNavigate } from 'react-router-dom';
 import RightModal from '../right-modal';
 import minus from 'src/assets/images/minus.png';
@@ -42,6 +42,23 @@ interface INDEX_TYPE {
   desc: string,
   errText: string
 }
+
+const isValidUrl = (url: string): boolean => {
+  try {
+    new URL(url);
+    return url.startsWith('http://') || url.startsWith('https://');
+  } catch {
+    return false;
+  }
+};
+
+const isValidArn = (arn: string): boolean => {
+  // AWS Global and China ARN patterns
+  // arn:aws:secretsmanager:region:account-id:secret:name
+  // arn:aws-cn:secretsmanager:region:account-id:secret:name
+  const arnPattern = /^arn:aws(?:-cn)?:secretsmanager:[a-z0-9-]+:\d{12}:secret:.+$/;
+  return arnPattern.test(arn);
+};
 
 const ChatbotManagement: React.FC = () => {
   const { t } = useTranslation();
@@ -73,6 +90,15 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const config = useContext(ConfigContext);
+  const localApiEndpoint = localStorage.getItem(API_ENDPOINT);
+  const localApiKeyArn = localStorage.getItem(API_KEY_ARN);
+  const [modelType, setModelType] = useState<SelectProps.Option>(
+    MODEL_TYPE_LIST[0],
+  );
+  const [apiEndpointError, setApiEndpointError] = useState(''); 
+  const [apiKeyArnError, setApiKeyArnError] = useState('');
+  const [apiEndpoint, setApiEndpoint] = useState(localApiEndpoint ?? '');
+  const [apiKeyArn, setApiKeyArn] = useState(localApiKeyArn ?? '');
 
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -112,6 +138,27 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
       setModelOption(tempModels[0]);
     }
   };
+
+  useEffect(() => {
+    const tempModels:{label: string; value:string}[] =[]
+    if (modelType.value === 'Bedrock API') {
+      BEDROCK_API_EMBEDDING_MODEL_LIST.forEach((item: {model_id: string; model_name: string})=>{
+        tempModels.push({
+          label: item.model_name,
+          value: item.model_id
+        })
+      })
+      setModelList(tempModels);
+    } else if (modelType.value === 'OpenAI API') {
+      OPENAI_API_EMBEDDING_MODEL_LIST.forEach((item: {model_id: string; model_name: string})=>{
+        tempModels.push({
+          label: item.model_name,
+          value: item.model_id
+        })
+      })
+      setModelList(tempModels); 
+    }
+  }, [modelType]);
 
   const getChatbotList = async () => {
     setLoadingData(true);
@@ -547,6 +594,86 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
               }}
             />
           </FormField>
+          <FormField
+            label={t('modelType')}
+            stretch={true}
+            description={t('scenarioDesc')}
+          >
+            <Select
+              options={MODEL_TYPE_LIST}
+              selectedOption={modelType}
+              onChange={({ detail }) => {
+                setModelType(detail.selectedOption);
+              }}
+            />
+          </FormField>
+          {modelType.value === 'Bedrock API' ||
+          modelType.value === 'OpenAI API' ? (
+            <SpaceBetween size="xs" direction="vertical">
+              <FormField
+                label={t('modelName')}
+                stretch={true}
+                errorText={t(modelError)}
+                description={t('modelNameDesc')}
+              >
+                <Select
+                  disabled={showEdit}
+                  onChange={({ detail }:{detail: any}) => {
+                    setModelError('');
+                    setModelOption(detail.selectedOption);
+                  }}
+                  selectedOption={modelOption}
+                  options={modelList}
+                  placeholder={t('validation.requireModel')}
+                  empty={t('noModelFound')}
+                /> 
+              </FormField>
+              <FormField
+                label={t('apiEndpoint')}
+                stretch={true}
+                errorText={t(apiEndpointError)}
+                description={t('apiEndpointDesc')}
+              >
+                <Input
+                  value={apiEndpoint}
+                  onChange={({ detail }) => {
+                    const value = detail.value;
+                    if (value === '' || isValidUrl(value)) {
+                      setApiEndpointError('');
+                    } else {
+                      setApiEndpointError(
+                        'Invalid url, please type in a valid HTTPS or HTTP url',
+                      );
+                    }
+                    setApiEndpoint(value);
+                  }}
+                  placeholder="https://api.example.com/v1"
+                />
+              </FormField>
+              <FormField
+                label={t('apiKeyArn')}
+                stretch={true}
+                errorText={t(apiKeyArnError)}
+                description={t('apiKeyArnDesc')}
+              >
+                <Input
+                  value={apiKeyArn}
+                  onChange={({ detail }) => {
+                    const value = detail.value;
+                    if (value === '' || isValidArn(value)) {
+                      setApiKeyArnError('');
+                    } else {
+                      setApiKeyArnError(
+                        'Invalid ARN, please type in a valid secret ARN from AWS Secrets Manager',
+                      );
+                    }
+                    setApiKeyArn(value);
+                  }}
+                  placeholder="arn:aws:secretsmanager:region:account:secret:name"
+                />
+              </FormField>
+            </SpaceBetween>
+          ) : (
             <FormField
               description={t('embeddingModelDesc')}
               label={t('embeddingModelName')}
@@ -565,6 +692,9 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
                 empty={t('noModelFound')}
               />
             </FormField>
+          )}
+
+
             <FormField stretch={true} label={t('indexManagement')}>
               <Toggle
                 onChange={({ detail }) =>
