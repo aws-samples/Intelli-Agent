@@ -44,16 +44,6 @@ const embeddingModels = [
     dimensions: 1024,
   },
 ];
-// TODO: 
-// "BaseUrl": "",
-// "ModelProvider": "Titan",
-// "ApiKey": "",
-
-// class ModelProvider(ConstantBase):
-//     DMAA = "dmaa"
-//     BEDROCK = "Bedrock"
-//     BRCONNECTOR_BEDROCK = "Bedrock API"
-//     OPENAI = "OpenAI API"
 
 const apiInferenceProviders = [
   {
