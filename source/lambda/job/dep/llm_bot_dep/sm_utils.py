@@ -573,7 +573,8 @@ def getCustomEmbeddings(
     elif model_provider == "OpenAI API":
         embeddings = OpenAIEmbeddings(
             model=endpoint_name,
-            api_key=get_secret_value(api_key_arn)
+            api_key=get_secret_value(api_key_arn),
+            base_url=base_url
         )
         logger.info(model_provider)
     else:
