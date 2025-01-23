@@ -28,12 +28,6 @@ export interface SystemConfig {
   chat: {
     enabled: boolean;
     bedrockRegion: string;
-    apiInference: {
-      enabled: boolean;
-      apiInferenceProvider: string;
-      apiEndpoint: string;
-      apiKey: string;
-    },
     bedrockAk?: string;
     bedrockSk?: string;
     useOpenSourceLLM: boolean;
