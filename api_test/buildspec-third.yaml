@@ -3,9 +3,9 @@ version: 0.2
 env:
   variables:
     REPOSITORY_URL: "https://github.com/aws-samples/Intelli-Agent.git"
-    CODE_BRANCH: "main"
+    CODE_BRANCH: "hubin-daily"
     PROJECT_NAME: "Intelli-Agent"
-    STACK_NAME: "third-ai-customer-service"
+    STACK_NAME: "api-test-third-ai-customer-service"
     DEPLOY_STACK: "cdk"
     CLEAN_RESOURCES: "no"
     TEST_FAST: "false"
@@ -92,7 +92,7 @@ phases:
           if [ -d "Intelli-Agent/source/infrastructure" ]; then
             pushd "Intelli-Agent/source/infrastructure"
             pnpm i
-            npx cdk deploy $STACK_NAME --require-approval never
+            npx cdk deploy --require-approval never --all
             deploy_exit_code=$?
             if [ $deploy_exit_code -ne 0 ]; then
               echo "CDK deployment failed. Sending email and exiting with status code 1."

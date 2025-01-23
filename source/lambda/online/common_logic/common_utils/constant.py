@@ -221,4 +221,5 @@ class Threshold(ConstantBase):
     INTENTION_THRESHOLD = 0.4
     MAX_DIAG_ROUNDS_IN_MEMORY = 7
     TOP_K_RETRIEVALS = 6
-
+    MAX_TOKENS = 1000
+    TEMPERATURE = 0.1
