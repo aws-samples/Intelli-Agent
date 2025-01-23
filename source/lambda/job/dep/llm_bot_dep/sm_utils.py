@@ -577,6 +577,6 @@ def getCustomEmbeddings(
         )
         logger.info(model_provider)
     else:
-        raise ValueError(f"Unsupported API inference provider: {api_inference_provider}")
+        raise ValueError(f"Unsupported API inference provider: {model_provider}")
 
     return embeddings
