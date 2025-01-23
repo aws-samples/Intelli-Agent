@@ -39,9 +39,15 @@ const embeddingModels = [
   },
   {
     provider: "OpenAI API",
-    name: "openai",
+    name: "text-embedding-3-small",
     commitId: "",
-    dimensions: 1024,
+    dimensions: 1536,
+  },
+  {
+    provider: "OpenAI API",
+    name: "text-embedding-3-large",
+    commitId: "",
+    dimensions: 3072,
   },
 ];
 
