@@ -4,8 +4,8 @@
         {
             "Effect": "Allow",
             "Resource": [
-                "arn:aws:logs:us-east-1:216989124547:log-group:/aws/codebuild/intellij-agent-api-test",
-                "arn:aws:logs:us-east-1:216989124547:log-group:/aws/codebuild/intellij-agent-api-test:*"
+                "arn:aws:logs:us-east-1:*:log-group:/aws/codebuild/intellij-agent-api-test",
+                "arn:aws:logs:us-east-1:*:log-group:/aws/codebuild/intellij-agent-api-test:*"
             ],
             "Action": [
                 "logs:CreateLogGroup",
@@ -41,7 +41,7 @@
                 "codebuild:DeleteProject"
             ],
             "Resource": [
-                "arn:aws:codebuild:us-east-1:216989124547:*"
+                "arn:aws:codebuild:us-east-1:*:*"
             ]
         },
         {
@@ -54,10 +54,11 @@
                 "cloudformation:UpdateStack",
                 "cloudformation:CreateChangeSet",
                 "cloudformation:DescribeChangeSet",
-                "cloudformation:ExecuteChangeSet"
+                "cloudformation:ExecuteChangeSet",
+                "cloudformation:GetTemplate"
             ],
             "Resource": [
-                "arn:aws:cloudformation:us-east-1:216989124547:stack/*"
+                "arn:aws:cloudformation:us-east-1:*:stack/*"
             ]
         },
         {
@@ -69,7 +70,7 @@
                 "cognito-idp:AdminSetUserPassword"
             ],
             "Resource": [
-                "arn:aws:cognito-idp:us-east-1:216989124547:userpool/us-east-1_*"
+                "arn:aws:cognito-idp:us-east-1:*:userpool/us-east-1_*"
             ]
         },
         {
@@ -89,7 +90,7 @@
                 "lambda:InvokeFunction"
             ],
             "Resource": [
-                "arn:aws:lambda:us-east-1:216989124547:function:*"
+                "arn:aws:lambda:us-east-1:*:function:*"
             ]
         },
         {
@@ -99,7 +100,7 @@
                 "ecr:CreateRepository"
             ],
             "Resource": [
-                "arn:aws:ecr:us-east-1:216989124547:repository/intelli-agent-knowledge-base"
+                "arn:aws:ecr:us-east-1:*:repository/intelli-agent-knowledge-base"
             ]
         },
         {
@@ -108,7 +109,7 @@
                 "codepipeline:*"
             ],
             "Resource": [
-                "arn:aws:codepipeline:us-east-1:216989124547:*"
+                "arn:aws:codepipeline:us-east-1:*:*"
             ]
         },
         {
@@ -126,7 +127,7 @@
                 "ssm:GetParameter"
             ],
             "Resource": [
-                "arn:aws:ssm:us-east-1:216989124547:*"
+                "arn:aws:ssm:us-east-1:*:*"
             ]
         },
         {

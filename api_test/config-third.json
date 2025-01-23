@@ -1,5 +1,5 @@
 {
-  "prefix": "third",
+  "prefix": "api-test-third",
   "email": "cuihubin@amazon.com",
   "deployRegion": "us-east-1",
   "knowledgeBase": {
@@ -25,6 +25,7 @@
   "chat": {
     "enabled": true,
     "bedrockRegion": "us-east-1",
+    "useOpenSourceLLM": false,
     "amazonConnect": {
       "enabled": true
     }
@@ -32,11 +33,10 @@
   "model": {
     "embeddingsModels": [
       {
-        "provider": "bedrock",
-        "name": "amazon.titan-embed-text-v2:0",
-        "commitId": "",
-        "dimensions": 1024,
-        "default": true
+        "provider": "sagemaker",
+        "name": "bce-embedding-and-bge-reranker",
+        "commitId": "43972580a35ceacacd31b95b9f430f695d07dde9",
+        "dimensions": 768
       }
     ],
     "llms": [

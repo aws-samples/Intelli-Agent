@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import boto3
 from botocore.exceptions import ClientError
-from common_logic.common_utils.constant import EntryType, ParamType
+from common_logic.common_utils.constant import EntryType, ParamType, Threshold
 from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
 from common_logic.common_utils.lambda_invoke_utils import (
     chatbot_lambda_call_wrapper,
@@ -389,19 +389,24 @@ def lambda_handler(event_body: dict, context: dict):
         return {"error": str(e)}
     
 def __convert_flat_param_to_dict(event_body: dict):
-    event_body["chatbot_config"]["max_rounds_in_memory"] = event_body["chatbot_max_rounds_in_memory"]
-    event_body["chatbot_config"]["group_name"] = event_body["chatbot_group_name"]
-    event_body["chatbot_config"]["chatbot_id"] = event_body["chatbot_id"] 
-    event_body["chatbot_config"]["goods_id"] = event_body["chatbot_goods_id"] 
-    event_body["chatbot_config"]["chatbot_mode"] = event_body["chatbot_mode"] 
-    event_body["chatbot_config"]["use_history"] = event_body["chatbot_use_history"] 
-    event_body["chatbot_config"]["enable_trace"] = event_body["chatbot_enable_trace"] 
-    event_body["chatbot_config"]["use_websearch"] = event_body["chatbot_use_websearch"] 
-    event_body["chatbot_config"]["google_api_key"] = event_body["chatbot_google_api_key"]
-    event_body["chatbot_config"]["default_llm_config"]["model_id"] = event_body["llm_model_id"]
-    event_body["chatbot_config"]["default_llm_config"]["endpoint_name"] = event_body["llm_endpoint_name"]
-    event_body["chatbot_config"]["model_kwargs"]["temperature"] = event_body["llm_temperature"]
-    event_body["chatbot_config"]["model_kwargs"]["max_tokens"] = event_body["llm_max_tokens"]
-    event_body["chatbot_config"]["private_knowledge_config"]["top_k"] = event_body["private_knowledge_top_k"]
-    event_body["chatbot_config"]["private_knowledge_config"]["score"] = event_body["private_knowledge_score"]
-    event_body["chatbot_config"]["agent_config"]["only_use_rag_tool"] = event_body["only_use_rag_tool"] 
+    event_body["chatbot_config"] = event_body.get("chatbot_config", {})
+    event_body["chatbot_config"]["max_rounds_in_memory"] = event_body.get("chatbot_max_rounds_in_memory", "")
+    event_body["chatbot_config"]["group_name"] = event_body.get("chatbot_group_name", "")
+    event_body["chatbot_config"]["chatbot_id"] = event_body.get("chatbot_id", "")
+    event_body["chatbot_config"]["goods_id"] = event_body.get("chatbot_goods_id", "")
+    event_body["chatbot_config"]["chatbot_mode"] = event_body.get("chatbot_mode", "")
+    event_body["chatbot_config"]["use_history"] = event_body.get("chatbot_use_history", True)
+    event_body["chatbot_config"]["enable_trace"] = event_body.get("chatbot_enable_trace", True)
+    event_body["chatbot_config"]["use_websearch"] = event_body.get("chatbot_use_websearch", False)
+    event_body["chatbot_config"]["google_api_key"] = event_body.get("chatbot_google_api_key", "")
+    event_body["chatbot_config"]["default_llm_config"] = event_body["chatbot_config"].get("default_llm_config", {})
+    event_body["chatbot_config"]["default_llm_config"]["model_id"] = event_body.get("llm_model_id", "")
+    event_body["chatbot_config"]["default_llm_config"]["endpoint_name"] = event_body.get("llm_endpoint_name","")
+    event_body["chatbot_config"]["model_kwargs"] = event_body["chatbot_config"].get("model_kwargs", {})
+    event_body["chatbot_config"]["model_kwargs"]["temperature"] = event_body.get("llm_temperature", Threshold.TEMPERATURE)
+    event_body["chatbot_config"]["model_kwargs"]["max_tokens"] = event_body.get("llm_max_tokens", Threshold.MAX_TOKENS)
+    event_body["chatbot_config"]["private_knowledge_config"] = event_body["chatbot_config"].get("private_knowledge_config", {})
+    event_body["chatbot_config"]["private_knowledge_config"]["top_k"] = event_body.get("private_knowledge_top_k", Threshold.TOP_K_RETRIEVALS)
+    event_body["chatbot_config"]["private_knowledge_config"]["score"] = event_body.get("private_knowledge_score", Threshold.ALL_KNOWLEDGE_IN_AGENT_THRESHOLD)
+    event_body["chatbot_config"]["agent_config"] = event_body["chatbot_config"].get("agent_config", {})
+    event_body["chatbot_config"]["agent_config"]["only_use_rag_tool"] = event_body.get("only_use_rag_tool", True)
