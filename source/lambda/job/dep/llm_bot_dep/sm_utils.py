@@ -25,10 +25,9 @@ from langchain_community.embeddings.openai import OpenAIEmbeddings
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-region_name = os.environ["AWS_REGION"]
 session = boto3.session.Session()
 secret_manager_client = session.client(
-    service_name="secretsmanager", region_name=region_name
+    service_name="secretsmanager"
 )
 
 
