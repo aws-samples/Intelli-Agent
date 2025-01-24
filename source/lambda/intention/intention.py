@@ -164,37 +164,38 @@ def lambda_handler(event, context):
         logger.error("Invalid authorizer type")
     http_method = event["httpMethod"]
     resource: str = event["resource"]
-    if resource == PRESIGNED_URL_RESOURCE:
-        input_body = json.loads(event["body"])
-        file_name = f"intentions/{group_name}/[{input_body['timestamp']}]{input_body['file_name']}"
-        presigned_url = __gen_presigned_url(
-            file_name,
-            input_body.get("content_type", DEFAULT_CONTENT_TYPE),
-            input_body.get("expiration", 60 * 60),
-        )
-        output = {
-            "message": "The S3 presigned url is generated",
-            "data": {
-                "url": presigned_url,
-                "s3Bucket": s3_bucket_name,
-                "s3Prefix": file_name,
-            },
-        }
-    elif resource.startswith(EXECUTION_RESOURCE):
-        if http_method == "POST":
-            output = __create_execution(event, context, email, group_name)
-        elif http_method == "DELETE":
-            output = __delete_execution(event, group_name)
-        else:
-            if resource == EXECUTION_RESOURCE:
-                output = __list_execution(event, group_name)
-            else:
-                output = __get_execution(event, group_name)
-    elif resource == DOWNLOAD_RESOURCE:
-        output = __download_template()
-    elif resource == INDEX_USED_SCAN_RESOURCE:
-        output = __index_used_scan(event, group_name)
     try:
+        if resource == PRESIGNED_URL_RESOURCE:
+            input_body = json.loads(event["body"])
+            file_name = f"intentions/{group_name}/[{input_body['timestamp']}]{input_body['file_name']}"
+            presigned_url = __gen_presigned_url(
+                file_name,
+                input_body.get("content_type", DEFAULT_CONTENT_TYPE),
+                input_body.get("expiration", 60 * 60),
+            )
+            output = {
+                "message": "The S3 presigned url is generated",
+                "data": {
+                    "url": presigned_url,
+                    "s3Bucket": s3_bucket_name,
+                    "s3Prefix": file_name,
+                },
+            }
+        elif resource.startswith(EXECUTION_RESOURCE):
+            if http_method == "POST":
+                output = __create_execution(event, context, email, group_name)
+            elif http_method == "DELETE":
+                output = __delete_execution(event, group_name)
+            else:
+                if resource == EXECUTION_RESOURCE:
+                    output = __list_execution(event, group_name)
+                else:
+                    output = __get_execution(event, group_name)
+        elif resource == DOWNLOAD_RESOURCE:
+            output = __download_template()
+        elif resource == INDEX_USED_SCAN_RESOURCE:
+            output = __index_used_scan(event, group_name)
+
         return {
             "statusCode": 200,
             "headers": resp_header,
