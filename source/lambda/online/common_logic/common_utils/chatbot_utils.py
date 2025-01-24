@@ -54,16 +54,18 @@ class ChatbotManager:
                         Key={"groupName": group_name,
                              "modelId": embedding_model_id}
                     ).get("Item")
+                    index_content["modelIds"]["embedding"] = model_content
+
                     # parse to model_content to EmbeddingModelConfig format 
-                    index_content["modelIds"]["embedding"] = {
-                        "provider": model_content['parameter']['ModelProvider'],
-                        "model_id": model_content['parameter']['ModelEndpoint'],
-                        "base_url": model_content['parameter'].get('BaseUrl'),
-                        "api_key_arn": model_content['parameter'].get('ApiKeyArn'),
-                        "api_key": model_content['parameter'].get('ApiKey'),
-                        "dimension": model_content['parameter'].get('ModelDimension'),
-                        "endpoint_kwargs": model_content['parameter'].get('EndpointKwargs')       
-                    }
+                    # index_content["modelIds"]["embedding"] = {
+                    #     "provider": model_content['parameter']['ModelProvider'],
+                    #     "model_id": model_content['parameter']['ModelEndpoint'],
+                    #     "base_url": model_content['parameter'].get('BaseUrl'),
+                    #     "api_key_arn": model_content['parameter'].get('ApiKeyArn'),
+                    #     "api_key": model_content['parameter'].get('ApiKey'),
+                    #     "dimension": model_content['parameter'].get('ModelDimension'),
+                    #     "endpoint_kwargs": model_content['parameter'].get('EndpointKwargs')       
+                    # }
                 chatbot_content["indexIds"][index_type]["value"][tag] = index_content
 
         chatbot = Chatbot.from_dynamodb_item(chatbot_content)
