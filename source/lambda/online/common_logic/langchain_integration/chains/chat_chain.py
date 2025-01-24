@@ -6,7 +6,7 @@ from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 from langchain_core.messages import convert_to_messages
 from langchain_core.output_parsers import StrOutputParser
 
-from ..chat_models import Model
+from ..models import ChatModel 
 from . import LLMChain
 
 from common_logic.common_utils.constant import (
@@ -16,7 +16,7 @@ from common_logic.common_utils.constant import (
 )
 from common_logic.common_utils.time_utils import get_china_now
 from common_logic.common_utils.prompt_utils import get_prompt_template
-from ..model_config import (
+from ..models.model_config import (
     BEDROCK_MODEL_CONFIGS,
     OPENAI_MODEL_CONFIGS,
     QWEN25_MODEL_CONFIGS
@@ -68,7 +68,7 @@ class ChatBaseChain(LLMChain):
             messages.append(AIMessage(content=prefill))
 
         messages_template = ChatPromptTemplate.from_messages(messages)
-        llm = Model.get_model(
+        llm = ChatModel.get_model(
             cls.model_id, model_kwargs=model_kwargs, **kwargs)
         chain = messages_template | RunnableLambda(lambda x: x.messages)
         chain = chain | llm | StrOutputParser()
@@ -339,4 +339,4 @@ ChatBaseChain.create_for_chains(QWEN25_MODEL_CONFIGS,LLMTaskType.CHAT)
 # chain_classes = {
 #     f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.CHAT)}": ChatBaseChain.create_for_model(model_id, LLMTaskType.CHAT)
 #     for model_id in MODEL_CONFIGS
-}
+# }

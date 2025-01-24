@@ -21,8 +21,8 @@ from common_logic.common_utils.constant import (
 from common_logic.common_utils.time_utils import get_china_now
 
 from . import LLMChain
-from ..chat_models import Model
-from ..model_config import (
+from ..models import ChatModel
+from ..models.model_config import (
     BEDROCK_MODEL_CONFIGS,
     OPENAI_MODEL_CONFIGS,
     QWEN25_MODEL_CONFIGS
@@ -124,7 +124,7 @@ class ToolCallingBaseChain(LLMChain):
 
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
 
-        llm = Model.get_model(
+        llm = ChatModel.get_model(
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
             **kwargs

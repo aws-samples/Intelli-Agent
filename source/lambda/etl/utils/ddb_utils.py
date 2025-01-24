@@ -90,7 +90,7 @@ def initiate_index(
             "groupName": group_name,
             "indexId": index_id,
             "indexType": index_type,
-            "kbType": KBType.AOS.value,
+            "kbType": KBType.AOS,
             "modelIds": {"embedding": model_id},
             "tag": tag,
             "description": description,

@@ -130,6 +130,7 @@ class ModelProvider(ConstantBase):
     BEDROCK = "Bedrock"
     BRCONNECTOR_BEDROCK = "Bedrock API"
     OPENAI = "OpenAI API"
+    SAGEMAKERMULTIMODEL = "sagemaker"
 
 
 class LLMModelType(ConstantBase):
@@ -179,7 +180,16 @@ class LLMModelType(ConstantBase):
 
 
 class EmbeddingModelType(ConstantBase):
-    BEDROCK_TITAN_V1 = "amazon.titan-embed-text-v1"
+    AMAZON_TITAN_V1 = "amazon.titan-embed-text-v1"
+    AMAZON_TITAN_V2 = "amazon.titan-embed-text-v2:0"
+    AMAZON_TITAN_IMAGE = "amazon.titan-embed-image-v1"
+    OPENAI_TEXT_EMBEDDING_3_SMALL = "text-embedding-3-small"
+    OPENAI_TEXT_EMBEDDING_3_LARGE = "text-embedding-3-large"
+    OPENAI_TEXT_EMBEDDING_ADA_002 = "text-embedding-ada-002"
+    BCE_EMBEDDING = "bce embedding"
+    COHERE_EMBED_ENGLISH_V3 = "cohere.embed-english-v3"
+    COHERE_EMBED_MULTILINGUAL_V3 = "cohere.embed-multilingual-v3"
+
 
 
 @unique
@@ -200,14 +210,23 @@ class ModelType(Enum):
     LLM = "llm"
 
 
+class ModelTypeV2(ConstantBase):
+    EMBEDDING = "embedding"
+    LLM = "llm"
+    RERANK = "rerank"
+    VLM = "VLM"
+
+
 @unique
 class IndexTag(Enum):
     COMMON = "common"
 
 
 @unique
-class KBType(Enum):
+class KBType(ConstantBase):
     AOS = "aos"
+    BEDROCK = "bedrock kb"
+
 
 
 GUIDE_INTENTION_NOT_FOUND = "Intention not found, please add intentions first when using agent mode, refer to https://amzn-chn.feishu.cn/docx/HlxvduJYgoOz8CxITxXc43XWn8e"

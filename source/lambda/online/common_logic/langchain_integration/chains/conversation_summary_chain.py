@@ -6,7 +6,7 @@ from langchain.schema.runnable import (
 )
 
 
-from ..chat_models import Model
+from ..models import ChatModel 
 # from .chat_chain import Internlm2Chat7BChatChain
 from . import LLMChain
 from common_logic.common_utils.constant import (
@@ -26,7 +26,7 @@ from langchain.prompts import (
     HumanMessagePromptTemplate,
     ChatPromptTemplate
 )
-from ..model_config import (
+from ..models.model_config import (
     BEDROCK_MODEL_CONFIGS,
     OPENAI_MODEL_CONFIGS,
     QWEN25_MODEL_CONFIGS
@@ -144,7 +144,7 @@ class ConversationSummaryBaseChain(LLMChain):
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
-        llm = Model.get_model(
+        llm = ChatModel.get_model(
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
             **kwargs

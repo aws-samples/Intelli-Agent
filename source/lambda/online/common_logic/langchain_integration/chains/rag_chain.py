@@ -14,7 +14,7 @@ from common_logic.common_utils.constant import (
     LLMTaskType,
     LLMModelType
 )
-from ..model_config import (
+from ..models.model_config import (
     BEDROCK_MODEL_CONFIGS,
     OPENAI_MODEL_CONFIGS,
     QWEN25_MODEL_CONFIGS
@@ -23,7 +23,7 @@ from common_logic.common_utils.prompt_utils import get_prompt_template
 from common_logic.common_utils.logger_utils import print_llm_messages
 
 # from ...prompt_template import convert_chat_history_from_fstring_format
-from ..chat_models import Model
+from ..models import ChatModel
 from . import LLMChain
 
 
@@ -63,7 +63,7 @@ class RagBaseChain(LLMChain):
             context=RunnableLambda(
                 lambda x: get_claude_rag_context(x["contexts"]))
         )
-        llm = Model.get_model(
+        llm = ChatModel.get_model(
             cls.model_id, model_kwargs=model_kwargs, **kwargs)
         chain = context_chain | ChatPromptTemplate.from_messages(chat_messages) | RunnableLambda(
             lambda x: print_llm_messages(f"rag messages: {x.messages}") or x)

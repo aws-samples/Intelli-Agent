@@ -101,32 +101,32 @@ class CommonConfigParser(ConfigParserBase):
         return chatbot_config
 
 
-class RetailConfigParser(ConfigParserBase):
-    @classmethod
-    def from_chatbot_config(cls, chatbot_config: dict):
-        # get index_infos
-        index_infos = ChatbotConfig.get_index_infos_from_ddb(
-            chatbot_config["group_name"], chatbot_config["chatbot_id"]
-        )
-        default_llm_config = cls.parse_default_llm_config(chatbot_config)
-        # add retail tools
-        default_tools_config = {}
-        rag_goods_exchange_config = RagToolConfig(
-            retrievers=[
-                PrivateKnowledgeRetrieverConfig(
-                    top_k=5,
-                    **ChatbotConfig.get_index_info(
-                        index_infos,
-                        index_type=IndexType.QQ,
-                        index_name="retail-quick-reply",
-                    )
-                )
-            ],
-            llm_config=LLMConfig(**default_llm_config),
-        )
-        default_tools_config["rag_goods_exchange_config"] = rag_goods_exchange_config
-        #
+# class RetailConfigParser(ConfigParserBase):
+#     @classmethod
+#     def from_chatbot_config(cls, chatbot_config: dict):
+#         # get index_infos
+#         index_infos = ChatbotConfig.get_index_infos_from_ddb(
+#             chatbot_config["group_name"], chatbot_config["chatbot_id"]
+#         )
+#         default_llm_config = cls.parse_default_llm_config(chatbot_config)
+#         # add retail tools
+#         default_tools_config = {}
+#         rag_goods_exchange_config = RagToolConfig(
+#             retrievers=[
+#                 PrivateKnowledgeRetrieverConfig(
+#                     top_k=5,
+#                     **ChatbotConfig.get_index_info(
+#                         index_infos,
+#                         index_type=IndexType.QQ,
+#                         index_name="retail-quick-reply",
+#                     )
+#                 )
+#             ],
+#             llm_config=LLMConfig(**default_llm_config),
+#         )
+#         default_tools_config["rag_goods_exchange_config"] = rag_goods_exchange_config
+#         #
 
-        chatbot_config["tools_config"] = default_tools_config
-        chatbot_config = super().from_chatbot_config(chatbot_config)
-        return chatbot_config
+#         chatbot_config["tools_config"] = default_tools_config
+#         chatbot_config = super().from_chatbot_config(chatbot_config)
+#         return chatbot_config

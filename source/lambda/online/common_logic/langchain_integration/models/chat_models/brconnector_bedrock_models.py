@@ -62,7 +62,3 @@ class BrconnectorBedrockBaseModel(Model):
 
 BrconnectorBedrockBaseModel.create_for_models(BEDROCK_MODEL_CONFIGS)
 
-# model_classes = {
-#     f"{Model.model_id_to_class_name(model_id)}": BrconnectorBedrockBaseModel.create_for_model(model_id)
-#     for model_id in BEDROCK_MODEL_CONFIGS
-# }

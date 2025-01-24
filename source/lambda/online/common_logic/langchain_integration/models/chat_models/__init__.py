@@ -2,10 +2,10 @@
 chat models build in command pattern
 """
 
-from common_logic.common_utils.constant import LLMModelType, ModelProvider
+from common_logic.common_utils.constant import ModelProvider
 
-# from ..model_config import MODEL_CONFIGS
 from ..model_config import ModelConfig
+
 
 class ModeMixins:
     @staticmethod
@@ -142,6 +142,8 @@ MODEL_PROVIDER_LOAD_FN_MAP = {
 
 }
 
+
+ChatModel = Model
 
 # MODEL_MODULE_LOAD_FN_MAP = {
 #     LLMModelType.CHATGPT_35_TURBO_0125: _import_openai_models,

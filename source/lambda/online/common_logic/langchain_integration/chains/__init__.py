@@ -1,7 +1,6 @@
 from typing import Any
 from common_logic.common_utils.constant import LLMTaskType
-from ..model_config import ModelConfig
-
+from ..models.model_config import ModelConfig
 
 class LLMChainMeta(type):
     def __new__(cls, name, bases, attrs):

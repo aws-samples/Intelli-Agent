@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict, Any, Optional
-from common_logic.common_utils.constant import LLMModelType
+from common_logic.common_utils.constant import LLMModelType,EmbeddingModelType
 
 
 @dataclass
@@ -14,6 +14,7 @@ class ModelConfig:
     def __post_init__(self):
         if self.default_model_kwargs is None:
             self.default_model_kwargs = {}
+
 
 
 BASE_CONFIG = ModelConfig(
@@ -157,9 +158,6 @@ BEDROCK_MODEL_CONFIGS = CLAUDE_MODEL_CONFIG + NOVA_MODEL_CONFIGS + \
     MISTRAL_MODEL_CONFIGS + LLAMA_MODEL_CONFIGS + CORHERE_MODEL_CONFIGS
 
 
-
-
-
 QWEN25_MODEL_CONFIGS = [
     ModelConfig(
         model_id=LLMModelType.QWEN25_INSTRUCT_72B_AWQ,
@@ -202,6 +200,67 @@ OPENAI_MODEL_CONFIGS = [
 ]
 
 
+
+# Embedding model configs
+
+@dataclass
+class EmbeddingModelConfig:
+    model_id: str
+    default_model_kwargs: Dict[str, Any] = None
+
+
+OPENAI_EMBEDDING_CONFIG = [
+    EmbeddingModelConfig(
+        model_id=EmbeddingModelType.OPENAI_TEXT_EMBEDDING_3_SMALL,
+        default_model_kwargs={"dimensions": 1536}
+    ),
+    EmbeddingModelConfig(
+        model_id=EmbeddingModelType.OPENAI_TEXT_EMBEDDING_3_LARGE,
+        default_model_kwargs={"dimensions": 3072}
+    ),
+    EmbeddingModelConfig(
+        model_id=EmbeddingModelType.OPENAI_TEXT_EMBEDDING_ADA_002,
+        default_model_kwargs={"dimensions": 1536}
+    )
+]
+
+AMAZON_TITAN_EMBEDDING_CONFIGS = [
+    EmbeddingModelConfig(
+        model_id=EmbeddingModelType.AMAZON_TITAN_V1,
+        default_model_kwargs={"dimensions": 1536}
+
+    ),
+    EmbeddingModelConfig(
+        model_id=EmbeddingModelType.AMAZON_TITAN_V2,
+        default_model_kwargs={"dimensions": 1024}
+    ),
+    EmbeddingModelConfig(
+        model_id=EmbeddingModelType.AMAZON_TITAN_IMAGE,
+        default_model_kwargs={"dimensions": 1024}
+    )
+
+]
+
+COHERE_EMBEDDING_CONFIGS = [
+    EmbeddingModelConfig(
+        model_id=EmbeddingModelType.COHERE_EMBED_ENGLISH_V3,
+        default_model_kwargs={"dimensions": 1024}
+    ),
+    EmbeddingModelConfig(
+        model_id=EmbeddingModelType.COHERE_EMBED_MULTILINGUAL_V3,
+        default_model_kwargs={"dimensions": 1024}
+    )
+]
+
+BEDROCK_EMBEDDING_CONFIGS = AMAZON_TITAN_EMBEDDING_CONFIGS + COHERE_EMBEDDING_CONFIGS
+
+
+BCE_EMBEDDING_CONFIGS = [
+    EmbeddingModelConfig(
+        model_id=EmbeddingModelType.BCE_EMBEDDING,
+        default_model_kwargs={"dimensions": 768}
+    )
+]
 
 
 # MODEL_CONFIGS = {

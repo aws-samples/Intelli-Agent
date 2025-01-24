@@ -8,7 +8,9 @@ from common_logic.common_utils.constant import (
     LLMModelType,
     SceneType,
     Threshold,
-    ModelProvider
+    ModelProvider,
+    EmbeddingModelType,
+    KBType
 )
 
 from common_logic.common_utils.logger_utils import get_logger
@@ -33,15 +35,14 @@ class AllowBaseModel(BaseModel):
 
 class LLMConfig(AllowBaseModel):
     provider: ModelProvider = ModelProvider.BEDROCK
-    model_id: LLMModelType = LLMModelType.CLAUDE_3_SONNET
+    model_id: LLMModelType = LLMModelType.CLAUDE_3_5_HAIKU
     base_url: Union[str,None] = None
     api_key_arn: Union[str,None] = None
     api_key: Union[str,None] = None
     model_kwargs: dict = {"temperature": 0.01, "max_tokens": 4096}
 
     def model_post_init(self, __context: Any) -> None:
-        if self.provider in [ModelProvider.BRCONNECTOR_BEDROCK, ModelProvider.OPENAI] and \
-            self.api_key_arn is not None:
+        if  self.api_key_arn is not None and self.api_key is None:
             self.api_key = get_secret_value(self.api_key_arn)
 
 class QueryRewriteConfig(LLMConfig):
@@ -52,8 +53,23 @@ class QueryProcessConfig(ForbidBaseModel):
         default_factory=QueryRewriteConfig)
 
 
+class EmbeddingModelConfig(AllowBaseModel):
+    provider: ModelProvider 
+    model_id: EmbeddingModelType 
+    base_url: Union[str,None] = None
+    api_key_arn: Union[str,None] = None
+    api_key: Union[str,None] = None
+    dimension: Union[int,None] = None
+    endpoint_kwargs: Union[dict,None] = None
+
+    def model_post_init(self, __context: Any) -> None:
+        if  self.api_key_arn is not None and self.api_key is None:
+            self.api_key = get_secret_value(self.api_key_arn)
+
 class RetrieverConfigBase(AllowBaseModel):
     index_type: str
+    kb_type: KBType =  KBType.AOS
+    embedding_config: Union[EmbeddingModelConfig,None] = None
 
 
 class IntentionRetrieverConfig(RetrieverConfigBase):
@@ -193,7 +209,7 @@ class ChatbotConfig(AllowBaseModel):
                 cls.format_index_info(info)
                 for info in list(index_info["value"].values())
             ]
-            infos[index_type] = {info["index_name"]                                 : info for info in info_list}
+            infos[index_type] = {info["index_name"]: info for info in info_list}
 
         for index_type in IndexType.all_values():
             if index_type not in infos:
