@@ -279,7 +279,7 @@ const Home: React.FC = () => {
                   <img alt="banner" src={BANNER} width="100%" />
                 </div>
                 <BenefitsFeatures />
-                <UseCases />
+                {/* <UseCases /> */}
               </SpaceBetween>
               <SpaceBetween direction="vertical" size="l">
                 <GetStarted />

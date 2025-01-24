@@ -8,13 +8,13 @@ const GetStarted: React.FC = () => {
     <Container
       header={<Header variant="h2">{t('gettingStarted.name')}</Header>}
     >
-      <Box padding={{ vertical: 'xs' }}>
+      {/* <Box padding={{ vertical: 'xs' }}>
         <Link href="/" target="_blank">
           {t('gettingStarted.link1')}
         </Link>
-      </Box>
+      </Box> */}
       <Box padding={{ vertical: 'xs' }}>
-        <Link href="/" target="_blank">
+        <Link href="https://amzn-chn.feishu.cn/docx/HlxvduJYgoOz8CxITxXc43XWn8e" target="_blank">
           {t('gettingStarted.link2')}
         </Link>
       </Box>
