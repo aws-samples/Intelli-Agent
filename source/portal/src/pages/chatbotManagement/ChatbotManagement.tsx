@@ -149,6 +149,7 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
         })
       })
       setModelList(tempModels);
+      setModelOption(tempModels[0]);
     } else if (modelType.value === 'OpenAI API') {
       OPENAI_API_EMBEDDING_MODEL_LIST.forEach((item: {model_id: string; model_name: string})=>{
         tempModels.push({
@@ -156,7 +157,8 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
           value: item.model_id
         })
       })
-      setModelList(tempModels); 
+      setModelList(tempModels);
+      setModelOption(tempModels[0]);
     }
   }, [modelType]);
 
