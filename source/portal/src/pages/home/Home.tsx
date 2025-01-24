@@ -12,7 +12,6 @@ import CommonLayout from 'src/layout/CommonLayout';
 import GetStarted from './comps/GetStarted';
 import MoreResource from './comps/MoreResource';
 import BenefitsFeatures from './comps/BenefitsFeatures';
-import UseCases from './comps/UseCases';
 import BANNER from 'src/assets/images/banner.jpeg';
 import { useNavigate } from 'react-router-dom';
 import Joyride, { CallBackProps, STATUS, ACTIONS } from 'react-joyride';
