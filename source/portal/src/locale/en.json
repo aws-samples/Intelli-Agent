@@ -166,6 +166,7 @@
     "chatbotNameDesc": "The unique identifier of the robot space, it must not duplicate with any existing ones",
     "modelDesc": "Used for text vectorization in the robot space.",
     "indexManagement": "Indexes",
+    "chatbotModelProviderError": "This chatbot does not support API inference, only local inference is supported. Please create another chatbot to enable API reference.",
     "indexLeft": "Index not yet configured, click",
     "indexUsedByModel": "This index is already associated with other embedding models",
     "indexRight": "to add index.",
