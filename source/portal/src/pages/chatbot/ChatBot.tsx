@@ -788,7 +788,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         setModelType(detail.selectedOption);
                         
                         // Check if the selected model provider matches the chatbot's model provider
-                        const selectedChatbotId = chatbotOption.value;
+                        const selectedChatbotId = chatbotOption.value ?? "defaultId";
                         const expectedModelProvider = chatbotModelProvider[selectedChatbotId];
 
                         if (expectedModelProvider === "Bedrock" && 
