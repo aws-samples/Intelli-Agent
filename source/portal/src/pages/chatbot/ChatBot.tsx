@@ -177,6 +177,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   // Define an async function to get the data
   const fetchData = useAxiosRequest();
 
+  const [chatbotModelProvider, setChatbotModelProvider] = useState<{ [key: string]: string }>({});
+
+  const [modelProviderHint, setModelProviderHint] = useState('');
+
   const startNewChat = () => {
     [CURRENT_CHAT_BOT,ENABLE_TRACE,MAX_TOKEN, MODEL_OPTION,ONLY_RAG_TOOL,MODEL_TYPE,TEMPERATURE,USE_CHAT_HISTORY].forEach((item) => {
       localStorage.removeItem(item);
@@ -212,11 +216,15 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         url: 'chatbot-management/chatbots',
         method: 'get',
       });
-      const chatbots: string[] = data.chatbot_ids;
+      const chatbots: { ChatbotId: string; ModelProvider: string }[] = data.Items;
       const getChatbots = chatbots.map((item) => {
+        setChatbotModelProvider((prev) => ({
+          ...prev,
+          [item.ChatbotId]: item.ModelProvider,
+        }));
         return {
-          label: item,
-          value: item,
+          label: item.ChatbotId,
+          value: item.ChatbotId,
         };
       });
       setChatbotList(getChatbots);
@@ -772,12 +780,23 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                 <div style={{fontSize: 16, fontWeight: 700, marginBottom: 15, marginTop: 15}}>{t('common')}</div>
                 <SpaceBetween size="xs" direction="vertical">
                 <Grid gridDefinition={[{colspan: 5},{colspan: 6}]}>
-                  <FormField label={t('modelProvider')} stretch={true} description={t('scenarioDesc')}>
+                  <FormField label={t('modelProvider')} stretch={true} description={t('scenarioDesc')} errorText={modelProviderHint}>
                     <Select
                       options={MODEL_TYPE_LIST}
                       selectedOption={modelType}
                       onChange={({ detail }) => {
                         setModelType(detail.selectedOption);
+                        
+                        // Check if the selected model provider matches the chatbot's model provider
+                        const selectedChatbotId = chatbotOption.value;
+                        const expectedModelProvider = chatbotModelProvider[selectedChatbotId];
+
+                        if (expectedModelProvider === "Bedrock" && 
+                            (detail.selectedOption.value === "Bedrock API" || detail.selectedOption.value === "OpenAI API")) {
+                          setModelProviderHint(t('chatbotModelProviderError'));
+                        } else {
+                          setModelProviderHint(''); // Clear hint if the selection is valid
+                        }
                       }}
                     />
                   </FormField>
