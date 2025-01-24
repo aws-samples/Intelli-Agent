@@ -60,7 +60,9 @@ class EmbeddingModelConfig(AllowBaseModel):
     api_key_arn: Union[str,None] = None
     api_key: Union[str,None] = None
     dimension: Union[int,None] = None
-    endpoint_kwargs: Union[dict,None] = None
+    target_model: Union[str,None] = None
+
+    # endpoint_kwargs: Union[dict,None] = None
 
     def model_post_init(self, __context: Any) -> None:
         if  self.api_key_arn and not self.api_key:
@@ -176,7 +178,7 @@ class ChatbotConfig(AllowBaseModel):
             "api_key_arn": embeddin_config_from_ddb['parameter'].get('ApiKeyArn'),
             "api_key": embeddin_config_from_ddb['parameter'].get('ApiKey'),
             "dimension": embeddin_config_from_ddb['parameter'].get('ModelDimension'),
-            "endpoint_kwargs": embeddin_config_from_ddb['parameter'].get('EndpointKwargs')       
+            "target_model": embeddin_config_from_ddb['parameter'].get('TargetModel')       
         }
         return {
             "index_name": index_info_from_ddb["indexId"],
