@@ -648,12 +648,15 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     if (modelType.value === 'Bedrock') {
       optionList=LLM_BOT_COMMON_MODEL_LIST;
       setModelList(LLM_BOT_COMMON_MODEL_LIST);
+      setModelOption(LLM_BOT_COMMON_MODEL_LIST[0].options[0].value);
     } else if (modelType.value === 'Bedrock API') {
       optionList=BR_API_MODEL_LIST;
       setModelList(BR_API_MODEL_LIST);
+      setModelOption(BR_API_MODEL_LIST[0].options[0].value);
     } else if (modelType.value === 'OpenAI API') {
       optionList=OPENAI_API_MODEL_LIST;
       setModelList(OPENAI_API_MODEL_LIST);
+      setModelOption(OPENAI_API_MODEL_LIST[0].options[0].value);
     }
     if (localModel) {
       setModelOption(localModel)

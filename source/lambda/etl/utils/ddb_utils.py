@@ -54,18 +54,21 @@ def initiate_model(model_table, group_name, model_id, embedding_endpoint, model_
     else:
         if not create_time:
             create_time = str(datetime.now(timezone.utc))
+        item_content = {
+            "groupName": group_name,
+            "modelId": model_id,
+            "modelType": ModelType.EMBEDDING.value,
+            "parameter": embedding_info,
+            "createTime": create_time,
+            "updateTime": create_time,
+            "status": UiStatus.ACTIVE.value,
+        }
+        if "bce" in model_id and "embedding" in model_id:
+            item_content["parameter"]["TargetModel"] = "bce_embedding_model.tar.gz"
         create_item(
             model_table,
             {"groupName": group_name, "modelId": model_id},
-            {
-                "groupName": group_name,
-                "modelId": model_id,
-                "modelType": ModelType.EMBEDDING.value,
-                "parameter": embedding_info,
-                "createTime": create_time,
-                "updateTime": create_time,
-                "status": UiStatus.ACTIVE.value,
-            },
+            item_content
         )
     return embedding_info["ModelType"]
 
