@@ -234,10 +234,10 @@ AMAZON_TITAN_EMBEDDING_CONFIGS = [
         model_id=EmbeddingModelType.AMAZON_TITAN_V2,
         default_model_kwargs={"dimensions": 1024}
     ),
-    EmbeddingModelConfig(
-        model_id=EmbeddingModelType.AMAZON_TITAN_IMAGE,
-        # default_model_kwargs={"dimensions": 1024}
-    )
+    # EmbeddingModelConfig(
+    #     model_id=EmbeddingModelType.AMAZON_TITAN_IMAGE,
+    #     # default_model_kwargs={"dimensions": 1024}
+    # )
 
 ]
 
