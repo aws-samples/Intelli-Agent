@@ -39,6 +39,7 @@
     "supportFiles": "支持的文件类型：",
     "uploadProgress": "上传进度",
     "uploadCompleted": "上传完成",
+    "dataUpdating": "数据更新中，请稍等...",
     "deleteSuccess": "删除成功",
     "completed": "完成",
     "inProgress": "进行中",

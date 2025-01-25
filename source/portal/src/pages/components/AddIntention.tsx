@@ -41,8 +41,8 @@ interface AddIntentionProps {
   setShowAddModal: (show: boolean) => void;
   // setIndexName: (arg: string) => void;
   setFileEmptyError: (error: boolean) => void;
-  reloadIntention: () => void;
   setUploadFiles: (files: File[]) => void;
+  reloadIntentions: () => void;
 }
 
 const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => {
@@ -64,7 +64,9 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
     setShowAddModal,
     setFileEmptyError,
     setUploadFiles,
-    reloadIntention } = props;
+    reloadIntentions
+   } = props;
+  // const navigate = useNavigate();
   const fetchData = useAxiosRequest();
   // const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -96,6 +98,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         // tag: indexName ? indexName.trim() : undefined,
       },
     });
+    
     if (resExecution.execution_id) {
       setIndexName('');
     }
@@ -122,7 +125,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
     // validate  file
     if (uploadFiles.length <= 0) {
       setFileEmptyError(true);
-      setShowProgress(false);
+      // setShowProgress(false);
       return;
     }
 
@@ -146,7 +149,8 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         headers: {
           'Content-Type': file.type,
         },
-        onUploadProgress: (e: AxiosProgressEvent) => {
+        onUploadProgress: async (e: AxiosProgressEvent) => {
+          setShowProgress(true);
           progressMap.set(file.name, {
             loaded: e.loaded,
             total: file.size,
@@ -157,11 +161,27 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
           );
           percentage = Math.floor((totalUploaded / totalSize) * 100);
           setUploadProgress(percentage);
+          setShowProgress(true);
           if (percentage >= 100) {
-            executionIntention(
-              uploadPreSignUrlData.s3Bucket,
-              uploadPreSignUrlData.s3Prefix,
-            );
+            try{
+              setShowAddModal(false);
+              // setLoadingData(true)
+              alertMsg(t('dataUpdating'), 'warning');
+              await executionIntention(
+                uploadPreSignUrlData.s3Bucket,
+                uploadPreSignUrlData.s3Prefix,
+              )
+            } finally{
+              reloadIntentions();
+              setUploadFiles([]);
+              setUploadProgress(0);
+              alertMsg(t('uploadCompleted'), 'success');
+              // setShowAddModal(false);
+              // setLoadingData(false)
+              setShowProgress(false);
+            }
+              
+            ;
           }
         },
       });
@@ -169,14 +189,16 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
 
     try {
       await Promise.all(uploadPromises);
-      if (percentage >= 100) {
-        setShowProgress(false);
-        setUploadFiles([]);
-        setUploadProgress(0);
-        alertMsg(t('uploadCompleted'), 'success');
-        setShowAddModal(false);
-        reloadIntention();
-      }
+      // if (percentage >= 100) {
+      //   // setShowProgress(false);
+      //   // setUploadFiles([]);
+      //   // setUploadProgress(0);
+      //   // alertMsg(t('uploadCompleted'), 'success');
+      //   // setShowAddModal(false);
+        
+      // }
+      // navigate("/intention")
+      // await reloadIntentions();
     } catch (error) {
       console.error('error', error);
       // setUploadFileError("error")

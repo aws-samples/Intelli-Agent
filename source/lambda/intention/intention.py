@@ -390,6 +390,26 @@ def __create_execution(event, context, email, group_name):
         )
 
     valid_qa_list = [qa for qa in qaList if qa.get("is_valid")]
+
+    # write to aos(vectorData)
+    details = json.dumps(qaList)
+    result = "success"
+    error_msg = ""
+
+    try:
+        __save_2_aos(
+            input_body.get("model"),
+            execution_detail["index"],
+            valid_qa_list,
+            bucket,
+            prefix,
+            group_name,
+            input_body.get("chatbotId")
+        )
+    except Exception as e:
+        logger.error(f"Error saving to aos: {e}")
+        error_msg = str(e)
+        result = "fail"
     # write to ddb(meta data)
     intention_table.put_item(
         Item={
@@ -404,26 +424,16 @@ def __create_execution(event, context, email, group_name):
             "lastModifiedTime": re.findall(
                 r"\[(.*?)\]", input_body.get("s3Prefix")
             )[0],
-            "details": json.dumps(qaList),
-            "validRatio": f"{len(valid_qa_list)} / {len(qaList)}",
+            "details": details,
+            "error": error_msg,
+            "validRatio": f"{len(valid_qa_list)} / {len(qaList)}" if result=="success" else f"0 / {len(qaList)}",
         }
-    )
-
-    # write to aos(vectorData)
-    __save_2_aos(
-        input_body.get("model"),
-        execution_detail["index"],
-        valid_qa_list,
-        bucket,
-        prefix,
-        group_name,
-        input_body.get("chatbotId")
     )
 
     return {
         "execution_id": execution_detail["tableItemId"],
         "input_payload": execution_detail,
-        "result": "success",
+        "result": result,
     }
 
 
@@ -612,9 +622,13 @@ def __get_execution(event, group_name):
             item_json["createTime"] = value
         elif key == "details":
             item_json["qaList"] = json.loads(value)
+        elif key == "validRatio":
+            result_list = value.split("/")
+            item_json["status"] = "COMPLETED" if result_list[0].strip() == result_list[1].strip() else "FAILED"
+        elif key == "error":
+            item_json["detail"] = value
         else:
             continue
-        item_json["status"] = "COMPLETED"
     items.append(item_json)
     res["items"] = items
     res["count"] = len(items)
