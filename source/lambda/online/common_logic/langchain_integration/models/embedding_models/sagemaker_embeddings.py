@@ -60,9 +60,23 @@ class SageMakerEmbeddingBaseModel(Model):
                 aws_access_key_id=aws_access_key_id,
                 aws_secret_access_key=aws_secret_access_key
             )
-        embedding_model = SagemakerEndpointEmbeddings(
+        model_kwargs = {
             **default_model_kwargs,
-            **kwargs,
+            **kwargs.get("model_kwargs",{})
+        }
+        model_kwargs = model_kwargs or None
+
+        target_model = kwargs.get('target_model')
+        
+        endpoint_kwargs = {}
+        if target_model:
+            endpoint_kwargs['target_model'] = target_model
+
+        endpoint_kwargs = endpoint_kwargs or None 
+
+        embedding_model = SagemakerEndpointEmbeddings(
+            # model_kwargs=model_kwargs,
+            endpoint_kwargs=endpoint_kwargs,
             client=client,
             credentials_profile_name=credentials_profile_name,
             region_name=region_name,

@@ -42,7 +42,7 @@ class LLMConfig(AllowBaseModel):
     model_kwargs: dict = {"temperature": 0.01, "max_tokens": 4096}
 
     def model_post_init(self, __context: Any) -> None:
-        if  self.api_key_arn is not None and self.api_key is None:
+        if  self.api_key_arn and not self.api_key:
             self.api_key = get_secret_value(self.api_key_arn)
 
 class QueryRewriteConfig(LLMConfig):
@@ -60,10 +60,12 @@ class EmbeddingModelConfig(AllowBaseModel):
     api_key_arn: Union[str,None] = None
     api_key: Union[str,None] = None
     dimension: Union[int,None] = None
-    endpoint_kwargs: Union[dict,None] = None
+    target_model: Union[str,None] = None
+
+    # endpoint_kwargs: Union[dict,None] = None
 
     def model_post_init(self, __context: Any) -> None:
-        if  self.api_key_arn is not None and self.api_key is None:
+        if  self.api_key_arn and not self.api_key:
             self.api_key = get_secret_value(self.api_key_arn)
 
 class RetrieverConfigBase(AllowBaseModel):
@@ -167,21 +169,45 @@ class ChatbotConfig(AllowBaseModel):
 
     @staticmethod
     def format_index_info(index_info_from_ddb: dict):
+        print('index_info_from_ddb',index_info_from_ddb)
+        embeddin_config_from_ddb = index_info_from_ddb['modelIds']['embedding']
+        embedding_config = {
+            "provider": embeddin_config_from_ddb['parameter']['ModelProvider'],
+            "model_id": embeddin_config_from_ddb['parameter']['ModelEndpoint'],
+            "base_url": embeddin_config_from_ddb['parameter'].get('BaseUrl'),
+            "api_key_arn": embeddin_config_from_ddb['parameter'].get('ApiKeyArn'),
+            "api_key": embeddin_config_from_ddb['parameter'].get('ApiKey'),
+            "dimension": embeddin_config_from_ddb['parameter'].get('ModelDimension'),
+            "target_model": embeddin_config_from_ddb['parameter'].get('TargetModel')       
+        }
         return {
             "index_name": index_info_from_ddb["indexId"],
-            "embedding_model_endpoint": index_info_from_ddb["modelIds"]["embedding"][
-                "parameter"
-            ]["ModelEndpoint"],
-            "model_type": index_info_from_ddb["modelIds"]["embedding"]["parameter"][
-                "ModelType"
-            ],
-            "target_model": index_info_from_ddb["modelIds"]["embedding"]["parameter"][
-                "ModelName"
-            ],
+            "embedding_config": embedding_config,
+            # "model_type": index_info_from_ddb["modelIds"]["embedding"]["parameter"][
+            #     "ModelType"
+            # ],
+            # "target_model": index_info_from_ddb["modelIds"]["embedding"]["parameter"][
+            #     "ModelName"
+            # ],
             "group_name": index_info_from_ddb["groupName"],
             "kb_type": index_info_from_ddb["kbType"],
             "index_type": index_info_from_ddb["indexType"],
         }
+        # return {
+        #     "index_name": index_info_from_ddb["indexId"],
+        #     "embedding_model_endpoint": index_info_from_ddb["modelIds"]["embedding"][
+        #         "parameter"
+        #     ]["ModelEndpoint"],
+        #     "model_type": index_info_from_ddb["modelIds"]["embedding"]["parameter"][
+        #         "ModelType"
+        #     ],
+        #     "target_model": index_info_from_ddb["modelIds"]["embedding"]["parameter"][
+        #         "ModelName"
+        #     ],
+        #     "group_name": index_info_from_ddb["groupName"],
+        #     "kb_type": index_info_from_ddb["kbType"],
+        #     "index_type": index_info_from_ddb["indexType"],
+        # }
 
     @staticmethod
     def get_index_info(index_infos: dict, index_type: str, index_name: str):

@@ -28,9 +28,14 @@ class BrconnectorBedrockEmbeddingBaseModel(Model):
         api_key = kwargs.get('br_api_key',None) or os.environ.get("BR_API_KEY", None)
         default_model_kwargs = cls.default_model_kwargs or {}
         assert base_url, ("base_url is required",kwargs)
-        embedding_model = BrconnectorBedrockEmbeddings(
+
+        model_kwargs = {
             **default_model_kwargs,
-            **kwargs,
+            **kwargs.get("model_kwargs",{})
+        }
+        model_kwargs = model_kwargs or None
+        embedding_model = BrconnectorBedrockEmbeddings(
+            model_kwargs=model_kwargs,
             model=cls.model_id,
             api_key=api_key,
             base_url=base_url

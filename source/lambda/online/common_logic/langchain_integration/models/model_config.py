@@ -227,24 +227,24 @@ OPENAI_EMBEDDING_CONFIG = [
 AMAZON_TITAN_EMBEDDING_CONFIGS = [
     EmbeddingModelConfig(
         model_id=EmbeddingModelType.AMAZON_TITAN_V1,
-        default_model_kwargs={"dimensions": 1536}
+        # default_model_kwargs={"dimensions": 1536}
 
     ),
     EmbeddingModelConfig(
         model_id=EmbeddingModelType.AMAZON_TITAN_V2,
         default_model_kwargs={"dimensions": 1024}
     ),
-    EmbeddingModelConfig(
-        model_id=EmbeddingModelType.AMAZON_TITAN_IMAGE,
-        default_model_kwargs={"dimensions": 1024}
-    )
+    # EmbeddingModelConfig(
+    #     model_id=EmbeddingModelType.AMAZON_TITAN_IMAGE,
+    #     # default_model_kwargs={"dimensions": 1024}
+    # )
 
 ]
 
 COHERE_EMBEDDING_CONFIGS = [
     EmbeddingModelConfig(
         model_id=EmbeddingModelType.COHERE_EMBED_ENGLISH_V3,
-        default_model_kwargs={"dimensions": 1024}
+        # default_model_kwargs={"dimensions": 1024}
     ),
     EmbeddingModelConfig(
         model_id=EmbeddingModelType.COHERE_EMBED_MULTILINGUAL_V3,
@@ -258,7 +258,7 @@ BEDROCK_EMBEDDING_CONFIGS = AMAZON_TITAN_EMBEDDING_CONFIGS + COHERE_EMBEDDING_CO
 BCE_EMBEDDING_CONFIGS = [
     EmbeddingModelConfig(
         model_id=EmbeddingModelType.BCE_EMBEDDING,
-        default_model_kwargs={"dimensions": 768}
+        # default_model_kwargs={"dimensions": 768}
     )
 ]
 

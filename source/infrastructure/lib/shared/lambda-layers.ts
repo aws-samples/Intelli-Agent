@@ -31,16 +31,44 @@ export class LambdaLayers {
           "command": [
             "bash", "-c", "pip install -r requirements.txt -t /asset-output/python"],
           "assetExcludes": [
+            // "**/*"
             "*.pyc", "*/__pycache__/*",
             "*.xls", "*.xlsx", "*.csv",
             "*.png",
             "*.md",
             "*.zip",
             "lambda_main/retail/size/*"],
-        }
+          
+          }
       },
     );
     return sharedLayer;
+  }
+
+  createOnlineMainLayer() {
+    const OnlineMainLayer = new pyLambda.PythonLayerVersion(
+      this.scope,
+      "AICSOnlineMainLayer",
+      {
+        entry: path.join(__dirname, "../../../lambda/online"),
+        compatibleRuntimes: [Runtime.PYTHON_3_12],
+        description: `AI-Customer-Service - Online Source layer`,
+        bundling: {
+          "command": [
+            "bash", "-c", "pip install -r requirements.txt -t /asset-output/python"],
+          "assetExcludes": [
+            "**/*"
+            // "*.pyc", "*/__pycache__/*",
+            // "*.xls", "*.xlsx", "*.csv",
+            // "*.png",
+            // "*.md",
+            // "*.zip",
+            // "lambda_main/retail/size/*"],
+          ]
+          }
+      },
+    );
+    return OnlineMainLayer;
   }
 
   createModelDeploymentLayer() {

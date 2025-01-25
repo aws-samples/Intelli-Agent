@@ -53,14 +53,22 @@ class BedrockEmbeddingBaseModel(Model):
             #     region_name=region_name,
             #     model=cls.model_id,
             #  )
-        
-        embedding_model = BedrockEmbeddings(
+
+        # print(dfhdfh)   
+        model_kwargs = {
             **default_model_kwargs,
-            **kwargs,
+            **kwargs.get("model_kwargs",{})
+        }
+
+        model_kwargs = model_kwargs or None
+        embedding_model = BedrockEmbeddings(
+            # **default_model_kwargs,
+            # **kwargs,
+            model_kwargs=model_kwargs,
             client=client,
             credentials_profile_name=credentials_profile_name,
             region_name=region_name,
-            model=cls.model_id,
+            model_id=cls.model_id,
         )
         return embedding_model
 

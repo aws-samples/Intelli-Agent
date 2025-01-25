@@ -17,9 +17,15 @@ class OpenAIEmbeddingBaseModel(Model):
         base_url = kwargs.get("base_url", None) or os.environ.get("OPENAI_BASE_URL", None)
         api_key = kwargs.get('openai_api_key',None) or os.environ.get("OPENAI_API_KEY", None)
         default_model_kwargs = cls.default_model_kwargs or {}
+
+        model_kwargs = {
+            **default_model_kwargs,
+            **kwargs.get("model_kwargs",{})
+        }
+        model_kwargs = model_kwargs or None
+
         return OpenAIEmbeddings(
-             **default_model_kwargs,
-             **kwargs,
+             model_kwargs=model_kwargs,
              base_url=base_url,
              api_key=api_key,
              model=cls.model_id
