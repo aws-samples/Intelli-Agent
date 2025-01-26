@@ -100,6 +100,9 @@ def _import_openai_embeddings():
 def _import_dmaa_embeddings():
     from . import dmaa_embeddings
 
+def _import_sagemaker_embeddings():
+    from . import sagemaker_embeddings
+
 
 def _load_module(model_provider):
     assert model_provider in MODEL_PROVIDER_LOAD_FN_MAP, (model_provider, MODEL_PROVIDER_LOAD_FN_MAP)
@@ -110,8 +113,8 @@ MODEL_PROVIDER_LOAD_FN_MAP = {
     ModelProvider.BEDROCK: _import_bedrock_embeddings,
     ModelProvider.BRCONNECTOR_BEDROCK:_import_brconnector_bedrock_embeddings,
     ModelProvider.OPENAI: _import_openai_embeddings,
-    ModelProvider.DMAA: _import_dmaa_embeddings
-
+    ModelProvider.DMAA: _import_dmaa_embeddings,
+    ModelProvider.SAGEMAKER_MULTIMODEL: _import_sagemaker_embeddings,
 }
 
 

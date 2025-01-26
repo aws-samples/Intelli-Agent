@@ -31,11 +31,13 @@ import { ApiConstructOutputs } from "../api/api-stack";
 import { WSWebSocketConstruct } from "./websocket-api";
 import { QueueConstruct } from "../chat/chat-queue";
 import { UiExportsConstruct } from "../ui/ui-exports";
+import { ModelConstructOutputs } from "../model/model-construct";
 
 
 interface WorkspaceProps extends StackProps {
   readonly config: SystemConfig;
   readonly apiConstructOutputs: ApiConstructOutputs;
+  readonly modelConstructOutputs: ModelConstructOutputs;
   readonly sharedConstructOutputs: SharedConstructOutputs;
   readonly userPoolId: string;
   readonly oidcClientId: string;
@@ -63,6 +65,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     super(scope, id, props);
 
     this.iamHelper = props.sharedConstructOutputs.iamHelper;
+    const embeddingEndpoint = props.modelConstructOutputs.defaultEmbeddingModelName;
     const genMethodOption = props.apiConstructOutputs.genMethodOption;
 
     const chatQueueConstruct = new QueueConstruct(this, "LLMQueueStack", {
@@ -216,7 +219,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
         oidcRedirectUrl: `https://${props.portalUrl}/signin`,
         kbEnabled: props.config.knowledgeBase.enabled.toString(),
         kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
-        embeddingEndpoint: JSON.stringify(props.config.model.embeddingsModels),
+        embeddingEndpoint: embeddingEndpoint,
       },
     });
 
@@ -236,7 +239,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
         oidcRedirectUrl: `https://${props.clientPortalUrl}/signin`,
         kbEnabled: props.config.knowledgeBase.enabled.toString(),
         kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
-        embeddingEndpoint: JSON.stringify(props.config.model.embeddingsModels),
+        embeddingEndpoint: embeddingEndpoint,
       },
     });
 

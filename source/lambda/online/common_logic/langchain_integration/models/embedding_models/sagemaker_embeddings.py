@@ -65,14 +65,17 @@ class SageMakerEmbeddingBaseModel(Model):
             **kwargs.get("model_kwargs",{})
         }
         model_kwargs = model_kwargs or None
-
+        logger.info("Model kwargs: ")
+        logger.info(kwargs)
         target_model = kwargs.get('target_model')
+        model_id = kwargs.get('model_endpoint')
+
         
         endpoint_kwargs = {}
         if target_model:
             endpoint_kwargs['target_model'] = target_model
 
-        endpoint_kwargs = endpoint_kwargs or None 
+        endpoint_kwargs = endpoint_kwargs or None
 
         embedding_model = SagemakerEndpointEmbeddings(
             # model_kwargs=model_kwargs,
@@ -80,7 +83,7 @@ class SageMakerEmbeddingBaseModel(Model):
             client=client,
             credentials_profile_name=credentials_profile_name,
             region_name=region_name,
-            model=cls.model_id,
+            endpoint_name=model_id,
             content_handler=content_handler
         )
         return embedding_model

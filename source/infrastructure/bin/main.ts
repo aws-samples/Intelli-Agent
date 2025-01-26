@@ -14,16 +14,12 @@
 import { App, CfnOutput, Stack, StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as dotenv from "dotenv";
-import * as path from "path";
 import { getConfig } from "./config";
 import { SystemConfig } from "../lib/shared/types";
 import { SharedConstruct, SharedConstructOutputs } from "../lib/shared/shared-construct";
 import { ApiConstruct, ApiConstructOutputs } from "../lib/api/api-stack";
-import { ModelConstruct } from "../lib/model/model-construct";
+import { ModelConstruct, ModelConstructOutputs } from "../lib/model/model-construct";
 import { KnowledgeBaseStack, KnowledgeBaseStackOutputs } from "../lib/knowledge-base/knowledge-base-stack";
-import { PortalConstruct } from "../lib/ui/ui-portal";
-import { UiExportsConstruct } from "../lib/ui/ui-exports";
-import { UserConstruct } from "../lib/user/user-construct";
 import { ChatStack, ChatStackOutputs } from "../lib/chat/chat-stack";
 import { WorkspaceStack } from "../lib/workspace/workspace-stack";
 import { UIStack } from "../lib/ui/ui-stack";
@@ -44,6 +40,7 @@ export interface RootStackProps extends StackProps {
 export class RootStack extends Stack {
   public sharedConstruct: SharedConstructOutputs;
   public apiConstruct: ApiConstructOutputs;
+  public modelConstruct: ModelConstructOutputs;
   public config: SystemConfig;
 
   constructor(scope: Construct, id: string, props: RootStackProps) {
@@ -87,8 +84,6 @@ export class RootStack extends Stack {
       chatStackOutputs = chatStack;
     }
     
-
-
     const apiConstruct = new ApiConstruct(this, "api-construct", {
       config: props.config,
       sharedConstructOutputs: sharedConstruct,
@@ -103,6 +98,7 @@ export class RootStack extends Stack {
 
     this.sharedConstruct = sharedConstruct;
     this.apiConstruct = apiConstruct;
+    this.modelConstruct = modelConstruct;
     this.config = props.config;
 
     new CfnOutput(this, "API Endpoint Address", {
@@ -162,6 +158,7 @@ const workspaceStack = new WorkspaceStack(app, `${stackName}-workspace`, {
   config: config,
   sharedConstructOutputs: rootStack.sharedConstruct,
   apiConstructOutputs: rootStack.apiConstruct,
+  modelConstructOutputs: rootStack.modelConstruct,
   userPoolId: Fn.importValue(`${stackName}-frontend-user-pool-id`),
   oidcClientId: Fn.importValue(`${stackName}-frontend-oidc-client-id`),
   oidcIssuer: Fn.importValue(`${stackName}-frontend-oidc-issuer`),

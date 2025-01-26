@@ -54,13 +54,14 @@ class QueryProcessConfig(ForbidBaseModel):
 
 
 class EmbeddingModelConfig(AllowBaseModel):
-    provider: ModelProvider 
-    model_id: EmbeddingModelType 
-    base_url: Union[str,None] = None
-    api_key_arn: Union[str,None] = None
-    api_key: Union[str,None] = None
-    dimension: Union[int,None] = None
-    target_model: Union[str,None] = None
+    provider: ModelProvider
+    model_id: Union[EmbeddingModelType, str]
+    base_url: Union[str, None] = None
+    api_key_arn: Union[str, None] = None
+    api_key: Union[str, None] = None
+    dimension: Union[int, None] = None
+    target_model: Union[str, None] = None
+    model_endpoint: Union[str, None] = None
 
     # endpoint_kwargs: Union[dict,None] = None
 
@@ -169,7 +170,7 @@ class ChatbotConfig(AllowBaseModel):
 
     @staticmethod
     def format_index_info(index_info_from_ddb: dict):
-        print('index_info_from_ddb',index_info_from_ddb)
+        print('index_info_from_ddb', index_info_from_ddb)
         embeddin_config_from_ddb = index_info_from_ddb['modelIds']['embedding']
         embedding_config = {
             "provider": embeddin_config_from_ddb['parameter']['ModelProvider'],
@@ -178,7 +179,8 @@ class ChatbotConfig(AllowBaseModel):
             "api_key_arn": embeddin_config_from_ddb['parameter'].get('ApiKeyArn'),
             "api_key": embeddin_config_from_ddb['parameter'].get('ApiKey'),
             "dimension": embeddin_config_from_ddb['parameter'].get('ModelDimension'),
-            "target_model": embeddin_config_from_ddb['parameter'].get('TargetModel')       
+            "target_model": embeddin_config_from_ddb['parameter'].get('TargetModel'),
+            "model_endpoint": embeddin_config_from_ddb['parameter'].get("ModelEndpoint"),
         }
         return {
             "index_name": index_info_from_ddb["indexId"],

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 from common_logic.common_utils.constant import LLMModelType,EmbeddingModelType
 
 
@@ -205,7 +205,7 @@ OPENAI_MODEL_CONFIGS = [
 
 @dataclass
 class EmbeddingModelConfig:
-    model_id: str
+    model_id: Union[str, None] = None
     default_model_kwargs: Dict[str, Any] = None
 
 

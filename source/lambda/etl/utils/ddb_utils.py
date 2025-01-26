@@ -46,6 +46,8 @@ def initiate_model(model_table, group_name, model_id, embedding_endpoint, model_
             embedding_info["ModelProvider"] = model_provider
             embedding_info["BaseUrl"] = base_url
             embedding_info["ApiKeyArn"] = api_key_arn
+            if embedding_info["ModelType"] == "bce":
+                embedding_info["parameter"]["TargetModel"] = "bce_embedding_model.tar.gz"
             update_model(
                 model_table,
                 {"groupName": group_name, "modelId": model_id},
@@ -63,7 +65,7 @@ def initiate_model(model_table, group_name, model_id, embedding_endpoint, model_
             "updateTime": create_time,
             "status": UiStatus.ACTIVE.value,
         }
-        if "bce" in model_id and "embedding" in model_id:
+        if embedding_info["ModelType"] == "bce":
             item_content["parameter"]["TargetModel"] = "bce_embedding_model.tar.gz"
         create_item(
             model_table,
