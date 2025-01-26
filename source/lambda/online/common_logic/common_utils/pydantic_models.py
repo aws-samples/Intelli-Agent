@@ -36,17 +36,19 @@ class AllowBaseModel(BaseModel):
 class LLMConfig(AllowBaseModel):
     provider: ModelProvider = ModelProvider.BEDROCK
     model_id: LLMModelType = LLMModelType.CLAUDE_3_5_HAIKU
-    base_url: Union[str,None] = None
-    api_key_arn: Union[str,None] = None
-    api_key: Union[str,None] = None
+    base_url: Union[str, None] = None
+    api_key_arn: Union[str, None] = None
+    api_key: Union[str, None] = None
     model_kwargs: dict = {"temperature": 0.01, "max_tokens": 4096}
 
     def model_post_init(self, __context: Any) -> None:
-        if  self.api_key_arn and not self.api_key:
+        if self.api_key_arn and not self.api_key:
             self.api_key = get_secret_value(self.api_key_arn)
+
 
 class QueryRewriteConfig(LLMConfig):
     rewrite_first_message: bool = False
+
 
 class QueryProcessConfig(ForbidBaseModel):
     conversation_query_rewrite_config: QueryRewriteConfig = Field(
@@ -66,13 +68,14 @@ class EmbeddingModelConfig(AllowBaseModel):
     # endpoint_kwargs: Union[dict,None] = None
 
     def model_post_init(self, __context: Any) -> None:
-        if  self.api_key_arn and not self.api_key:
+        if self.api_key_arn and not self.api_key:
             self.api_key = get_secret_value(self.api_key_arn)
+
 
 class RetrieverConfigBase(AllowBaseModel):
     index_type: str
-    kb_type: KBType =  KBType.AOS
-    embedding_config: Union[EmbeddingModelConfig,None] = None
+    kb_type: KBType = KBType.AOS
+    embedding_config: Union[EmbeddingModelConfig, None] = None
 
 
 class IntentionRetrieverConfig(RetrieverConfigBase):
@@ -99,7 +102,7 @@ class IntentionConfig(ForbidBaseModel):
     retrievers: list[IntentionRetrieverConfig] = Field(default_factory=list)
     intent_threshold: float = Threshold.INTENTION_THRESHOLD
     all_knowledge_in_agent_threshold: float = Threshold.ALL_KNOWLEDGE_IN_AGENT_THRESHOLD
-    
+
 
 class RerankConfig(AllowBaseModel):
     endpoint_name: str = None

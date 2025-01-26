@@ -53,7 +53,8 @@ resp_header = {
 def create_chatbot(event, group_name):
     request_body = json.loads(event["body"])
     chatbot_id = request_body.get("chatbotId", group_name.lower())
-    model_provider = request_body.get("modelProvider", ModelProvider.BEDROCK.value)
+    model_provider = request_body.get(
+        "modelProvider", ModelProvider.BEDROCK.value)
     base_url = request_body.get("baseUrl", "")
     api_key_arn = request_body.get("apiKeyArn", "")
     chatbot_description = request_body.get(
@@ -74,7 +75,8 @@ def create_chatbot(event, group_name):
         api_key_arn,
         create_time
     )
-    index = request_body.get("index", {"qq":{"admin-qq-default": "Answer question based on search result"},"qd":{"admin-qd-default": "Answer question based on search result"},"intention":{"admin-intention-default": "Answer question based on search result"}})
+    index = request_body.get("index", {"qq": {"admin-qq-default": "Answer question based on search result"}, "qd": {
+                             "admin-qd-default": "Answer question based on search result"}, "intention": {"admin-intention-default": "Answer question based on search result"}})
     for index_type in index:
         index_ids = list(index[index_type].keys())
         initiate_chatbot(
@@ -95,7 +97,7 @@ def create_chatbot(event, group_name):
                 model_id,
                 index_type,
                 tag,
-                index.get(index_type,{}).get(index_id),
+                index.get(index_type, {}).get(index_id),
                 create_time
             )
     return {
@@ -154,7 +156,8 @@ def __list_chatbot(event, group_name):
             item_json["ModelId"] = chatbot_model_item.get("modelId", "")
             item_json["LastModifiedTime"] = item.get(
                 "updateTime", {"S": ""})["S"]
-            item_json["ModelProvider"] = chatbot_model_item["parameter"].get("ModelProvider", "")
+            item_json["ModelProvider"] = chatbot_model_item["parameter"].get(
+                "ModelProvider", "")
             page_json.append(item_json)
         page_json.sort(key=lambda x: x["LastModifiedTime"], reverse=True)
         output["Items"] = page_json
@@ -187,7 +190,8 @@ def __get_chatbot(event, group_name):
         chatbot_item = None
         model_item = None
 
-    update_time = datetime.fromisoformat(chatbot_item.get("updateTime", "")).strftime("%Y/%m/%d %H:%M:%S")
+    update_time = datetime.fromisoformat(chatbot_item.get(
+        "updateTime", "")).strftime("%Y/%m/%d %H:%M:%S")
     if chatbot_item and model_item:
         chatbot_index_ids = chatbot_item.get("indexIds", {})
         model = model_item.get("parameter", {})
@@ -197,7 +201,7 @@ def __get_chatbot(event, group_name):
         base_url = model.get("BaseUrl", "")
         chatbot_index = []
         for key, value in chatbot_index_ids.items():
-            v = value.get('value',{})
+            v = value.get('value', {})
             # name = list(v.keys())[0]
             for index in list(v.keys()):
                 index_detail = index_table.get_item(
@@ -293,7 +297,8 @@ def lambda_handler(event, context):
             "headers": resp_header,
             "body": json.dumps(f"Error: {str(e)}"),
         }
-    
+
+
 def __validate_index(event, group_name):
     input_body = json.loads(event["body"])
     model = input_body.get("model")
@@ -320,6 +325,7 @@ def __validate_index(event, group_name):
         "reason": None
     }
 
+
 def __edit_chatbot(event, group_name):
     input_body = json.loads(event["body"])
     index = input_body["index"]
@@ -337,10 +343,10 @@ def __edit_chatbot(event, group_name):
     #     }
     # 1.删除index表旧的index
     index_dict = chatbot_table.get_item(
-            Key={"groupName": group_name, "chatbotId": chatbot_id}
-    ).get("Item").get("indexIds",{})
+        Key={"groupName": group_name, "chatbotId": chatbot_id}
+    ).get("Item").get("indexIds", {})
     for key in index_dict:
-        value = index_dict.get(key,{}).get("value",{})
+        value = index_dict.get(key, {}).get("value", {})
         for k in value:
             print(f"start delete index>>>>: {k}")
             index_table.delete_item(
@@ -349,7 +355,6 @@ def __edit_chatbot(event, group_name):
                     "indexId": k,
                 }
             )
-    
 
     # 2.更新chatbot表
     # indexList
@@ -373,7 +378,7 @@ def __edit_chatbot(event, group_name):
                 f"{chatbot_id}-embedding",
                 index_type,
                 tag,
-                index.get(index_type,{}).get(index_id),
+                index.get(index_type, {}).get(index_id),
                 update_time
             )
 
@@ -384,6 +389,7 @@ def __edit_chatbot(event, group_name):
         "indexIds": index_ids,
         "Message": "OK",  # Need to be OK for the frontend to know the chatbot is created successfully and redirect to the chatbot management page
     }
+
 
 def __list_index(event, group_name):
     chatbot_id = event.get("path", "").split("/").pop()
@@ -398,12 +404,12 @@ def __list_index(event, group_name):
     }
 
     chatbot_item = chatbot_table.get_item(
-            Key={"groupName": group_name, "chatbotId": chatbot_id}
-        ).get("Item")
+        Key={"groupName": group_name, "chatbotId": chatbot_id}
+    ).get("Item")
     chatbot_index_ids = chatbot_item.get("indexIds", {})
     index_list = []
     for key, value in chatbot_index_ids.items():
-        v = value.get('value',{})
+        v = value.get('value', {})
         # name = list(v.keys())[0]
         for index in list(v.keys()):
             index_detail = index_table.get_item(
@@ -416,7 +422,7 @@ def __list_index(event, group_name):
                 "description": index_detail.get("description", ""),
                 "tag": v.get(index)
             })
-    output={}
+    output = {}
     # # Use query after adding a filter
     # paginator = dynamodb_client.get_paginator("query")
     # # chatbot->index->model
@@ -475,11 +481,13 @@ def __list_index(event, group_name):
     output["Count"] = len(index_list)
     return output
 
+
 def __validate_default_chatbot(event, group_name):
     chatbot_item = chatbot_table.get_item(
-            Key={"groupName": group_name, "chatbotId": group_name.lower()}
-        ).get("Item")
+        Key={"groupName": group_name, "chatbotId": group_name.lower()}
+    ).get("Item")
     return True if chatbot_item else False
+
 
 def __validate_chatbot(event, group_name):
     input_body = json.loads(event["body"])
@@ -536,6 +544,7 @@ def __find_invalid_index(index, index_id):
         if index_id in value.split(","):
             return index_id
     return None
+
 
 def __get_query_parameter(event, parameter_name, default_value=None):
     if (

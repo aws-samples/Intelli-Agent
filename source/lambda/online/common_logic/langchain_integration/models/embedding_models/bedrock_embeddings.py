@@ -14,8 +14,10 @@ from ..model_config import (
 
 logger = get_logger("bedrock_embedding_model")
 
+
 class BedrockEmbeddings(_BedrockEmbeddings):
-    pass 
+    pass
+
 
 class BedrockEmbeddingBaseModel(Model):
     model_provider = ModelProvider.BEDROCK
@@ -45,7 +47,7 @@ class BedrockEmbeddingBaseModel(Model):
 
             client = boto3.client("bedrock-runtime", region_name=region_name,
                                   aws_access_key_id=br_aws_access_key_id, aws_secret_access_key=br_aws_secret_access_key)
-             
+
             # embedding_model = BedrockEmbeddings(
             #     **default_model_kwargs,
             #     **kwargs,
@@ -54,10 +56,9 @@ class BedrockEmbeddingBaseModel(Model):
             #     model=cls.model_id,
             #  )
 
-        # print(dfhdfh)   
         model_kwargs = {
             **default_model_kwargs,
-            **kwargs.get("model_kwargs",{})
+            **kwargs.get("model_kwargs", {})
         }
 
         model_kwargs = model_kwargs or None
@@ -74,13 +75,3 @@ class BedrockEmbeddingBaseModel(Model):
 
 
 BedrockEmbeddingBaseModel.create_for_models(BEDROCK_EMBEDDING_CONFIGS)
-
-
-
-
-       
-
-
-
-
-

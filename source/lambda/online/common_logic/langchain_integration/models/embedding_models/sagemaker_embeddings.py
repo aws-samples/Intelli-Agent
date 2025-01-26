@@ -1,10 +1,10 @@
-from . import Model 
+from . import Model
 from common_logic.common_utils.constant import (
     ModelProvider
 )
-import os 
-import boto3 
-import json 
+import os
+import boto3
+import json
 from langchain_community.embeddings import (
     SagemakerEndpointEmbeddings
 )
@@ -17,7 +17,7 @@ from ..model_config import BCE_EMBEDDING_CONFIGS
 from common_logic.common_utils.logger_utils import (
     get_logger
 )
-from typing import List,Dict
+from typing import List, Dict
 
 
 logger = get_logger("sagemaker_embedding_model")
@@ -25,11 +25,11 @@ logger = get_logger("sagemaker_embedding_model")
 
 class SageMakerEmbeddingBaseModel(Model):
     model_provider = ModelProvider.SAGEMAKER_MULTIMODEL
-    
-    @classmethod 
+
+    @classmethod
     def create_content_handler(cls, **kwargs):
         raise NotImplementedError
-    
+
     @classmethod
     def create_model(cls, **kwargs):
         credentials_profile_name = (
@@ -46,23 +46,23 @@ class SageMakerEmbeddingBaseModel(Model):
         aws_secret_access_key = os.environ.get(
             "SAGEMAKER_AWS_SECRET_ACCESS_KEY", "")
         default_model_kwargs = cls.default_model_kwargs or {}
-        
+
         content_handler = cls.create_content_handler(**kwargs)
-         
+
         client = None
         if aws_access_key_id != "" and aws_secret_access_key != "":
             logger.info(
                 f"Bedrock Using AWS AKSK from environment variables. Key ID: {aws_access_key_id}")
 
             client = boto3.client(
-                "sagemaker-runtime", 
+                "sagemaker-runtime",
                 region_name=region_name,
                 aws_access_key_id=aws_access_key_id,
                 aws_secret_access_key=aws_secret_access_key
             )
         model_kwargs = {
             **default_model_kwargs,
-            **kwargs.get("model_kwargs",{})
+            **kwargs.get("model_kwargs", {})
         }
         model_kwargs = model_kwargs or None
         logger.info("Model kwargs: ")
@@ -70,7 +70,6 @@ class SageMakerEmbeddingBaseModel(Model):
         target_model = kwargs.get('target_model')
         model_id = kwargs.get('model_endpoint')
 
-        
         endpoint_kwargs = {}
         if target_model:
             endpoint_kwargs['TargetModel'] = target_model
@@ -109,9 +108,3 @@ class SageMakerEmbeddingBCEBaseModel(SageMakerEmbeddingBaseModel):
 
 
 SageMakerEmbeddingBCEBaseModel.create_for_models(BCE_EMBEDDING_CONFIGS)
-
-
-
-
-
-

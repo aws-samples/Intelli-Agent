@@ -28,18 +28,20 @@ class Model(metaclass=ModelMeta):
         raise NotImplementedError
 
     @classmethod
-    def get_model_id(cls,model_id=None,model_provider=None):
+    def get_model_id(cls, model_id=None, model_provider=None):
         if model_id is None:
             model_id = cls.model_id
         if model_provider is None:
             model_provider = cls.model_provider
         return f"{model_id}__{model_provider}"
+
     @classmethod
     def get_model(cls, model_id, **kwargs):
         model_provider = kwargs['provider']
         # dynamic load module
         _load_module(model_provider)
-        model_identify = cls.get_model_id(model_id=model_id,model_provider=model_provider)
+        model_identify = cls.get_model_id(
+            model_id=model_id, model_provider=model_provider)
         return cls.model_map[model_identify].create_model(**kwargs)
 
     @classmethod
@@ -57,7 +59,8 @@ class Model(metaclass=ModelMeta):
         cleaned_parts = []
         for part in parts:
             if any(c.isdigit() for c in part):
-                cleaned = "".join(c.upper() if i == 0 or part[i - 1] in "- " else c for i, c in enumerate(part))
+                cleaned = "".join(
+                    c.upper() if i == 0 or part[i - 1] in "- " else c for i, c in enumerate(part))
             else:
                 cleaned = part.capitalize()
             cleaned_parts.append(cleaned)
@@ -87,11 +90,14 @@ class Model(metaclass=ModelMeta):
         for config in configs:
             cls.create_for_model(config)
 
+
 def _import_bedrock_embeddings():
     from . import bedrock_embeddings
 
+
 def _import_brconnector_bedrock_embeddings():
     from . import brconnector_bedrock_embeddings
+
 
 def _import_openai_embeddings():
     from . import openai_embeddings
@@ -100,23 +106,24 @@ def _import_openai_embeddings():
 def _import_dmaa_embeddings():
     from . import dmaa_embeddings
 
+
 def _import_sagemaker_embeddings():
     from . import sagemaker_embeddings
 
 
 def _load_module(model_provider):
-    assert model_provider in MODEL_PROVIDER_LOAD_FN_MAP, (model_provider, MODEL_PROVIDER_LOAD_FN_MAP)
+    assert model_provider in MODEL_PROVIDER_LOAD_FN_MAP, (
+        model_provider, MODEL_PROVIDER_LOAD_FN_MAP)
     MODEL_PROVIDER_LOAD_FN_MAP[model_provider]()
 
 
 MODEL_PROVIDER_LOAD_FN_MAP = {
     ModelProvider.BEDROCK: _import_bedrock_embeddings,
-    ModelProvider.BRCONNECTOR_BEDROCK:_import_brconnector_bedrock_embeddings,
+    ModelProvider.BRCONNECTOR_BEDROCK: _import_brconnector_bedrock_embeddings,
     ModelProvider.OPENAI: _import_openai_embeddings,
     ModelProvider.DMAA: _import_dmaa_embeddings,
     ModelProvider.SAGEMAKER_MULTIMODEL: _import_sagemaker_embeddings,
 }
-
 
 
 EmbeddingModel = Model

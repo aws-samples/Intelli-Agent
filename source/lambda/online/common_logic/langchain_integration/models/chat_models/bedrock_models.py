@@ -7,7 +7,7 @@ from common_logic.common_utils.constant import (
     ModelProvider
 )
 from common_logic.common_utils.logger_utils import (
-    get_logger, 
+    get_logger,
     llm_messages_print_decorator
 )
 from . import Model
@@ -20,16 +20,16 @@ logger = get_logger("bedrock_model")
 
 class ChatBedrockConverse(_ChatBedrockConverse):
     enable_any_tool_choice: bool = False
-    any_tool_choice_value:str = 'any'
+    any_tool_choice_value: str = 'any'
     enable_prefill: bool = True
 
 
 class BedrockBaseModel(Model):
-    
+
     default_model_kwargs = {"max_tokens": 2000,
                             "temperature": 0.7, "top_p": 0.9}
     enable_any_tool_choice = False
-    any_tool_choice_value:str = 'any'
+    any_tool_choice_value: str = 'any'
     model_provider = ModelProvider.BEDROCK
 
     @classmethod
@@ -82,4 +82,3 @@ class BedrockBaseModel(Model):
 
 
 BedrockBaseModel.create_for_models(BEDROCK_MODEL_CONFIGS)
-
