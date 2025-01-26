@@ -597,14 +597,10 @@ const Intention: React.FC = () => {
           changeBotOption={changeBotOption}
           setShowAddModal={setShowAddModal}
           // setIndexName={setIndexName}
+          reloadIntentions={getIntentionList}
           fileEmptyError={fileEmptyError}
           setFileEmptyError={setFileEmptyError}
           setUploadFiles={setUploadFiles}
-          reloadIntention={() => {
-            setTimeout(() => {
-              getIntentionList();
-            }, 2000);
-          } }
           selectedIndexOption={selectedIndexOption}
           setSelectedIndexOption={setSelectedIndexOption}
         />

@@ -38,6 +38,7 @@
     "supportFiles": "Support file types: ",
     "uploadProgress": "Upload Progress",
     "uploadCompleted": "Upload Completed",
+    "dataUpdating": "Updating data, please wait...",
     "deleteSuccess": "Delete Successfully",
     "completed": "Completed",
     "inProgress": "In Progress",
