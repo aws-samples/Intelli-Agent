@@ -18,10 +18,10 @@ class ModelMeta(type):
 
 
 class Model(metaclass=ModelMeta):
-    model_id: Union[str,None] = None
+    model_id: Union[str, None] = None
     model_map = {}
     model_provider: ModelProvider = ModelProvider.BEDROCK
-    default_model_kwargs: Union[dict,None] = None
+    default_model_kwargs: Union[dict, None] = None
 
     @classmethod
     def create_model(cls, **kwargs):

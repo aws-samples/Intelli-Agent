@@ -55,7 +55,7 @@ class QueryProcessConfig(ForbidBaseModel):
 
 class EmbeddingModelConfig(AllowBaseModel):
     provider: ModelProvider
-    model_id: Union[EmbeddingModelType, str]
+    model_id: EmbeddingModelType
     base_url: Union[str, None] = None
     api_key_arn: Union[str, None] = None
     api_key: Union[str, None] = None

@@ -27,7 +27,7 @@ class SageMakerEmbeddingBaseModel(Model):
     model_provider = ModelProvider.SAGEMAKER_MULTIMODEL
     
     @classmethod 
-    def create_content_handler(cls,**kwargs):
+    def create_content_handler(cls, **kwargs):
         raise NotImplementedError
     
     @classmethod
@@ -103,7 +103,8 @@ class BceContentHandler(EmbeddingsContentHandler):
 
 
 class SageMakerEmbeddingBCEBaseModel(SageMakerEmbeddingBaseModel):
-    def create_content_handler(self,**kwargs):
+    @classmethod
+    def create_content_handler(cls, **kwargs):
         return BceContentHandler()
 
 

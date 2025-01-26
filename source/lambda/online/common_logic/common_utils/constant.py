@@ -186,7 +186,7 @@ class EmbeddingModelType(ConstantBase):
     OPENAI_TEXT_EMBEDDING_3_SMALL = "text-embedding-3-small"
     OPENAI_TEXT_EMBEDDING_3_LARGE = "text-embedding-3-large"
     OPENAI_TEXT_EMBEDDING_ADA_002 = "text-embedding-ada-002"
-    BCE_EMBEDDING = "bce"
+    BCE_EMBEDDING = "bce-embedding-and-bge-reranker-43972-endpoint"
     COHERE_EMBED_ENGLISH_V3 = "cohere.embed-english-v3"
     COHERE_EMBED_MULTILINGUAL_V3 = "cohere.embed-multilingual-v3"
 
