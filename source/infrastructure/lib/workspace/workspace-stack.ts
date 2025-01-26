@@ -216,7 +216,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
         oidcRedirectUrl: `https://${props.portalUrl}/signin`,
         kbEnabled: props.config.knowledgeBase.enabled.toString(),
         kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
-        embeddingEndpoint: "",
+        embeddingEndpoint: JSON.stringify(props.config.model.embeddingsModels),
       },
     });
 
@@ -236,7 +236,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
         oidcRedirectUrl: `https://${props.clientPortalUrl}/signin`,
         kbEnabled: props.config.knowledgeBase.enabled.toString(),
         kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
-        embeddingEndpoint: "",
+        embeddingEndpoint: JSON.stringify(props.config.model.embeddingsModels),
       },
     });
 

@@ -102,8 +102,8 @@ const ChatbotManagement: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const config = useContext(ConfigContext);
-  console.log("config")
-  console.log(config)
+  console.log("config");
+  console.log(config);
   const localApiEndpoint = localStorage.getItem(API_ENDPOINT);
   const localApiKeyArn = localStorage.getItem(API_KEY_ARN);
   const modelTypeList = [
@@ -149,7 +149,6 @@ const ChatbotManagement: React.FC = () => {
   const indexTypeOption: SelectedOption[] = INDEX_TYPE_OPTIONS;
   const navigate = useNavigate();
 
-  useEffect(() => {
   useEffect(() => {
     const tempModels: { label: string; value: string }[] = [];
     if (modelType.value === 'Bedrock API') {
