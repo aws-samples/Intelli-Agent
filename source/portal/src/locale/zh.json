@@ -98,6 +98,7 @@
     "scenarioDesc": "当前会话的应用场景",
     "modelTypeDesc": "LLM 模型供应商",
     "modelNameDesc": "当前会话使用的大语言模型",
+    "embeddingModelNameDesc": "聊天机器人中使用的Embedding model",
     "maxTokenDesc": "序列中处理的最大token长度",
     "maxRoundsDesc": "保存在上下文中的记忆最大轮数",
     "temperatureDesc": "数值越大，输出越随机",

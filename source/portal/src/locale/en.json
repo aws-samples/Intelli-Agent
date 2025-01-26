@@ -88,6 +88,7 @@
     "scenarioDesc": "Applicable scenario for the current session",
     "modelTypeDesc": "LLM model provider",
     "modelNameDesc": "LLM used in the current session",
+    "embeddingModelNameDesc": "Embedding model that used in the chatbot",
     "maxTokenDesc": " Max length of tokens that LLM process in a sequence",
     "maxRoundsDesc": "Max rounds of dialog that saved in memory",
     "temperatureDesc": "Higher values make the output more random",
