@@ -93,7 +93,7 @@
     "rad": "随机 & 多样性",
     "maxRounds": "保持记忆的最大轮数",
     "topKRetrievals": "召回最关联的K条",
-    "chatbotModelProviderError": "此聊天机器人不支持API推理，仅支持本地推理。请创建另一个聊天机器人以启用API引用",
+    "chatbotModelProviderError": "此聊天机器人不支持这个模型提供商",
     "score": "相关度分数",
     "scenarioDesc": "当前会话的应用场景",
     "modelTypeDesc": "LLM 模型供应商",

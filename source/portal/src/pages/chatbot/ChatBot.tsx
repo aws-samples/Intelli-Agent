@@ -796,8 +796,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         const selectedChatbotId = chatbotOption.value ?? "defaultId";
                         const expectedModelProvider = chatbotModelProvider[selectedChatbotId];
 
-                        if (expectedModelProvider === "Bedrock" && 
-                            (detail.selectedOption.value === "Bedrock API" || detail.selectedOption.value === "OpenAI API")) {
+                        if (expectedModelProvider !== detail.selectedOption.value) {
                           setModelProviderHint(t('chatbotModelProviderError'));
                         } else {
                           setModelProviderHint(''); // Clear hint if the selection is valid
