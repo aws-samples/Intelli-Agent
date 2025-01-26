@@ -24,7 +24,7 @@ logger = get_logger("sagemaker_embedding_model")
 
 
 class SageMakerEmbeddingBaseModel(Model):
-    model_provider = ModelProvider.SAGEMAKERMULTIMODEL
+    model_provider = ModelProvider.SAGEMAKER_MULTIMODEL
     
     @classmethod 
     def create_content_handler(cls,**kwargs):

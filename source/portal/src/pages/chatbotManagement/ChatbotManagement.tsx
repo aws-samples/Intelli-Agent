@@ -150,6 +150,7 @@ const ChatbotManagement: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+  useEffect(() => {
     const tempModels: { label: string; value: string }[] = [];
     if (modelType.value === 'Bedrock API') {
       BEDROCK_API_EMBEDDING_MODEL_LIST.forEach(

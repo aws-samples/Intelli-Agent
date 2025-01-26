@@ -130,7 +130,7 @@ class ModelProvider(ConstantBase):
     BEDROCK = "Bedrock"
     BRCONNECTOR_BEDROCK = "Bedrock API"
     OPENAI = "OpenAI API"
-    SAGEMAKERMULTIMODEL = "sagemaker"
+    SAGEMAKER_MULTIMODEL = "SageMaker"
 
 
 class LLMModelType(ConstantBase):

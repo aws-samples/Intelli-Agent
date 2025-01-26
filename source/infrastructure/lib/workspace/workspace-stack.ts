@@ -87,6 +87,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
 
     const restQueryHandler = new PythonFunction(this, "RestQueryHandler", {
       runtime: Runtime.PYTHON_3_12,
+      memorySize: 512,
       entry: join(__dirname, "../../../lambda/query_handler"),
       index: "rest_api.py",
       handler: "lambda_handler",
@@ -170,6 +171,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     const wsQueryHandler = new PythonFunction(this, "WebSocketQueryHandler", {
       // functionName: `${id}-ws-query-handler`,
       runtime: Runtime.PYTHON_3_12,
+      memorySize: 512,
       entry: join(__dirname, "../../../lambda/query_handler"),
       index: "websocket_api.py",
       handler: "lambda_handler",
