@@ -39,7 +39,7 @@ class SageMakerEmbeddingBaseModel(Model):
         )
         region_name = (
             kwargs.get("region_name", None)
-            or os.environ.get("SAGEMAKER_REGION", None)
+            or os.environ.get("AWS_REGION", None)
             or None
         )
         aws_access_key_id = os.environ.get("SAGEMAKER_AWS_ACCESS_KEY_ID", "")
@@ -73,7 +73,7 @@ class SageMakerEmbeddingBaseModel(Model):
         
         endpoint_kwargs = {}
         if target_model:
-            endpoint_kwargs['target_model'] = target_model
+            endpoint_kwargs['TargetModel'] = target_model
 
         endpoint_kwargs = endpoint_kwargs or None
 

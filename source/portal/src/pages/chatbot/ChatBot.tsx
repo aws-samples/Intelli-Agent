@@ -649,6 +649,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       optionList=LLM_BOT_COMMON_MODEL_LIST;
       setModelList(LLM_BOT_COMMON_MODEL_LIST);
       setModelOption(LLM_BOT_COMMON_MODEL_LIST[0].options[0].value);
+      setApiEndpoint('')
+      setApiKeyArn('')
     } else if (modelType.value === 'Bedrock API') {
       optionList=BR_API_MODEL_LIST;
       setModelList(BR_API_MODEL_LIST);

@@ -184,6 +184,8 @@ const ChatbotManagement: React.FC = () => {
       );
       setModelList(tempModels);
       setModelOption(tempModels[0]);
+      setApiEndpoint('')
+      setApiKeyArn('')
     } else if (modelType.value === 'SageMaker') {
       const BCE_EMBEDDING = [
         {
@@ -201,6 +203,8 @@ const ChatbotManagement: React.FC = () => {
       );
       setModelList(tempModels);
       setModelOption(tempModels[0]);
+      setApiEndpoint('')
+      setApiKeyArn('')
     } 
   }, [modelType]);
 
