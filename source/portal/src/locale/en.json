@@ -211,6 +211,8 @@
     },
     "validation": {
       "requireModel": "Please select or input a model",
+      "requireApiKeyArn": "Please input an API key ARN",
+      "requireApiEndpoint": "Please input an API endpoint",
       "requireChatbotName": "Please input chatbot name",
       "repeatChatbotName": "Chatbot name is already used, please change the name",
       "repeatIndex": "This index is already used by other users",

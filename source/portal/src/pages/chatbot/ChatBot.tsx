@@ -487,9 +487,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       return;
     }
     // validate model settings
-    if (modelType.value === 'Bedrock API') {
+    if (modelType.value === 'Bedrock API' || modelType.value === 'OpenAI API') {
       if (!apiEndpoint.trim()) {
         setApiEndpointError('validation.requireApiEndpoint');
+        setModelSettingExpand(true);
+        return;
+      }
+      if (!apiKeyArn.trim()) {
+        setApiKeyArnError('validation.requireApiKeyArn');
         setModelSettingExpand(true);
         return;
       }

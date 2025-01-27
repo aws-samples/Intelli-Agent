@@ -120,7 +120,7 @@ const ChatbotManagement: React.FC = () => {
       value: 'OpenAI API',
     },
     // Add SageMaker if embeddingEndpoint is valid
-    ...(config?.embeddingEndpoint ? [{ label: 'SageMaker', value: 'SageMaker' }] : []),
+    ...(config?.embeddingEndpoint?.startsWith('bce') ? [{ label: 'SageMaker', value: 'SageMaker' }] : []),
   ];
 
   const [modelType, setModelType] = useState<SelectProps.Option>(
@@ -305,6 +305,16 @@ const ChatbotManagement: React.FC = () => {
 
     if (!chatbotName?.trim()) {
       setChatbotNameError(t('validation.requireChatbotName'));
+      return;
+    }
+
+    if (!apiEndpoint?.trim() && (modelType?.value === 'Bedrock API' || modelType?.value === 'OpenAI API')) {
+      setApiEndpointError(t('validation.requireApiEndpoint'));
+      return;
+    }
+
+    if (!apiKeyArn?.trim() && (modelType?.value === 'Bedrock API' || modelType?.value === 'OpenAI API')) {
+      setApiKeyArnError(t('validation.requireApiKeyArn'));
       return;
     }
 
@@ -599,6 +609,8 @@ const ChatbotManagement: React.FC = () => {
                     onClick={() => {
                       setChatbotName('');
                       setChatbotNameError('');
+                      setApiKeyArnError('');
+                      setApiEndpointError('');
                       setLoadingSave(false);
                       setUseDefaultIndex(true);
                       setShowCreate(true);

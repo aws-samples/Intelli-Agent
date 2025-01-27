@@ -211,6 +211,8 @@
     },
     "validation": {
       "requireModel": "请选择或输入一个模型",
+      "requireApiKeyArn": "请输入一个API密钥的ARN",
+      "requireApiEndpoint": "请输入一个API端点",
       "requireChatbotName": "请输入机器人名称",
       "repeatChatbotName": "该名称已经被使用，请更换新的名称",
       "repeatIndex": "该索引名称已经被其他用户使用",
