@@ -31,7 +31,8 @@ def filter_response(res: Iterable, state: dict):
     tag_end = "</reference>"
 
     for char in res:
-        if not buffer and char not in ["<", "<reference"]:
+        char_strip = char.strip()
+        if not buffer and char_strip not in ["<", "<reference"]:
             yield char
             continue
 
