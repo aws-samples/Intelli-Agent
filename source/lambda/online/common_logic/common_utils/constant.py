@@ -159,6 +159,8 @@ class LLMModelType(ConstantBase):
     GPT4TURBO20240409 = "gpt-4-turbo-2024-04-09"
     QWEN2INSTRUCT7B = "qwen2-7B-instruct"
     QWEN25_INSTRUCT_72B_AWQ = "Qwen2.5-72B-Instruct-AWQ"
+    # DEEPSEEK_R1_DISTILL_LLAMA_8B = "DeepSeek-R1-Distill-Llama-8B"
+    DEEPSEEK_R1_DISTILL_LLAMA_70B = "DeepSeek-R1-Distill-Llama-70B"
     QWEN15INSTRUCT32B = "qwen1_5-32B-instruct"
     LLAMA3_1_70B_INSTRUCT = "meta.llama3-1-70b-instruct-v1:0"
     LLAMA3_2_90B_INSTRUCT = "us.meta.llama3-2-90b-instruct-v1:0"
