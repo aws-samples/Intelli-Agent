@@ -167,7 +167,13 @@ QWEN25_MODEL_CONFIGS = [
     ModelConfig(
         model_id=LLMModelType.DEEPSEEK_R1_DISTILL_LLAMA_70B,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
-        enable_any_tool_choice=True,
+        enable_any_tool_choice=False,
+        enable_prefill=True
+    ),
+    ModelConfig(
+        model_id=LLMModelType.DEEPSEEK_R1_DISTILL_LLAMA_8B,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_any_tool_choice=False,
         enable_prefill=True
     )
 ]

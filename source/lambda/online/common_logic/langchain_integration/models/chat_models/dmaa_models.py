@@ -54,7 +54,7 @@ class Qwen25Instruct72bAwq(Model):
         return llm
 
 
-class DeepSeekR1DistillLlama8B(Model):
+class DeepSeekR1DistillLlama70B(Model):
     model_id = LLMModelType.DEEPSEEK_R1_DISTILL_LLAMA_70B
     enable_any_tool_choice: bool = False
     any_tool_choice_value: str = 'any'
@@ -88,3 +88,8 @@ class DeepSeekR1DistillLlama8B(Model):
             enable_prefill=cls.enable_prefill
         )
         return llm
+
+
+class DeepSeekR1DistillLlama8B(DeepSeekR1DistillLlama70B):
+    model_id = LLMModelType.DEEPSEEK_R1_DISTILL_LLAMA_8B
+
