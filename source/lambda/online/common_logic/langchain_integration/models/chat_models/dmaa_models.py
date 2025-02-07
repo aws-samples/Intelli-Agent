@@ -93,3 +93,6 @@ class DeepSeekR1DistillLlama70B(Model):
 class DeepSeekR1DistillLlama8B(DeepSeekR1DistillLlama70B):
     model_id = LLMModelType.DEEPSEEK_R1_DISTILL_LLAMA_8B
 
+
+class DeepSeekR1DistillQwen32B(DeepSeekR1DistillLlama70B):
+    model_id = LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_32B
