@@ -85,6 +85,7 @@ export class IntentionApi extends Construct {
       runtime: Runtime.PYTHON_3_12,
       entry: join(__dirname, "../../../lambda/intention"),
       index: "intention.py",
+      memorySize: 1024,
       handler: "lambda_handler",
       timeout: Duration.minutes(15),
       vpc: this.vpc,

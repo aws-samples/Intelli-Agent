@@ -22,7 +22,7 @@ def get_embedding_info(embedding_endpoint_name):
         embeddings_model_type = "m3"
 
     elif "embedding" in embedding_endpoint_name:
-        embeddings_model_provider = "Netease"
+        embeddings_model_provider = "SageMaker"
         embeddings_model_name = "bce_embedding_model.tar.gz"
         embeddings_model_dimensions = 768
         embeddings_model_type = "bce"

@@ -97,7 +97,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.dlq = chatQueueConstruct.dlq;
 
     const lambdaLayers = new LambdaLayers(this);
-    const apiLambdaOnlineSourceLayer = lambdaLayers.createSharedLayer();
+    const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineMainLayer();
     const apiLambdaJobSourceLayer = lambdaLayers.createJobSourceLayer();
     const modelLayer = lambdaLayers.createModelDeploymentLayer();
 

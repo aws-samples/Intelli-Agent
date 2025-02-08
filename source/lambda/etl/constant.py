@@ -52,3 +52,11 @@ class OperationType(Enum):
     UPDATE = "update"
     DELETE = "delete"
     EXTRACT_ONLY = "extract_only"
+
+
+@unique
+class ModelProvider(Enum):
+    DMAA = "dmaa"
+    BEDROCK = "Bedrock"
+    BRCONNECTOR_BEDROCK = "Bedrock API"
+    OPENAI = "OpenAI API"

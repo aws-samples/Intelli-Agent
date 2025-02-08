@@ -1,10 +1,14 @@
+import base64
 import logging
+import os
 import re
+from pathlib import Path
 
 import markdownify
+from bs4 import BeautifulSoup
 from langchain.docstore.document import Document
 from langchain.document_loaders.base import BaseLoader
-
+from llm_bot_dep.figure_llm import process_markdown_images_with_llm
 from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
 
 logger = logging.getLogger(__name__)
@@ -59,9 +63,21 @@ class CustomHtmlLoader(BaseLoader):
         return s.strip()
 
     # def load(self, file_content: str) -> List[Document]:
-    def load(self, file_content: str):
-        file_content = self.clean_html(file_content)
-        file_content = markdownify.markdownify(file_content, heading_style="ATX")
+    def load(self, file_content: str, bucket_name: str, file_name: str):
+        html_content = self.clean_html(file_content)
+        # Set escape_underscores and escape_asterisks to False to avoid converting
+        # underscores and asterisks to HTML entities, especially avoid converting
+        # markdown links to invalid links.
+        # Ref: https://pypi.org/project/markdownify/
+        file_content = markdownify.markdownify(
+            html_content,
+            heading_style="ATX",
+            escape_underscores=False,
+            escape_asterisks=False,
+        )
+        file_content = process_markdown_images_with_llm(
+            file_content, bucket_name, file_name
+        )
         doc = Document(
             page_content=file_content,
             metadata={"file_type": "html", "file_path": self.aws_path},
@@ -73,8 +89,10 @@ class CustomHtmlLoader(BaseLoader):
 def process_html(html_str: str, **kwargs):
     bucket_name = kwargs["bucket"]
     key = kwargs["key"]
+    portal_bucket_name = kwargs["portal_bucket_name"]
+    file_name = Path(key).stem
     loader = CustomHtmlLoader(aws_path=f"s3://{bucket_name}/{key}")
-    doc = loader.load(html_str)
+    doc = loader.load(html_str, portal_bucket_name, file_name)
     splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
     doc_list = splitter.split_text(doc)
 

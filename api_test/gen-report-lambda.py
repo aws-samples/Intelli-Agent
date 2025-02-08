@@ -88,7 +88,7 @@ def lambda_handler(event, context):
     third_error = 0
     third_coverage = '-'
     # event={'project_name': 'Chatbot Portal with Agent', 'build_url': 'https://ap-northeast-1.console.aws.amazon.com/codebuild/home?region=ap-northeast-1#/builds/AgentApiTest:9d97a692-cc2c-4372-8538-58a192735f13/view/new', 'status': 'completed', 'bucket': 'intelli-agent-rag-ap-northeast-1-api-test', 's3_key': '2024-06-30_13-21-21_detail.json', 'log': '2024-06-30_13-21-21_detail.log', 'topic': 'arn:aws:sns:ap-northeast-1:544919262599:agent-developers'} 
-    third_payload = __gen_json_from_s3(bucket, date, "payload.json", 0)
+    # third_payload = __gen_json_from_s3(bucket, date, "payload.json", 0)
     
     payload = __gen_json_from_s3(bucket, date, "payload.json", 1)
 
@@ -100,19 +100,21 @@ def lambda_handler(event, context):
     else:
         msg = __gen_uncompleted_message(payload, 1)
 
-    if third_payload['status'] == 'completed':
-        third_passed, third_failed, third_error, third_msg = __gen_completed_message(bucket, date, 0)
-        third_total = third_passed + third_failed + third_error
-        if third_total != 0:
-            third_coverage = round(third_passed/third_total, 2)*100
-    else:
-        third_msg = __gen_uncompleted_message(payload, 0)
-    if payload.get('status')=='completed' and third_payload.get('status')=='completed' and failed + error + third_failed + third_error == 0:
+    # if third_payload['status'] == 'completed':
+    #     third_passed, third_failed, third_error, third_msg = __gen_completed_message(bucket, date, 0)
+    #     third_total = third_passed + third_failed + third_error
+    #     if third_total != 0:
+    #         third_coverage = round(third_passed/third_total, 2)*100
+    # else:
+    #     third_msg = __gen_uncompleted_message(payload, 0)
+    # if payload.get('status')=='completed' and third_payload.get('status')=='completed' and failed + error + third_failed + third_error == 0:
+    if payload.get('status')=='completed' and failed + error + third_failed + third_error == 0:
         status = "PASSED"
     message = f"Hi, team!\nThe following is API autotest report for {date}.\n\n ============================ summary =============================\n REPOSITORY: {payload['repository']}\n BRANCH: {payload['branch']}\n TEST RESULT: {status}\n Built-In KB:\n     Total:{passed + failed + error}\n     Passed:{passed} Failed:{failed} Error:{error}\n     Coverage:{coverage}%\n Third KB:\n     Total:{third_passed + third_failed + third_error}\n     Passed:{third_passed} Failed:{third_failed} Error:{third_error}\n     Coverage:{third_coverage}%\n\n\n "
     message += msg
-    message += third_msg
-    message+=f"\n\n More details click:\n Built-in KB: {payload['build_url']}\n Third KB: {third_payload['build_url']}"
+    # message += third_msg
+    # message+=f"\n\n More details click:\n Built-in KB: {payload['build_url']}\n Third KB: {third_payload['build_url']}"
+    message+=f"\n\n More details click:\n Built-in KB: {payload['build_url']}\n"
     message+="\n\nBR.\nThanks"
     
     # Publish to SNS

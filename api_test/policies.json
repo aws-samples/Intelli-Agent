@@ -1,0 +1,150 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Resource": [
+                "arn:aws:logs:us-east-1:*:log-group:/aws/codebuild/intellij-agent-api-test",
+                "arn:aws:logs:us-east-1:*:log-group:/aws/codebuild/intellij-agent-api-test:*"
+            ],
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Resource": [
+                "*"
+            ],
+            "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:GetObjectVersion",
+                "s3:GetBucketAcl",
+                "s3:GetBucketLocation",
+                "s3:CreateBucket",
+                "s3:PutBucketVersioning",
+                "s3:ListBucket"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "codebuild:CreateReportGroup",
+                "codebuild:CreateReport",
+                "codebuild:UpdateReport",
+                "codebuild:BatchPutTestCases",
+                "codebuild:BatchPutCodeCoverages",
+                "codebuild:CreateProject",
+                "codebuild:DeleteProject"
+            ],
+            "Resource": [
+                "arn:aws:codebuild:us-east-1:*:*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:DeleteStack",
+                "cloudformation:DescribeStacks",
+                "cloudformation:DescribeStackEvents",
+                "cloudformation:CreateStack",
+                "cloudformation:UpdateStack",
+                "cloudformation:CreateChangeSet",
+                "cloudformation:DescribeChangeSet",
+                "cloudformation:ExecuteChangeSet",
+                "cloudformation:GetTemplate"
+            ],
+            "Resource": [
+                "arn:aws:cloudformation:us-east-1:*:stack/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cognito-idp:AdminCreateUser",
+                "cognito-idp:AdminSetUserPassword",
+                "cognito-idp:AdminAddUserToGroup",
+                "cognito-idp:AdminSetUserPassword"
+            ],
+            "Resource": [
+                "arn:aws:cognito-idp:us-east-1:*:userpool/us-east-1_*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecr-public:GetAuthorizationToken",
+                "sts:GetServiceBearerToken",
+                "ecr:*"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "lambda:InvokeFunction"
+            ],
+            "Resource": [
+                "arn:aws:lambda:us-east-1:*:function:*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecr:DescribeRepositories",
+                "ecr:CreateRepository"
+            ],
+            "Resource": [
+                "arn:aws:ecr:us-east-1:*:repository/intelli-agent-knowledge-base"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "codepipeline:*"
+            ],
+            "Resource": [
+                "arn:aws:codepipeline:us-east-1:*:*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:*"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ssm:GetParameter"
+            ],
+            "Resource": [
+                "arn:aws:ssm:us-east-1:*:*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:GetRole",
+                "iam:CreateRole",
+                "iam:DetachRolePolicy",
+                "iam:DeleteRolePolicy",
+                "iam:AttachRolePolicy",
+                "iam:DeleteRole",
+                "iam:PutRolePolicy",
+                "iam:PassRole"
+            ],
+            "Resource": [
+                "*"
+            ]
+        }
+    ]
+}

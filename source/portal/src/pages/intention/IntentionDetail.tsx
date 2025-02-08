@@ -220,6 +220,17 @@ const IntentionDetail: React.FC = () => {
               </span>
             }
           ><StatusIndicator type="error">{t("intentionFail")}</StatusIndicator></Popover>
+          } else if(executionFileList[0]?.status === "FAILED"){
+            return <Popover
+            dismissButton={false}
+            position="top"
+            size="small"
+            triggerType="custom"
+            content={
+              <span style={{color: "red"}}>
+                {executionFileList[0]?.detail}
+              </span>
+            }><StatusIndicator type="error">{t("intentionFail")}</StatusIndicator></Popover>
           } else {
             return <StatusIndicator>{t("intentionSuccess")}</StatusIndicator>
           }

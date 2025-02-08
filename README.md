@@ -510,6 +510,9 @@ aws s3 cp source/lambda/job/dep/dist/llm_bot_dep-0.1.0-py3-none-any.whl s3://<Yo
 ## Testing
 For detailed test information, please refer to the [Test Doc](https://github.com/aws-samples/Intelli-Agent/blob/dev/tests/README.md)
 
+## Cost
+See [COST](COST.md) for more information.
+
 ## Contribution
 See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
 

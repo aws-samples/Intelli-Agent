@@ -36,8 +36,9 @@ const embeddingModels = [
     name: "bce-embedding-and-bge-reranker",
     commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
     dimensions: 768,
-  }
+  },
 ];
+
 
 const supportedRegions = Object.values(SupportedRegion) as string[];
 const supportedBedrockRegions = Object.values(SupportedBedrockRegion) as string[];
@@ -242,7 +243,7 @@ async function processCreateOptions(options: any): Promise<void> {
       message: "Do you want to use a custom domain for your knowledge base?",
       initial: options.useCustomDomain ?? false,
       skip(): boolean {
-        if ( !(this as any).state.answers.enableKnowledgeBase ||
+        if (!(this as any).state.answers.enableKnowledgeBase ||
           (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
           (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch") {
           return true;
@@ -262,7 +263,7 @@ async function processCreateOptions(options: any): Promise<void> {
           : "Enter a valid OpenSearch domain endpoint (e.g., https://search-domain-region-id.region.es.amazonaws.com)";
       },
       skip(): boolean {
-        if ( !(this as any).state.answers.enableKnowledgeBase ||
+        if (!(this as any).state.answers.enableKnowledgeBase ||
           (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
           (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch" ||
           !(this as any).state.answers.useCustomDomain) {
@@ -372,23 +373,6 @@ async function processCreateOptions(options: any): Promise<void> {
           !(this as any).state.answers.enableChat);
       },
     },
-    // {
-    //   type: "select",
-    //   name: "defaultLlm",
-    //   message: "Select a llm model",
-    //   choices: llms.map((m) => ({ name: m.name, value: m })),
-    //   initial: options.defaultLlm,
-    //   validate(value: string) {
-    //     if ((this as any).state.answers.enableChat) {
-    //       return value ? true : "Select a default llm model";
-    //     }
-
-    //     return true;
-    //   },
-    //   skip(): boolean {
-    //     return !(this as any).state.answers.enableChat;
-    //   },
-    // },
     {
       type: "input",
       name: "sagemakerModelS3Bucket",

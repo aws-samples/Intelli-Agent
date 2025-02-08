@@ -10,13 +10,12 @@ from common_logic.common_utils.time_utils import timeit
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
 from langchain.docstore.document import Document
 from langchain.schema.retriever import BaseRetriever
-from langchain_community.embeddings import BedrockEmbeddings
-from sm_utils import SagemakerEndpointVectorOrCross
-
+from common_logic.langchain_integration.models import EmbeddingModel
+# from sm_utils import SagemakerEndpointVectorOrCross
+from common_logic.common_utils.logger_utils import get_logger
 from .aos_utils import LLMBotOpenSearchClient
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger = get_logger(__name__)
 
 # region = os.environ["AWS_REGION"]
 kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"].lower() == "true"
@@ -47,7 +46,8 @@ except sm_client.exceptions.ResourceNotFoundException:
     logger.info(f"Secret '{aos_secret}' not found in Secrets Manager")
     aos_client = LLMBotOpenSearchClient(aos_endpoint)
 except sm_client.exceptions.InvalidRequestException:
-    logger.info("InvalidRequestException. It might caused by getting secret value from a deleting secret")
+    logger.info(
+        "InvalidRequestException. It might caused by getting secret value from a deleting secret")
     logger.info("Fallback to authentication with IAM")
     aos_client = LLMBotOpenSearchClient(aos_endpoint)
 except Exception as e:
@@ -69,71 +69,77 @@ def remove_redundancy_debug_info(results):
     return filtered_results
 
 
-@timeit
+# @timeit
 def get_similarity_embedding(
     query: str,
-    embedding_model_endpoint: str,
-    target_model: str,
-    model_type: str = "vector",
+    model_kwargs: dict
+    # embedding_model_endpoint: str,
+    # target_model: str,
+    # model_type: str = "vector",
 ) -> List[List[float]]:
-    if model_type.lower() == "bedrock":
-        embeddings = BedrockEmbeddings(
-            model_id=embedding_model_endpoint,
-            region_name=bedrock_region,
-            normalize=True
-        )
-        response = embeddings.embed_query(query)
-    else:
-        query_similarity_embedding_prompt = query
-        response = SagemakerEndpointVectorOrCross(
-            prompt=query_similarity_embedding_prompt,
-            endpoint_name=embedding_model_endpoint,
-            model_type=model_type,
-            stop=None,
-            region_name=None,
-            target_model=target_model,
-        )
+    embedding_model = EmbeddingModel.get_model(
+        **model_kwargs
+    )
+    response = embedding_model.embed_query(query)
+
+    # if model_type.lower() == "bedrock":
+    #     embeddings = BedrockEmbeddings(
+    #         model_id=embedding_model_endpoint,
+    #         region_name=bedrock_region,
+    #         normalize=True
+    #     )
+    #     response = embeddings.embed_query(query)
+    # else:
+    #     query_similarity_embedding_prompt = query
+    #     response = SagemakerEndpointVectorOrCross(
+    #         prompt=query_similarity_embedding_prompt,
+    #         endpoint_name=embedding_model_endpoint,
+    #         model_type=model_type,
+    #         stop=None,
+    #         region_name=None,
+    #         target_model=target_model,
+    #     )
     return response
 
 
-@timeit
-def get_relevance_embedding(
-    query: str,
-    query_lang: str,
-    embedding_model_endpoint: str,
-    target_model: str,
-    model_type: str = "vector",
-):
-    if model_type == "bedrock":
-        embeddings = BedrockEmbeddings(
-            model_id=embedding_model_endpoint, region_name=bedrock_region)
-        response = embeddings.embed_query(query)
-    else:
-        if model_type == "vector":
-            if query_lang == "zh":
-                query_relevance_embedding_prompt = (
-                    "为这个句子生成表示以用于检索相关文章：" + query
-                )
-            elif query_lang == "en":
-                query_relevance_embedding_prompt = (
-                    "Represent this sentence for searching relevant passages: " + query
-                )
-            else:
-                query_relevance_embedding_prompt = query
-        elif model_type == "m3" or model_type == "bce":
-            query_relevance_embedding_prompt = query
-        else:
-            raise ValueError(f"invalid embedding model type: {model_type}")
-        response = SagemakerEndpointVectorOrCross(
-            prompt=query_relevance_embedding_prompt,
-            endpoint_name=embedding_model_endpoint,
-            model_type=model_type,
-            region_name=None,
-            stop=None,
-            target_model=target_model,
-        )
+# @timeit
+# def get_relevance_embedding(
+#     query: str,
+#     query_lang: str,
+#     embedding_model_endpoint: str,
+#     target_model: str,
+#     model_type: str = "vector",
+# ):
+#     if model_type == "bedrock":
+#         embeddings = BedrockEmbeddings(
+#             model_id=embedding_model_endpoint, region_name=bedrock_region)
+#         response = embeddings.embed_query(query)
+#     else:
+#         if model_type == "vector":
+#             if query_lang == "zh":
+#                 query_relevance_embedding_prompt = (
+#                     "为这个句子生成表示以用于检索相关文章：" + query
+#                 )
+#             elif query_lang == "en":
+#                 query_relevance_embedding_prompt = (
+#                     "Represent this sentence for searching relevant passages: " + query
+#                 )
+#             else:
+#                 query_relevance_embedding_prompt = query
+#         elif model_type == "m3" or model_type == "bce":
+#             query_relevance_embedding_prompt = query
+#         else:
+#             raise ValueError(f"invalid embedding model type: {model_type}")
+#         response = SagemakerEndpointVectorOrCross(
+#             prompt=query_relevance_embedding_prompt,
+#             endpoint_name=embedding_model_endpoint,
+#             model_type=model_type,
+#             region_name=None,
+#             stop=None,
+#             target_model=target_model,
+#         )
 
-    return response
+#     return response
 
 
 def get_filter_list(parsed_query: dict):
@@ -474,12 +480,13 @@ class QueryQuestionRetriever(BaseRetriever):
     vector_field: str = "vector_field"
     source_field: str = "source"
     top_k: int = 10
-    embedding_model_endpoint: str
-    target_model: str
-    model_type: str = "vector"
+    embedding_config: dict
+    # embedding_model_endpoint: str
+    # target_model: str
+    # model_type: str = "vector"
     enable_debug: bool = False
 
-    @timeit
+    # @timeit
     def _get_relevant_documents(
         self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun
     ) -> List[Document]:
@@ -487,7 +494,11 @@ class QueryQuestionRetriever(BaseRetriever):
         debug_info = question["debug_info"]
         opensearch_knn_results = []
         query_repr = get_similarity_embedding(
-            query, self.embedding_model_endpoint, self.target_model, self.model_type
+            query,
+            self.embedding_config
+            # self.embedding_model_endpoint,
+            #   self.target_model,
+            #   self.model_type
         )
         opensearch_knn_response = aos_client.search(
             index_name=self.index_name,
@@ -532,17 +543,19 @@ class QueryDocumentKNNRetriever(BaseRetriever):
     context_num: int = 2
     top_k: int = 10
     # lang: Any
-    model_type: str = "vector"
-    embedding_model_endpoint: Any
-    target_model: Any
+    # model_type: str = "vector"
+    # embedding_model_endpoint: Any
+    # target_model: Any
+    # lang: str = "zh"
+    embedding_config: dict
     enable_debug: bool = False
-    lang: str = "zh"
 
     async def __ainvoke_get_context(self, aos_hit, window_size, loop):
         return await loop.run_in_executor(
             None, get_context, aos_hit, self.index_name, window_size
 
         )
+
     async def __spawn_task(self, aos_hits, context_size):
         loop = asyncio.get_event_loop()
         task_list = []
@@ -554,7 +567,7 @@ class QueryDocumentKNNRetriever(BaseRetriever):
                 task_list.append(task)
         return await asyncio.gather(*task_list)
 
-    @timeit
+    # @timeit
     def organize_results(
         self,
         response,
@@ -599,7 +612,7 @@ class QueryDocumentKNNRetriever(BaseRetriever):
                         context[0] + [result["content"]] + context[1])
         return results
 
-    @timeit
+    # @timeit
     def __get_knn_results(self, query_term, filter):
         opensearch_knn_response = aos_client.search(
             index_name=self.index_name,
@@ -619,7 +632,7 @@ class QueryDocumentKNNRetriever(BaseRetriever):
         )[: self.top_k]
         return opensearch_knn_results
 
-    @timeit
+    # @timeit
     def _get_relevant_documents(
         self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun
     ) -> List[Document]:
@@ -627,12 +640,13 @@ class QueryDocumentKNNRetriever(BaseRetriever):
         # if "query_lang" in question and question["query_lang"] != self.lang and "translated_text" in question:
         #     query = question["translated_text"]
         debug_info = question["debug_info"]
-        query_repr = get_relevance_embedding(
+        query_repr = get_similarity_embedding(
             query,
-            self.lang,
-            self.embedding_model_endpoint,
-            self.target_model,
-            self.model_type,
+            self.embedding_config
+            # self.lang,
+            # self.embedding_model_endpoint,
+            # self.target_model,
+            # self.model_type,
         )
         # question["colbert"] = query_repr["colbert_vecs"][0]
         filter = get_filter_list(question)
@@ -698,7 +712,7 @@ class QueryDocumentBM25Retriever(BaseRetriever):
                 task_list.append(task)
         return await asyncio.gather(*task_list)
 
-    @timeit
+    # @timeit
     def organize_results(
         self,
         response,
@@ -768,7 +782,7 @@ class QueryDocumentBM25Retriever(BaseRetriever):
             #     result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
         return results
 
-    @timeit
+    # @timeit
     def __get_bm25_results(self, query_term, filter):
         opensearch_bm25_response = aos_client.search(
             index_name=self.index_name,
@@ -788,7 +802,7 @@ class QueryDocumentBM25Retriever(BaseRetriever):
         )[: self.top_k]
         return opensearch_bm25_results
 
-    @timeit
+    # @timeit
     def _get_relevant_documents(
         self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun
     ) -> List[Document]:

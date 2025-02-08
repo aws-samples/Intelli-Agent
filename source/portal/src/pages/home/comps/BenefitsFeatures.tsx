@@ -14,7 +14,8 @@ const BenefitsFeatures: React.FC = () => {
       header={<Header variant="h2">{t('featuresAndBenefits.name')}</Header>}
     >
       <ColumnLayout columns={2} variant="text-grid">
-        {[1, 2, 3, 4].map((item) => {
+        {[1, 2].map((item) => {
+        // {[1, 2, 3, 4].map((item) => {  
           return (
             <div key={item}>
               <Box variant="awsui-key-label">

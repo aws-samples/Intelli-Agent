@@ -6,10 +6,8 @@ from typing import Any, List
 
 import boto3
 from langchain.docstore.document import Document
-from langchain.text_splitter import (
-    TextSplitter,
-)
-from llm_bot_dep.constant import SplittingType, FigureNode
+from langchain.text_splitter import TextSplitter
+from llm_bot_dep.constant import FigureNode, SplittingType
 from llm_bot_dep.storage_utils import save_content_to_s3
 from lxml import etree
 
@@ -22,9 +20,7 @@ def _make_spacy_pipeline_for_splitting(pipeline: str) -> Any:  # avoid importing
     try:
         import spacy
     except ImportError:
-        raise ImportError(
-            "Spacy is not installed, please install it with `pip install spacy`."
-        )
+        raise ImportError("Spacy is not installed, please install it with `pip install spacy`.")
     if pipeline == "sentencizer":
         from spacy.lang.en import English
 
@@ -38,9 +34,7 @@ def _make_spacy_pipeline_for_splitting(pipeline: str) -> Any:  # avoid importing
 class NLTKTextSplitter(TextSplitter):
     """Splitting text using NLTK package."""
 
-    def __init__(
-        self, separator: str = "\n\n", language: str = "english", **kwargs: Any
-    ) -> None:
+    def __init__(self, separator: str = "\n\n", language: str = "english", **kwargs: Any) -> None:
         """Initialize the NLTK splitter."""
         super().__init__(**kwargs)
         try:
@@ -48,9 +42,7 @@ class NLTKTextSplitter(TextSplitter):
 
             self._tokenizer = sent_tokenize
         except ImportError:
-            raise ImportError(
-                "NLTK is not installed, please install it with `pip install nltk`."
-            )
+            raise ImportError("NLTK is not installed, please install it with `pip install nltk`.")
         self._separator = separator
         self._language = language
 
@@ -138,11 +130,7 @@ def find_child(headers: dict, header_id: str):
     level = headers[header_id]["level"]
 
     for id, header in headers.items():
-        if (
-            header["level"] == level + 1
-            and id not in children
-            and header["parent"] == header_id
-        ):
+        if header["level"] == level + 1 and id not in children and header["parent"] == header_id:
             children.append(id)
 
     return children
@@ -244,10 +232,7 @@ class MarkdownHeaderTextSplitter:
             else:
                 # Move one step to get the next chunk_id
                 same_heading_dict[current_heading] += 1
-                if (
-                    len(id_index_dict[current_heading])
-                    > same_heading_dict[current_heading]
-                ):
+                if len(id_index_dict[current_heading]) > same_heading_dict[current_heading]:
                     metadata["chunk_id"] = id_index_dict[current_heading][
                         same_heading_dict[current_heading]
                     ]
@@ -275,14 +260,12 @@ class MarkdownHeaderTextSplitter:
             return ""
 
         return joint_title_list
-    
+
     def split_text(self, text: Document) -> List[Document]:
         if self.res_bucket is not None:
             save_content_to_s3(s3, text, self.res_bucket, SplittingType.BEFORE.value)
         else:
-            logger.warning(
-                "No resource bucket is defined, skip saving content into S3 bucket"
-            )
+            logger.warning("No resource bucket is defined, skip saving content into S3 bucket")
 
         lines = text.page_content.strip().split("\n")
         chunks = []
@@ -313,7 +296,7 @@ class MarkdownHeaderTextSplitter:
                         current_heading, current_heading_level_map
                     )
                     current_heading = current_heading.replace("#", "").strip()
-                    
+
                     try:
                         self._set_chunk_id(
                             id_index_dict, current_heading, metadata, same_heading_dict
@@ -325,9 +308,7 @@ class MarkdownHeaderTextSplitter:
                         id_prefix = str(uuid.uuid4())[:8]
                         metadata["chunk_id"] = f"$0-{id_prefix}"
                     if metadata["chunk_id"] in heading_hierarchy:
-                        metadata["heading_hierarchy"] = heading_hierarchy[
-                            metadata["chunk_id"]
-                        ]
+                        metadata["heading_hierarchy"] = heading_hierarchy[metadata["chunk_id"]]
                     page_content = "\n".join(current_chunk_content)
                     metadata["complete_heading"] = current_heading_list
                     if have_figure:
@@ -359,10 +340,14 @@ class MarkdownHeaderTextSplitter:
                 figure_description = xml_node.find(FigureNode.DESCRIPTION.value)
                 figure_value = xml_node.find(FigureNode.VALUE.value)
                 figure_s3_link = xml_node.findtext(FigureNode.LINK.value)
-                chunk_figure_content = etree.tostring(figure_description).decode("utf-8")
+                chunk_figure_content = etree.tostring(figure_description, encoding="utf-8").decode(
+                    "utf-8"
+                )
                 if figure_value is not None:
-                    chunk_figure_content += "\n" + etree.tostring(figure_value).decode("utf-8")
-                
+                    chunk_figure_content += "\n" + etree.tostring(
+                        figure_value, encoding="utf-8"
+                    ).decode("utf-8")
+
                 figure_item = {}
                 figure_item["content_type"] = figure_type
                 figure_item["figure_path"] = figure_s3_link
@@ -385,9 +370,7 @@ class MarkdownHeaderTextSplitter:
             )
             current_heading = current_heading.replace("#", "").strip()
             try:
-                self._set_chunk_id(
-                    id_index_dict, current_heading, metadata, same_heading_dict
-                )
+                self._set_chunk_id(id_index_dict, current_heading, metadata, same_heading_dict)
             except KeyError:
                 logger.info(f"No standard heading found")
                 id_prefix = str(uuid.uuid4())[:8]
