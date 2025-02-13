@@ -677,7 +677,8 @@ def common_entry(event_body):
     query = event_body["query"]
     use_history = chatbot_config["use_history"]
     max_rounds_in_memory = event_body["chatbot_config"]["max_rounds_in_memory"]
-    chat_history = event_body["chat_history"][:max_rounds_in_memory] if use_history else []
+    # if(len(event_body["chat_history"])<=2*max_rounds_in_memory)
+    chat_history = event_body["chat_history"] if len(event_body["chat_history"])<=2*max_rounds_in_memory else event_body["chat_history"][-2*max_rounds_in_memory:] if use_history else []
     stream = event_body["stream"]
     message_id = event_body["custom_message_id"]
     ws_connection_id = event_body["ws_connection_id"]
