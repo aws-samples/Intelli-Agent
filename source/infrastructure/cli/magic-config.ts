@@ -3,7 +3,9 @@
 import { Command } from "commander";
 import { prompt } from "enquirer";
 import * as fs from "fs";
-import * as AWS from "aws-sdk";
+import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
+import { fromIni } from "@aws-sdk/credential-providers";
+import { loadSharedConfigFiles } from "@aws-sdk/shared-ini-file-loader";
 import {
   SystemConfig,
   SupportedBedrockRegion,
@@ -52,20 +54,25 @@ const llms = [
 
 // Function to get AWS account ID and region
 async function getAwsAccountAndRegion() {
-  const sts = new AWS.STS();
   let AWS_ACCOUNT;
   let AWS_REGION;
+
+  // Create STS client
+  const stsClient = new STSClient({
+    credentials: fromIni({ profile: "default" })
+  });
+
   try {
-    const data = await sts.getCallerIdentity().promise();
-    AWS_ACCOUNT = data.Account;
+    const response = await stsClient.send(new GetCallerIdentityCommand({}));
+    AWS_ACCOUNT = response.Account;
   } catch (error) {
     console.error('Error getting AWS account:', error);
     throw error;
   }
-  try {
-    AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile: "default" });
-    AWS_REGION = new AWS.IniLoader().loadFrom({ isConfig: true }).default.region;
 
+  try {
+    const config = await loadSharedConfigFiles();
+    AWS_REGION = config.configFile?.default?.region;
   } catch (error) {
     console.error("No default region found in the AWS credentials file. Please enter the region you want to deploy the intelli-agent solution");
     AWS_REGION = undefined;
