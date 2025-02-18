@@ -265,7 +265,7 @@ async function processCreateOptions(options: any): Promise<void> {
       initial: options.customDomainEndpoint ?? "",
       validate(customDomainEndpoint: string) {
         return (this as any).skipped ||
-          RegExp(/^https:\/\/[a-z0-9-]+.[a-z0-9-]{2,}\.es\.amazonaws\.com$/).test(customDomainEndpoint)
+          RegExp(/^https:\/\/[a-z0-9-]+.[a-z0-9-]{2,}\.es\.amazonaws\.com/).test(customDomainEndpoint)
           ? true
           : "Enter a valid OpenSearch domain endpoint (e.g., https://search-domain-region-id.region.es.amazonaws.com)";
       },
