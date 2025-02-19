@@ -97,7 +97,7 @@ def lambda_handler(event, context):
         claims = {
             "at_hash": "test",
             "sub": "test",
-            "cognito:groups": ["Admin"],
+            "cognito:groups": "Admin",
             "email_verified": True,
             "iss": "https://cognito-idp.us-west-2.amazonaws.com/us-west-2_xxxxx",
             "cognito:username": "xxxxx",
