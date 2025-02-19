@@ -34,7 +34,6 @@ import {
   BEDROCK_API_EMBEDDING_MODEL_LIST,
   EMBEDDING_MODEL_LIST,
   INDEX_TYPE_OPTIONS,
-  MODEL_TYPE_LIST,
   OPENAI_API_EMBEDDING_MODEL_LIST,
 } from 'src/utils/const';
 import { useNavigate } from 'react-router-dom';
@@ -103,10 +102,29 @@ const ChatbotManagement: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const config = useContext(ConfigContext);
+  console.log("config");
+  console.log(config);
   const localApiEndpoint = localStorage.getItem(API_ENDPOINT);
   const localApiKeyArn = localStorage.getItem(API_KEY_ARN);
+  const modelTypeList = [
+    {
+      label: 'Bedrock',
+      value: 'Bedrock',
+    },
+    {
+      label: 'Bedrock API',
+      value: 'Bedrock API',
+    },
+    {
+      label: 'OpenAI API',
+      value: 'OpenAI API',
+    },
+    // Add SageMaker if embeddingEndpoint is valid
+    ...(config?.embeddingEndpoint?.startsWith('bce') ? [{ label: 'SageMaker', value: 'SageMaker' }] : []),
+  ];
+
   const [modelType, setModelType] = useState<SelectProps.Option>(
-    MODEL_TYPE_LIST[0],
+    modelTypeList[0],
   );
   const [apiEndpointError, setApiEndpointError] = useState('');
   const [apiKeyArnError, setApiKeyArnError] = useState('');
@@ -130,35 +148,6 @@ const ChatbotManagement: React.FC = () => {
 
   const indexTypeOption: SelectedOption[] = INDEX_TYPE_OPTIONS;
   const navigate = useNavigate();
-
-  const getModelList = async (type: 'create' | 'edit') => {
-    const tempModels: { label: string; value: string }[] = [];
-    const BCE_EMBEDDING = [
-      {
-        model_id: config?.embeddingEndpoint || '',
-        model_name: 'BCE_Embedding',
-      },
-    ];
-    let embedding_models = EMBEDDING_MODEL_LIST;
-    if (
-      config?.embeddingEndpoint?.startsWith('bce-embedding-and-bge-reranker')
-    ) {
-      embedding_models = [...BCE_EMBEDDING, ...EMBEDDING_MODEL_LIST];
-    }
-
-    embedding_models.forEach(
-      (item: { model_id: string; model_name: string }) => {
-        tempModels.push({
-          label: item.model_name,
-          value: item.model_id,
-        });
-      },
-    );
-    setModelList(tempModels);
-    if (type === 'create') {
-      setModelOption(tempModels[0]);
-    }
-  };
 
   useEffect(() => {
     const tempModels: { label: string; value: string }[] = [];
@@ -184,7 +173,39 @@ const ChatbotManagement: React.FC = () => {
       );
       setModelList(tempModels);
       setModelOption(tempModels[0]);
-    }
+    } else if (modelType.value === 'Bedrock') {
+      EMBEDDING_MODEL_LIST.forEach(
+        (item: { model_id: string; model_name: string }) => {
+          tempModels.push({
+            label: item.model_name,
+            value: item.model_id,
+          });
+        },
+      );
+      setModelList(tempModels);
+      setModelOption(tempModels[0]);
+      setApiEndpoint('')
+      setApiKeyArn('')
+    } else if (modelType.value === 'SageMaker') {
+      const BCE_EMBEDDING = [
+        {
+          model_id: config?.embeddingEndpoint || '',
+          model_name: 'BCEmbedding',
+        },
+      ];
+      BCE_EMBEDDING.forEach(
+        (item: { model_id: string; model_name: string }) => {
+          tempModels.push({
+            label: item.model_name,
+            value: item.model_id,
+          });
+        },
+      );
+      setModelList(tempModels);
+      setModelOption(tempModels[0]);
+      setApiEndpoint('')
+      setApiKeyArn('')
+    } 
   }, [modelType]);
 
   const getChatbotList = async () => {
@@ -284,6 +305,16 @@ const ChatbotManagement: React.FC = () => {
 
     if (!chatbotName?.trim()) {
       setChatbotNameError(t('validation.requireChatbotName'));
+      return;
+    }
+
+    if (!apiEndpoint?.trim() && (modelType?.value === 'Bedrock API' || modelType?.value === 'OpenAI API')) {
+      setApiEndpointError(t('validation.requireApiEndpoint'));
+      return;
+    }
+
+    if (!apiKeyArn?.trim() && (modelType?.value === 'Bedrock API' || modelType?.value === 'OpenAI API')) {
+      setApiKeyArnError(t('validation.requireApiKeyArn'));
       return;
     }
 
@@ -578,8 +609,9 @@ const ChatbotManagement: React.FC = () => {
                     onClick={() => {
                       setChatbotName('');
                       setChatbotNameError('');
+                      setApiKeyArnError('');
+                      setApiEndpointError('');
                       setLoadingSave(false);
-                      getModelList('create');
                       setUseDefaultIndex(true);
                       setShowCreate(true);
                     }}
@@ -654,7 +686,7 @@ const ChatbotManagement: React.FC = () => {
                 description={t('scenarioDesc')}
               >
                 <Select
-                  options={MODEL_TYPE_LIST}
+                  options={modelTypeList}
                   selectedOption={modelType}
                   onChange={({ detail }) => {
                     setModelType(detail.selectedOption);
@@ -668,7 +700,7 @@ const ChatbotManagement: React.FC = () => {
                     label={t('modelName')}
                     stretch={true}
                     errorText={t(modelError)}
-                    description={t('modelNameDesc')}
+                    description={t('embeddingModelNameDesc')}
                   >
                     <Select
                       disabled={showEdit}

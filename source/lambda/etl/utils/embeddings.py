@@ -26,12 +26,12 @@ def get_embedding_info(embedding_endpoint_name):
         embeddings_model_dimensions = 1024
         embeddings_model_type = "bedrock"
     elif "titan-embed-text-v1" in embedding_endpoint_name:
-        embeddings_model_provider = "Titan"
+        embeddings_model_provider = "Bedrock"
         embeddings_model_name = "amazon.titan-embed-text-v1"
         embeddings_model_dimensions = 1536
         embeddings_model_type = "bedrock"
     elif "titan-embed-text-v2" in embedding_endpoint_name:
-        embeddings_model_provider = "Titan"
+        embeddings_model_provider = "Bedrock"
         embeddings_model_name = "amazon.titan-embed-text-v2:0"
         embeddings_model_dimensions = 1024
         embeddings_model_type = "bedrock"
@@ -44,9 +44,9 @@ def get_embedding_info(embedding_endpoint_name):
         embeddings_model_provider = "OpenAI API"
         embeddings_model_name = "text-embedding-3-large"
         embeddings_model_dimensions = 3072
-        embeddings_model_type = "OpenAI API"  
+        embeddings_model_type = "OpenAI API" 
     elif "embedding" in embedding_endpoint_name:
-        embeddings_model_provider = "Netease"
+        embeddings_model_provider = "SageMaker"
         embeddings_model_name = "bce_embedding_model.tar.gz"
         embeddings_model_dimensions = 768
         embeddings_model_type = "bce"

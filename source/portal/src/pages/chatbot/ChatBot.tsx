@@ -46,6 +46,7 @@ import {
   SHOW_FIGURES,
   API_ENDPOINT,
   API_KEY_ARN,
+  CUSTOM_DEPLOYMENT_MODEL_LIST,
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';
@@ -487,9 +488,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       return;
     }
     // validate model settings
-    if (modelType.value === 'Bedrock API') {
+    if (modelType.value === 'Bedrock API' || modelType.value === 'OpenAI API') {
       if (!apiEndpoint.trim()) {
         setApiEndpointError('validation.requireApiEndpoint');
+        setModelSettingExpand(true);
+        return;
+      }
+      if (!apiKeyArn.trim()) {
+        setApiKeyArnError('validation.requireApiKeyArn');
         setModelSettingExpand(true);
         return;
       }
@@ -649,6 +655,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       optionList=LLM_BOT_COMMON_MODEL_LIST;
       setModelList(LLM_BOT_COMMON_MODEL_LIST);
       setModelOption(LLM_BOT_COMMON_MODEL_LIST[0].options[0].value);
+      setApiEndpoint('')
+      setApiKeyArn('')
     } else if (modelType.value === 'Bedrock API') {
       optionList=BR_API_MODEL_LIST;
       setModelList(BR_API_MODEL_LIST);
@@ -657,6 +665,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       optionList=OPENAI_API_MODEL_LIST;
       setModelList(OPENAI_API_MODEL_LIST);
       setModelOption(OPENAI_API_MODEL_LIST[0].options[0].value);
+    } else if (modelType.value === 'dmaa') {
+      optionList=CUSTOM_DEPLOYMENT_MODEL_LIST;
+      setModelList(CUSTOM_DEPLOYMENT_MODEL_LIST);
+      setModelOption(CUSTOM_DEPLOYMENT_MODEL_LIST[0].options[0].value);
     }
     if (localModel) {
       setModelOption(localModel)
@@ -794,8 +806,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         const selectedChatbotId = chatbotOption.value ?? "defaultId";
                         const expectedModelProvider = chatbotModelProvider[selectedChatbotId];
 
-                        if (expectedModelProvider === "Bedrock" && 
-                            (detail.selectedOption.value === "Bedrock API" || detail.selectedOption.value === "OpenAI API")) {
+                        if (expectedModelProvider !== detail.selectedOption.value && detail.selectedOption.value !== 'dmaa') {
                           setModelProviderHint(t('chatbotModelProviderError'));
                         } else {
                           setModelProviderHint(''); // Clear hint if the selection is valid

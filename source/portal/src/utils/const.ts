@@ -191,6 +191,15 @@ export const OPENAI_API_MODEL_LIST = [
   }, 
 ];
 
+export const CUSTOM_DEPLOYMENT_MODEL_LIST = [
+  {
+    label: 'CUSTOM',
+    options: [
+      { label: 'Please type in the model id', value: 'Please type in the model id' },
+    ],
+  }, 
+];
+
 export const LLM_BOT_RETAIL_MODEL_LIST = [
   {
     label: 'Qwen',
@@ -238,6 +247,10 @@ export const MODEL_TYPE_LIST: SelectProps.Option[] = [
   {
     label: 'OpenAI API',
     value: 'OpenAI API',
+  },
+  {
+    label: 'Custom Deployment',
+    value: 'dmaa',
   },
 ];
 

@@ -36,17 +36,19 @@ class AllowBaseModel(BaseModel):
 class LLMConfig(AllowBaseModel):
     provider: ModelProvider = ModelProvider.BEDROCK
     model_id: LLMModelType = LLMModelType.CLAUDE_3_5_HAIKU
-    base_url: Union[str,None] = None
-    api_key_arn: Union[str,None] = None
-    api_key: Union[str,None] = None
+    base_url: Union[str, None] = None
+    api_key_arn: Union[str, None] = None
+    api_key: Union[str, None] = None
     model_kwargs: dict = {"temperature": 0.01, "max_tokens": 4096}
 
     def model_post_init(self, __context: Any) -> None:
-        if  self.api_key_arn and not self.api_key:
+        if self.api_key_arn and not self.api_key:
             self.api_key = get_secret_value(self.api_key_arn)
+
 
 class QueryRewriteConfig(LLMConfig):
     rewrite_first_message: bool = False
+
 
 class QueryProcessConfig(ForbidBaseModel):
     conversation_query_rewrite_config: QueryRewriteConfig = Field(
@@ -54,24 +56,26 @@ class QueryProcessConfig(ForbidBaseModel):
 
 
 class EmbeddingModelConfig(AllowBaseModel):
-    provider: ModelProvider 
-    model_id: EmbeddingModelType 
-    base_url: Union[str,None] = None
-    api_key_arn: Union[str,None] = None
-    api_key: Union[str,None] = None
-    dimension: Union[int,None] = None
-    target_model: Union[str,None] = None
+    provider: ModelProvider
+    model_id: EmbeddingModelType
+    base_url: Union[str, None] = None
+    api_key_arn: Union[str, None] = None
+    api_key: Union[str, None] = None
+    dimension: Union[int, None] = None
+    target_model: Union[str, None] = None
+    model_endpoint: Union[str, None] = None
 
     # endpoint_kwargs: Union[dict,None] = None
 
     def model_post_init(self, __context: Any) -> None:
-        if  self.api_key_arn and not self.api_key:
+        if self.api_key_arn and not self.api_key:
             self.api_key = get_secret_value(self.api_key_arn)
+
 
 class RetrieverConfigBase(AllowBaseModel):
     index_type: str
-    kb_type: KBType =  KBType.AOS
-    embedding_config: Union[EmbeddingModelConfig,None] = None
+    kb_type: KBType = KBType.AOS
+    embedding_config: Union[EmbeddingModelConfig, None] = None
 
 
 class IntentionRetrieverConfig(RetrieverConfigBase):
@@ -98,7 +102,7 @@ class IntentionConfig(ForbidBaseModel):
     retrievers: list[IntentionRetrieverConfig] = Field(default_factory=list)
     intent_threshold: float = Threshold.INTENTION_THRESHOLD
     all_knowledge_in_agent_threshold: float = Threshold.ALL_KNOWLEDGE_IN_AGENT_THRESHOLD
-    
+
 
 class RerankConfig(AllowBaseModel):
     endpoint_name: str = None
@@ -169,7 +173,7 @@ class ChatbotConfig(AllowBaseModel):
 
     @staticmethod
     def format_index_info(index_info_from_ddb: dict):
-        print('index_info_from_ddb',index_info_from_ddb)
+        print('index_info_from_ddb', index_info_from_ddb)
         embeddin_config_from_ddb = index_info_from_ddb['modelIds']['embedding']
         embedding_config = {
             "provider": embeddin_config_from_ddb['parameter']['ModelProvider'],
@@ -178,7 +182,8 @@ class ChatbotConfig(AllowBaseModel):
             "api_key_arn": embeddin_config_from_ddb['parameter'].get('ApiKeyArn'),
             "api_key": embeddin_config_from_ddb['parameter'].get('ApiKey'),
             "dimension": embeddin_config_from_ddb['parameter'].get('ModelDimension'),
-            "target_model": embeddin_config_from_ddb['parameter'].get('TargetModel')       
+            "target_model": embeddin_config_from_ddb['parameter'].get('TargetModel'),
+            "model_endpoint": embeddin_config_from_ddb['parameter'].get("ModelEndpoint"),
         }
         return {
             "index_name": index_info_from_ddb["indexId"],

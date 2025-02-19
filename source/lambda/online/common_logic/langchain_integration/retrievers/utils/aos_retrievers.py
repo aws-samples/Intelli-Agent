@@ -46,7 +46,8 @@ except sm_client.exceptions.ResourceNotFoundException:
     logger.info(f"Secret '{aos_secret}' not found in Secrets Manager")
     aos_client = LLMBotOpenSearchClient(aos_endpoint)
 except sm_client.exceptions.InvalidRequestException:
-    logger.info("InvalidRequestException. It might caused by getting secret value from a deleting secret")
+    logger.info(
+        "InvalidRequestException. It might caused by getting secret value from a deleting secret")
     logger.info("Fallback to authentication with IAM")
     aos_client = LLMBotOpenSearchClient(aos_endpoint)
 except Exception as e:
@@ -71,7 +72,7 @@ def remove_redundancy_debug_info(results):
 # @timeit
 def get_similarity_embedding(
     query: str,
-    model_kwargs:dict
+    model_kwargs: dict
     # embedding_model_endpoint: str,
     # target_model: str,
     # model_type: str = "vector",
@@ -479,7 +480,7 @@ class QueryQuestionRetriever(BaseRetriever):
     vector_field: str = "vector_field"
     source_field: str = "source"
     top_k: int = 10
-    embedding_config:dict
+    embedding_config: dict
     # embedding_model_endpoint: str
     # target_model: str
     # model_type: str = "vector"
@@ -494,9 +495,9 @@ class QueryQuestionRetriever(BaseRetriever):
         opensearch_knn_results = []
         query_repr = get_similarity_embedding(
             query,
-            self.embedding_config 
+            self.embedding_config
             # self.embedding_model_endpoint,
-            #   self.target_model, 
+            #   self.target_model,
             #   self.model_type
         )
         opensearch_knn_response = aos_client.search(
@@ -546,15 +547,15 @@ class QueryDocumentKNNRetriever(BaseRetriever):
     # embedding_model_endpoint: Any
     # target_model: Any
     # lang: str = "zh"
-    embedding_config:dict
+    embedding_config: dict
     enable_debug: bool = False
-   
 
     async def __ainvoke_get_context(self, aos_hit, window_size, loop):
         return await loop.run_in_executor(
             None, get_context, aos_hit, self.index_name, window_size
 
         )
+
     async def __spawn_task(self, aos_hits, context_size):
         loop = asyncio.get_event_loop()
         task_list = []

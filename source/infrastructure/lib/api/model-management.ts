@@ -50,6 +50,7 @@ export class ModelApi extends Construct {
 
     const modelLambda = new PythonFunction(this, "ModelLambda", {
       runtime: Runtime.PYTHON_3_12,
+      memorySize: 512,
       entry: join(__dirname, "../../../lambda/model_management"),
       index: "model_management.py",
       handler: "lambda_handler",

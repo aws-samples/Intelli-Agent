@@ -16,22 +16,26 @@ from ..model_config import (
 
 logger = get_logger("brconnector_bedrock_embedding_model")
 
+
 class BrconnectorBedrockEmbeddings(_OpenAIEmbeddings):
-    pass 
+    pass
 
 
 class BrconnectorBedrockEmbeddingBaseModel(Model):
     model_provider = ModelProvider.BRCONNECTOR_BEDROCK
+
     @classmethod
     def create_model(cls, **kwargs):
-        base_url = kwargs.get("base_url", None) or os.environ.get("BRCONNECTOR_API_URL", None)
-        api_key = kwargs.get('br_api_key',None) or os.environ.get("BR_API_KEY", None)
+        base_url = kwargs.get("base_url", None) or os.environ.get(
+            "BRCONNECTOR_API_URL", None)
+        api_key = kwargs.get('br_api_key', None) or os.environ.get(
+            "BR_API_KEY", None)
         default_model_kwargs = cls.default_model_kwargs or {}
-        assert base_url, ("base_url is required",kwargs)
+        assert base_url, ("base_url is required", kwargs)
 
         model_kwargs = {
             **default_model_kwargs,
-            **kwargs.get("model_kwargs",{})
+            **kwargs.get("model_kwargs", {})
         }
         model_kwargs = model_kwargs or None
         embedding_model = BrconnectorBedrockEmbeddings(
@@ -43,14 +47,5 @@ class BrconnectorBedrockEmbeddingBaseModel(Model):
         return embedding_model
 
 
-BrconnectorBedrockEmbeddingBaseModel.create_for_models(BEDROCK_EMBEDDING_CONFIGS)
-
-
-
-
-       
-
-
-
-
-
+BrconnectorBedrockEmbeddingBaseModel.create_for_models(
+    BEDROCK_EMBEDDING_CONFIGS)

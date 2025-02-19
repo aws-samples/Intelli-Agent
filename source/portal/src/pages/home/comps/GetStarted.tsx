@@ -14,15 +14,15 @@ const GetStarted: React.FC = () => {
         </Link>
       </Box> */}
       <Box padding={{ vertical: 'xs' }}>
-        <Link href="https://amzn-chn.feishu.cn/docx/HlxvduJYgoOz8CxITxXc43XWn8e" target="_blank">
+        <Link href="https://amzn-chn.feishu.cn/docx/JSakd9VCBoHrzfx9Gvoctm60nyg" target="_blank">
           {t('gettingStarted.link2')}
         </Link>
       </Box>
-      <Box padding={{ vertical: 'xs' }}>
+      {/* <Box padding={{ vertical: 'xs' }}>
         <Link href="/" target="_blank">
           {t('gettingStarted.link3')}
         </Link>
-      </Box>
+      </Box> */}
     </Container>
   );
 };

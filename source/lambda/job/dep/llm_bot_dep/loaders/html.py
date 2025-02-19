@@ -65,8 +65,19 @@ class CustomHtmlLoader(BaseLoader):
     # def load(self, file_content: str) -> List[Document]:
     def load(self, file_content: str, bucket_name: str, file_name: str):
         html_content = self.clean_html(file_content)
-        file_content = markdownify.markdownify(html_content, heading_style="ATX")
-        file_content = process_markdown_images_with_llm(file_content, bucket_name, file_name)
+        # Set escape_underscores and escape_asterisks to False to avoid converting
+        # underscores and asterisks to HTML entities, especially avoid converting
+        # markdown links to invalid links.
+        # Ref: https://pypi.org/project/markdownify/
+        file_content = markdownify.markdownify(
+            html_content,
+            heading_style="ATX",
+            escape_underscores=False,
+            escape_asterisks=False,
+        )
+        file_content = process_markdown_images_with_llm(
+            file_content, bucket_name, file_name
+        )
         doc = Document(
             page_content=file_content,
             metadata={"file_type": "html", "file_path": self.aws_path},
