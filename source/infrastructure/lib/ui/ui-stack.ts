@@ -67,7 +67,7 @@ export class UIStack extends Stack implements UIStackOutputs {
 
     // Add CfnOutputs to export values
     new CfnOutput(this, 'UserPoolId', {
-      value: userConstruct.userPool.userPoolId,
+      value: userConstruct.userPoolId,
       exportName: `${id}-user-pool-id`
     });
 
