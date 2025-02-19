@@ -37,9 +37,13 @@ export class LambdaLayers {
             "*.png",
             "*.md",
             "*.zip",
-            "lambda_main/retail/size/*"],
-          
-          }
+            "lambda_main/*",
+            "lambda_agent/*",
+            "lambda_intention_detection/*",
+            "lambda_llm_generate/*",
+            "lambda_query_preprocess/*",
+          ],
+        }
       },
     );
     return sharedLayer;

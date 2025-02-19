@@ -582,7 +582,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
           api: this.api,
           auth: this.auth,
           modelTable: props.sharedConstructOutputs.modelTable.tableName,
-          sharedLayer: sharedLayer,
+          // sharedLayer: sharedLayer,
           iamHelper: this.iamHelper,
           genMethodOption: this.genMethodOption, 
         },
