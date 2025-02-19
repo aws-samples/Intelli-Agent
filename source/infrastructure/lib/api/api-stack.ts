@@ -174,14 +174,22 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         allowCredentials: true,
         allowOrigins: apigw.Cors.ALL_ORIGINS,
       },
-      deployOptions: {
-        stageName: "prod",
-        metricsEnabled: true,
-        loggingLevel: apigw.MethodLoggingLevel.INFO,
-        dataTraceEnabled: true,
-        tracingEnabled: true,
-      },
+
+      deploy: false
     });
+
+    const deployment = new apigw.Deployment(this, 'APIDeployment', {
+      api: this.api,
+    });
+    const stage = new apigw.Stage(this, 'ProdStage', {
+      deployment,
+      stageName: 'prod',
+      tracingEnabled: true,
+      loggingLevel: apigw.MethodLoggingLevel.INFO,
+      dataTraceEnabled: true
+    });
+
+    this.api.deploymentStage = stage;
 
     this.customAuthorizerLambda = new LambdaFunction(this, "CustomAuthorizerLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/authorizer")),
