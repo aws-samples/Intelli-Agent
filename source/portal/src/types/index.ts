@@ -44,13 +44,13 @@ export type IntentionsResponse = {
 };
 
 export type ChatbotsItem = {
-  groupName: string,
-  chatbotId: string,
+  groupName: string;
+  chatbotId: string;
   model: {
-    model_endpoint: string,
-    model_name: string,
+    model_endpoint: string;
+    model_name: string;
   };
-  index: IndexItem[]
+  index: IndexItem[];
 };
 
 export type ChatbotsResponse = {
@@ -81,6 +81,7 @@ export type SessionMessage = {
   chatbotId: string;
   additional_kwargs: {
     figure: AdditionalImageType[];
+    ref_docs: DocumentData[];
   };
 };
 
@@ -126,7 +127,7 @@ export type IndexItemTmp = {
   type: string;
   description: string;
   tag: string;
-  status: string
+  status: string;
 };
 
 export type LibraryExecutionResponse = {
@@ -135,11 +136,11 @@ export type LibraryExecutionResponse = {
 };
 
 export type QAItem = {
-  question: string,
-  intention: string,
-  kwargs: string,
-  is_valid: boolean
-}
+  question: string;
+  intention: string;
+  kwargs: string;
+  is_valid: boolean;
+};
 
 export type IntentionExecutionItem = {
   s3Prefix: string;
@@ -149,7 +150,7 @@ export type IntentionExecutionItem = {
   status: string;
   createTime: string;
   s3Path: string;
-  qaList: QAItem[]
+  qaList: QAItem[];
 };
 
 export type IntentionExecutionResponse = {
@@ -161,6 +162,19 @@ export type AdditionalImageType = {
   content_type: string;
   figure_path: string;
 };
+
+export interface DocumentData {
+  uuid: string;
+  page_content: string;
+  retrieval_content: string;
+  retrieval_score: number;
+  rerank_score: number;
+  score: number;
+  source: string;
+  answer: string;
+  question: string;
+  figure: string[]; // Array of image URLs or other figure-related data
+}
 export interface MessageDataType {
   message_id: string;
   custom_message_id: string;
@@ -172,6 +186,7 @@ export interface MessageDataType {
     role: string;
     content: string;
   };
+  ref_docs: DocumentData[];
 }
 
 export interface CreatePromptResponse {
@@ -209,7 +224,6 @@ export interface GetPromptResponse {
   Prompt: Prompt;
 }
 
-
 export interface PresignedUrlData {
   url: string;
   s3Bucket: string;
@@ -225,12 +239,18 @@ export type ChatbotItem = {
   LastModifiedTime: string;
   ModelName: string;
   SortKey: string;
+  ModelProvider: string;
 };
 
 export type ChatbotDetailResponse = {
   chatbotId: string;
   updateTime: string;
-  model: { model_endpoint: string, model_name: string };
+  model: {
+    model_endpoint: string;
+    model_name: string;
+    model_provider: string;
+    base_url: string;
+  };
   index: IndexItem[];
 };
 
@@ -239,6 +259,8 @@ export type ChatbotItemDetail = {
   updateTime: string;
   model: string;
   index: IndexItem[];
+  modelProvider: string;
+  baseUrl: string;
 };
 
 export type ChatbotResponse = {
@@ -251,7 +273,6 @@ export type ChatbotIndexResponse = {
   Items: IndexItem[];
   Count: number;
 };
-
 
 export interface Chatbot {
   qd: string;
@@ -284,7 +305,7 @@ export interface SelectedOption {
   label: string;
 }
 
-import { SideNavigationProps } from "@cloudscape-design/components";
+import { SideNavigationProps } from '@cloudscape-design/components';
 
 // Extend the Link type to include id
 export interface CustomLink extends SideNavigationProps.Link {
@@ -300,5 +321,40 @@ export interface CustomSection extends SideNavigationProps.Section {
 }
 
 // Create a union type for all navigation items
-export type CustomNavigationItem = CustomLink | CustomSection | SideNavigationProps.Divider;
+export type CustomNavigationItem =
+  | CustomLink
+  | CustomSection
+  | SideNavigationProps.Divider;
 
+export interface ChatSessionType {
+  agentId: string;
+  clientType: string; // Specific value provided
+  connectionId: string;
+  createTimestamp: string; // ISO 8601 string format
+  lastModifiedTimestamp: string; // ISO 8601 string format
+  latestQuestion: string;
+  sessionId: string;
+  startTime: string; // ISO 8601 string format
+  status: string; // Assuming possible status values
+  userId: string;
+  userName: string;
+}
+
+export interface ChatSessionResponse {
+  Items: ChatSessionType[];
+  Count: number;
+}
+
+export interface ChatMessageType {
+  messageId: string;
+  role: 'agent' | 'user'; // Assuming "agent" and "user" are possible roles
+  content: string;
+  createTimestamp: string; // ISO 8601 string format
+  additional_kwargs: Record<string, unknown>; // Assuming it can be any object
+}
+
+export interface ChatMessageResponse {
+  Items: ChatMessageType[];
+  Count: number;
+  Config: ResponseConfig;
+}

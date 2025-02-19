@@ -28,6 +28,11 @@ class EntryType(ConstantBase):
     RETAIL = "retail"
 
 
+class ParamType(ConstantBase):
+    NEST = "nest"
+    FLAT = "flat"
+
+
 class SceneType(ConstantBase):
     COMMON = "common"
     RETAIL = "retail"
@@ -124,7 +129,10 @@ class ToolRuningMode(ConstantBase):
 
 class ModelProvider(ConstantBase):
     DMAA = "dmaa"
-    BEDROCK = "bedrock"
+    BEDROCK = "Bedrock"
+    BRCONNECTOR_BEDROCK = "Bedrock API"
+    OPENAI = "OpenAI API"
+    SAGEMAKER_MULTIMODEL = "SageMaker"
 
 
 class LLMModelType(ConstantBase):
@@ -142,11 +150,18 @@ class LLMModelType(ConstantBase):
     INTERNLM2_CHAT_7B = "internlm2-chat-7b"
     INTERNLM2_CHAT_20B = "internlm2-chat-20b"
     GLM_4_9B_CHAT = "glm-4-9b-chat"
-    CHATGPT_35_TURBO_0125 = "gpt-3.5-turbo-0125"
-    CHATGPT_4_TURBO = "gpt-4-turbo"
-    CHATGPT_4O = "gpt-4o"
+    # CHATGPT_35_TURBO_0125 = "gpt-3.5-turbo-0125"
+    # CHATGPT_4_TURBO = "gpt-4-turbo"
+    # CHATGPT_4O = "gpt-4o"
+    GPT3D5TURBO0125 = "gpt-3.5-turbo-0125"
+    GPT4O20240806 = "gpt-4o-2024-08-06"
+    GPT4OMINI20240718 = "gpt-4o-mini-2024-07-18"
+    GPT4TURBO20240409 = "gpt-4-turbo-2024-04-09"
     QWEN2INSTRUCT7B = "qwen2-7B-instruct"
     QWEN25_INSTRUCT_72B_AWQ = "Qwen2.5-72B-Instruct-AWQ"
+    DEEPSEEK_R1_DISTILL_LLAMA_8B = "DeepSeek-R1-Distill-Llama-8B"
+    DEEPSEEK_R1_DISTILL_LLAMA_70B = "DeepSeek-R1-Distill-Llama-70B"
+    DEEPSEEK_R1_DISTILL_QWEN_32B = "DeepSeek-R1-Distill-Qwen-32B"
     QWEN15INSTRUCT32B = "qwen1_5-32B-instruct"
     LLAMA3_1_70B_INSTRUCT = "meta.llama3-1-70b-instruct-v1:0"
     LLAMA3_2_90B_INSTRUCT = "us.meta.llama3-2-90b-instruct-v1:0"
@@ -169,10 +184,16 @@ class LLMModelType(ConstantBase):
     LLAMA3_1_70B_INSTRUCT_US = "us.meta.llama3-1-70b-instruct-v1:0"
 
 
-
-
 class EmbeddingModelType(ConstantBase):
-    BEDROCK_TITAN_V1 = "amazon.titan-embed-text-v1"
+    AMAZON_TITAN_V1 = "amazon.titan-embed-text-v1"
+    AMAZON_TITAN_V2 = "amazon.titan-embed-text-v2:0"
+    AMAZON_TITAN_IMAGE = "amazon.titan-embed-image-v1"
+    OPENAI_TEXT_EMBEDDING_3_SMALL = "text-embedding-3-small"
+    OPENAI_TEXT_EMBEDDING_3_LARGE = "text-embedding-3-large"
+    OPENAI_TEXT_EMBEDDING_ADA_002 = "text-embedding-ada-002"
+    BCE_EMBEDDING = "bce-embedding-and-bge-reranker-43972-endpoint"
+    COHERE_EMBED_ENGLISH_V3 = "cohere.embed-english-v3"
+    COHERE_EMBED_MULTILINGUAL_V3 = "cohere.embed-multilingual-v3"
 
 
 @unique
@@ -193,14 +214,22 @@ class ModelType(Enum):
     LLM = "llm"
 
 
+class ModelTypeV2(ConstantBase):
+    EMBEDDING = "embedding"
+    LLM = "llm"
+    RERANK = "rerank"
+    VLM = "VLM"
+
+
 @unique
 class IndexTag(Enum):
     COMMON = "common"
 
 
 @unique
-class KBType(Enum):
+class KBType(ConstantBase):
     AOS = "aos"
+    BEDROCK = "bedrock kb"
 
 
 GUIDE_INTENTION_NOT_FOUND = "Intention not found, please add intentions first when using agent mode, refer to https://amzn-chn.feishu.cn/docx/HlxvduJYgoOz8CxITxXc43XWn8e"
@@ -210,8 +239,10 @@ INDEX_DESC = "Answer question based on search result"
 class Threshold(ConstantBase):
     QQ_IN_RAG_CONTEXT_THRESHOLD = 0.5
     QQ_MATCH_THRESHOLD = 0.9
-    ALL_KNOWLEDGE_IN_AGENT_THRESHOLD = 0.4 # This threhold will work when there are no intention examples.
+    # This threhold will work when there are no intention examples.
+    ALL_KNOWLEDGE_IN_AGENT_THRESHOLD = 0.4
     INTENTION_THRESHOLD = 0.4
     MAX_DIAG_ROUNDS_IN_MEMORY = 7
     TOP_K_RETRIEVALS = 6
-
+    MAX_TOKENS = 1000
+    TEMPERATURE = 0.1

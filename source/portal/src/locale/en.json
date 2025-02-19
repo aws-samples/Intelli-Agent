@@ -1,8 +1,11 @@
 {
   "translation": {
-    "name": "AI Customer Service",
+    "name": "Multi-modal Enterprise Knowledge Base in Manufacturing",
+    "welcome": "Welcome to Multi-modal Enterprise Knowledge Base in Manufacturing",
+    "mead": "Manufacturing",
+    "projectDescription": "Multi-modal Enterprise Knowledge Base in Manufacturing offers a streamlined workflow for developing scalable, production-grade agent-based applications",
+    "solutionName": "Multi-modal Enterprise Knowledge Base in Manufacturing",
     "desc": "Description",
-    "welcome": "Welcome to AI Customer Service",
     "you": "Y o u",
     "welcomeMessage": "Hello, how can I help you today?",
     "server": "Server",
@@ -35,6 +38,7 @@
     "supportFiles": "Support file types: ",
     "uploadProgress": "Upload Progress",
     "uploadCompleted": "Upload Completed",
+    "dataUpdating": "Updating data, please wait...",
     "deleteSuccess": "Delete Successfully",
     "completed": "Completed",
     "inProgress": "In Progress",
@@ -82,13 +86,15 @@
     "topKRetrievals": "Top K Retrievals",
     "score": "Relevance Score",
     "scenarioDesc": "Applicable scenario for the current session",
+    "modelTypeDesc": "LLM model provider",
     "modelNameDesc": "LLM used in the current session",
+    "embeddingModelNameDesc": "Embedding model that used in the chatbot",
     "maxTokenDesc": " Max length of tokens that LLM process in a sequence",
     "maxRoundsDesc": "Max rounds of dialog that saved in memory",
     "temperatureDesc": "Higher values make the output more random",
     "topKRetrievalsDesc": "Number of top documents to retrieve",
     "scoreDesc": "Outputs with a relevance score below the threshold will not be sent to LLM",
-    "endPointDesc":"Endpoint address of LLM",
+    "endPointDesc": "Endpoint address of LLM",
     "modelName": "Model name",
     "noModelFound": "No model found",
     "chatbotName": "Chatbot Name",
@@ -96,6 +102,8 @@
     "embeddingModel": "Embedding Model Name",
     "noChatbotFound": "No chatbot found",
     "scenario": "Scenario",
+    "modelType": "Model provider",
+    "modelProvider": "Model provider",
     "maxTokens": "Max Tokens",
     "temperature": "Temperature",
     "sessionHistory": "Recent chats",
@@ -160,6 +168,7 @@
     "chatbotNameDesc": "The unique identifier of the robot space, it must not duplicate with any existing ones",
     "modelDesc": "Used for text vectorization in the robot space.",
     "indexManagement": "Indexes",
+    "chatbotModelProviderError": "This chatbot does not support the selected model provider",
     "indexLeft": "Index not yet configured, click",
     "indexUsedByModel": "This index is already associated with other embedding models",
     "indexRight": "to add index.",
@@ -167,8 +176,13 @@
     "embeddingModelName": "Embedding Model",
     "addIndex": "Add Index",
     "addIndexDesc": "Add new index for bot: ",
+    "workspace": "Workspace",
+    "recentChats": "Recent Chats",
+    "new": "New",
+    "referenceDocuments": "Reference Documents",
+    "selectADocumentToPreview": "Select a document to preview its content",
     "button": {
-      "login": "Log in to AI Customer Service",
+      "login": "Log in to Multi-modal Enterprise Knowledge Base in Manufacturing",
       "reload": "Reload",
       "send": "Send",
       "modelSettings": "Model Settings",
@@ -197,6 +211,8 @@
     },
     "validation": {
       "requireModel": "Please select or input a model",
+      "requireApiKeyArn": "Please input an API key ARN",
+      "requireApiEndpoint": "Please input an API endpoint",
       "requireChatbotName": "Please input chatbot name",
       "repeatChatbotName": "Chatbot name is already used, please change the name",
       "repeatIndex": "This index is already used by other users",
@@ -221,9 +237,11 @@
       "tagEmpty": "Tag can not be empty.",
       "indexValid": "Index is used by other model, please change index name",
       "repeatedIndexName": "The index is duplicated with a previous entry, please modify it",
-      "repeatedIndex": "The index name is already in use. Please choose a different name"
+      "repeatedIndex": "The index name is already in use. Please choose a different name",
+      "requireApiEndpoint": "API endpoint is required",
+      "requireApiModelName": "API model name is required"
     },
-    "tour":{
+    "tour": {
       "home": "Deploying this solution using the default parameters will build the environment in Amazon Web Services.",
       "chat": "Click here to start chatting with the AI assistant.",
       "session": "Session history contains all your chat history, you can resume the chat by choosing the chat history.",
@@ -238,11 +256,8 @@
       "next": "Next",
       "skip": "Skip tour"
     },
-    "solutionName": "AI Customer Service",
     "subTitle": "Streamlined Workflow for Building Agent-Based Applications",
-    "projectDescription": "AI Customer Service offers a streamlined workflow for developing scalable, production-grade agent-based applications",
     "awsSolutionGuidance": "Amazon Web Services Solution Guidance",
-    "mead": "Media & Advertisement",
     "homeSidebar": "Home",
     "chatbotDetail": "ChatBot Detail",
     "featuresAndBenefits": {
@@ -253,22 +268,22 @@
       },
       "feat2": {
         "name": "Flexible Mode Options",
-        "desc": "The following graph is generated by online logic which is built based on LangGraph. The first node is query_preprocess_lambda which handles the chat history. Then the user can choose from three modes: chat, rag and agent. The chat mode lets you interact directly with different LLMs, such as Anthropic Claude 3"
+        "desc": "Enables users to create customized chatbots for various scenarios. Users can input specialized knowledge and intents to meet different business needs. It offers multiple LLMs and embedding models, with flexible configuration of prompts and conversation settings. Adjustable parameters include Top K, conversation limits, and optional features like image generation, allowing for personalized user experiences"
       },
       "feat3": {
         "name": "Intention detection",
-        "desc": "desc"
+        "desc": "Desc"
       },
       "feat4": {
         "name": "Management and governance",
-        "desc": "desc"
+        "desc": "Desc"
       }
     },
     "useCases": {
       "name": "Use cases",
       "case1": {
-        "name": "MEAD use case",
-        "desc": "desc"
+        "name": "Use case",
+        "desc": "Desc"
       }
     },
     "gettingStarted": {
@@ -280,7 +295,14 @@
     "moreResources": {
       "name": "More Resources",
       "faq": "Frequency Asked Questions",
+      "workshop": "Workshop",
       "submitIssue": "Submit an Issue"
-    }
+    },
+    "apiEndpoint": "API Endpoint",
+    "apiEndpointDesc": "Enter the API endpoint URL",
+    "apiModelName": "API Model Name",
+    "apiModelNameDesc": "Enter the model name for the API",
+    "apiKeyArn": "API Key ARN",
+    "apiKeyArnDesc": "Enter the ARN of the secret in AWS Secrets Manager that stores the API key for Bedrock/OpenAI"
   }
 }

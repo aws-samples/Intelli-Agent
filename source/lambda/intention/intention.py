@@ -164,37 +164,38 @@ def lambda_handler(event, context):
         logger.error("Invalid authorizer type")
     http_method = event["httpMethod"]
     resource: str = event["resource"]
-    if resource == PRESIGNED_URL_RESOURCE:
-        input_body = json.loads(event["body"])
-        file_name = f"intentions/{group_name}/[{input_body['timestamp']}]{input_body['file_name']}"
-        presigned_url = __gen_presigned_url(
-            file_name,
-            input_body.get("content_type", DEFAULT_CONTENT_TYPE),
-            input_body.get("expiration", 60 * 60),
-        )
-        output = {
-            "message": "The S3 presigned url is generated",
-            "data": {
-                "url": presigned_url,
-                "s3Bucket": s3_bucket_name,
-                "s3Prefix": file_name,
-            },
-        }
-    elif resource.startswith(EXECUTION_RESOURCE):
-        if http_method == "POST":
-            output = __create_execution(event, context, email, group_name)
-        elif http_method == "DELETE":
-            output = __delete_execution(event, group_name)
-        else:
-            if resource == EXECUTION_RESOURCE:
-                output = __list_execution(event, group_name)
-            else:
-                output = __get_execution(event, group_name)
-    elif resource == DOWNLOAD_RESOURCE:
-        output = __download_template()
-    elif resource == INDEX_USED_SCAN_RESOURCE:
-        output = __index_used_scan(event, group_name)
     try:
+        if resource == PRESIGNED_URL_RESOURCE:
+            input_body = json.loads(event["body"])
+            file_name = f"intentions/{group_name}/[{input_body['timestamp']}]{input_body['file_name']}"
+            presigned_url = __gen_presigned_url(
+                file_name,
+                input_body.get("content_type", DEFAULT_CONTENT_TYPE),
+                input_body.get("expiration", 60 * 60),
+            )
+            output = {
+                "message": "The S3 presigned url is generated",
+                "data": {
+                    "url": presigned_url,
+                    "s3Bucket": s3_bucket_name,
+                    "s3Prefix": file_name,
+                },
+            }
+        elif resource.startswith(EXECUTION_RESOURCE):
+            if http_method == "POST":
+                output = __create_execution(event, context, email, group_name)
+            elif http_method == "DELETE":
+                output = __delete_execution(event, group_name)
+            else:
+                if resource == EXECUTION_RESOURCE:
+                    output = __list_execution(event, group_name)
+                else:
+                    output = __get_execution(event, group_name)
+        elif resource == DOWNLOAD_RESOURCE:
+            output = __download_template()
+        elif resource == INDEX_USED_SCAN_RESOURCE:
+            output = __index_used_scan(event, group_name)
+
         return {
             "statusCode": 200,
             "headers": resp_header,
@@ -389,6 +390,26 @@ def __create_execution(event, context, email, group_name):
         )
 
     valid_qa_list = [qa for qa in qaList if qa.get("is_valid")]
+
+    # write to aos(vectorData)
+    details = json.dumps(qaList)
+    result = "success"
+    error_msg = ""
+
+    try:
+        __save_2_aos(
+            input_body.get("model"),
+            execution_detail["index"],
+            valid_qa_list,
+            bucket,
+            prefix,
+            group_name,
+            input_body.get("chatbotId")
+        )
+    except Exception as e:
+        logger.error(f"Error saving to aos: {e}")
+        error_msg = str(e)
+        result = "fail"
     # write to ddb(meta data)
     intention_table.put_item(
         Item={
@@ -403,24 +424,16 @@ def __create_execution(event, context, email, group_name):
             "lastModifiedTime": re.findall(
                 r"\[(.*?)\]", input_body.get("s3Prefix")
             )[0],
-            "details": json.dumps(qaList),
-            "validRatio": f"{len(valid_qa_list)} / {len(qaList)}",
+            "details": details,
+            "error": error_msg,
+            "validRatio": f"{len(valid_qa_list)} / {len(qaList)}" if result=="success" else f"0 / {len(qaList)}",
         }
-    )
-
-    # write to aos(vectorData)
-    __save_2_aos(
-        input_body.get("model"),
-        execution_detail["index"],
-        valid_qa_list,
-        bucket,
-        prefix,
     )
 
     return {
         "execution_id": execution_detail["tableItemId"],
         "input_payload": execution_detail,
-        "result": "success",
+        "result": result,
     }
 
 
@@ -453,13 +466,25 @@ def convert_qa_list(qa_list: list, bucket: str, prefix: str) -> List[Document]:
 
 
 def __save_2_aos(
-    modelId: str, index: str, qaListParam: list, bucket: str, prefix: str
+    modelId: str,
+    index: str,
+    qaListParam: list,
+    bucket: str,
+    prefix: str,
+    group_name: str,
+    chatbot_id: str
 ):
     qaList = __deduplicate_by_key(qaListParam, "question")
     if kb_enabled:
         embedding_info = get_embedding_info(embedding_model_endpoint)
         embedding_function = sm_utils.getCustomEmbeddings(
-            embedding_model_endpoint, region, embedding_info.get("ModelType")
+            endpoint_name=embedding_model_endpoint,
+            region_name=region,
+            bedrock_region=bedrock_region,
+            model_type=embedding_info.get("ModelType"),
+            group_name=group_name,
+            chatbot_id=chatbot_id,
+            model_table=model_table_name
         )
         docsearch = OpenSearchVectorSearch(
             index_name=index,
@@ -597,9 +622,13 @@ def __get_execution(event, group_name):
             item_json["createTime"] = value
         elif key == "details":
             item_json["qaList"] = json.loads(value)
+        elif key == "validRatio":
+            result_list = value.split("/")
+            item_json["status"] = "COMPLETED" if result_list[0].strip() == result_list[1].strip() else "FAILED"
+        elif key == "error":
+            item_json["detail"] = value
         else:
             continue
-        item_json["status"] = "COMPLETED"
     items.append(item_json)
     res["items"] = items
     res["count"] = len(items)

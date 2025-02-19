@@ -107,7 +107,7 @@ retriever_dict = {
     "qq": get_custom_qq_retrievers,
     "intention": get_custom_qq_retrievers,
     "qd": get_custom_qd_retrievers,
-    "bedrock_kb": get_bedrock_kb_retrievers,
+    # "bedrock_kb": get_bedrock_kb_retrievers,
 }
 
 

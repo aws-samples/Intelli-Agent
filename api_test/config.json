@@ -1,5 +1,5 @@
 {
-  "prefix": "",
+  "prefix": "api-test",
   "email": "cuihubin@amazon.com",
   "deployRegion": "us-east-1",
   "knowledgeBase": {
@@ -25,6 +25,7 @@
   "chat": {
     "enabled": true,
     "bedrockRegion": "us-east-1",
+    "useOpenSourceLLM": true,
     "amazonConnect": {
       "enabled": true
     }
@@ -45,7 +46,7 @@
       }
     ],
     "modelConfig": {
-      "modelAssetsBucket": "intelli-agent-models-544919262599-us-east-1"
+      "modelAssetsBucket": "intelli-agent-models-216989124547-us-east-1"
     }
   },
   "ui": {

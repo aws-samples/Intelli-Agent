@@ -1,0 +1,4 @@
+include llm_bot_dep/data/*.txt
+include llm_bot_dep/data/*.json
+recursive-include llm_bot_dep *.txt
+recursive-include llm_bot_dep *.json

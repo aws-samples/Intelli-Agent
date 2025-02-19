@@ -22,3 +22,5 @@ README_zh-cn.md
 source/infrastructure/bin/config.ts
 source/infrastructure/cli/magic-config.ts
 source/infrastructure/lib/api/asset/intention_corpus.xlsx
+source/cs-portal/src/components/Footer.tsx
+api_test/policies.json

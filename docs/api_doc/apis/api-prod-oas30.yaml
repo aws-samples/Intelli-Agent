@@ -20,25 +20,51 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LLMRequest"
-            example:
-              entry_type: "common"
-              query: "What are the benefits of cloud computing?"
-              session_id: "fe6a5054-1889-4d3f-8e94-ab636d014515"
-              user_id: "14a81498-a071-70c4-08e9-09503e99720c"
-              chatbot_config:
-                agent_config:
+              oneOf:
+                - $ref: "#/components/schemas/LLMRequestA"
+                - $ref: "#/components/schemas/LLMRequestB"
+            examples:
+              exampleForLLMRequestA:
+                summary: Example for LLMRequestA
+                value: 
+                  entry_type: "common"
+                  query: "What are the benefits of cloud computing?"
+                  session_id: "fe6a5054-1889-4d3f-8e94-ab636d014515"
+                  user_id: "14a81498-a071-70c4-08e9-09503e99720c"
+                  chatbot_config:
+                    agent_config:
+                      only_use_rag_tool: false
+                    chatbot_id: "demo"
+                    chatbot_mode: "agent"
+                    default_llm_config:
+                      model_id: "anthropic.claude-3-sonnet-20240229-v1:0"
+                      model_kwargs:
+                        max_tokens: 1000
+                        temperature: 0.01
+                    enable_trace: true
+                    group_name: "Admin"
+                    use_history: true
+              exampleForLLMRequestB:
+                summary: Example for LLMRequestB
+                value:
+                  entry_type: "common"
+                  query: "What are the benefits of cloud computing?"
+                  session_id: "fe6a5054-1889-4d3f-8e94-ab636d014515"
+                  user_id: "14a81498-a071-70c4-08e9-09503e99720c"
+                  chatbot_max_rounds_in_memory: 7
+                  chatbot_group_name: "Admin"
+                  chatbot_id: "demo"
+                  chatbot_mode: "agent"
+                  chatbot_use_history: true
+                  chatbot_enable_trace: true
+                  chatbot_use_websearch: false
+                  llm_model_id: "anthropic.claude-3-sonnet-20240229-v1:0"
+                  llm_temperature: 0.01
+                  llm_max_tokens: 1000
+                  private_knowledge_top_k: 5
+                  private_knowledge_score: 0.56
                   only_use_rag_tool: false
-                chatbot_id: "demo"
-                chatbot_mode: "agent"
-                default_llm_config:
-                  model_id: "anthropic.claude-3-sonnet-20240229-v1:0"
-                  model_kwargs:
-                    max_tokens: 1000
-                    temperature: 0.01
-                enable_trace: true
-                group_name: "Admin"
-                use_history: true
+                  param_type: "flat"
       responses:
         "400":
           description: "400 response"
@@ -1065,14 +1091,8 @@ components:
         SortKey:
           type: string
           description: A combination with chatbot id, model id and scene, e.g. anthropic.claude-3-haiku-20240307-v1:0__common__titanv2
-    LLMRequest:
+    LLMRequestA:
       type: object
-      required:
-        - entry_type
-        - query
-        - session_id
-        - user_id
-        - chatbot_config
       properties:
         entry_type:
           type: string
@@ -1096,6 +1116,8 @@ components:
             - default_llm_config
             - enable_trace
             - group_name
+            - max_rounds_in_memory
+            - private_knowledge_config
             - use_history
           properties:
             agent_config:
@@ -1124,8 +1146,100 @@ components:
               type: boolean
             group_name:
               type: string
+            max_rounds_in_memory:
+              type: integer
+            private_knowledge_config:
+              type: object
+              properties:
+                top_k: 
+                  type: integer
+                score:
+                  type: number
+                  format: float
             use_history:
               type: boolean
+            use_websearch:
+              type: boolean
+        param_type:
+          type: string
+          description: The input parameter format (flat/nested)
+      required:
+        - entry_type
+        - query
+        - session_id
+        - user_id
+        - chatbot_config
+    LLMRequestB:
+      type: object
+      properties:
+        entry_type:
+          type: string
+          description: Scenario type, the default is common
+        query:
+          type: string
+          description: Query or question sent to the agent
+        session_id:
+          type: string
+          description: Chat session ID
+        user_id:
+          type: string
+          description: User id
+        chatbot_max_rounds_in_memory:
+          type: integer
+          description: Maximum number of rounds of conversation to be stored in memory
+        chatbot_group_name:
+          type: string
+        chatbot_id:
+          type: string
+        chatbot_mode:
+          type: string
+        chatbot_use_history:
+          type: boolean
+        chatbot_enable_trace:
+          type: boolean
+        chatbot_use_websearch:
+          type: boolean
+        llm_model_id:
+          type: string
+        llm_temperature:
+          type: number
+          format: float
+          description: Higher values make the output more random
+        llm_max_tokens:
+          type: integer
+          description: Max length of tokens that LLM process in a sequence
+        private_knowledge_top_k:
+          type: integer
+          description: Number of top documents to retrieve
+        private_knowledge_score:
+          type: number
+          format: float
+          description: Outputs with a relevance score below the threshold will not be sent to LLM
+        only_use_rag_tool:
+          type: boolean
+          description: Specifies whether to restrict the system to using only RAG tools
+        param_type:
+          type: string
+          description: The input parameter format (flat/nested)
+      required:
+        - entry_type
+        - query
+        - session_id
+        - user_id
+        - chatbot_max_rounds_in_memory
+        - chatbot_group_name
+        - chatbot_id 
+        - chatbot_mode 
+        - chatbot_use_history 
+        - chatbot_enable_trace 
+        - chatbot_use_websearch 
+        - llm_model_id
+        - llm_temperature
+        - llm_max_tokens
+        - private_knowledge_top_k
+        - private_knowledge_score
+        - only_use_rag_tool
+        - param_type
   securitySchemes:
     aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0:
       type: "apiKey"

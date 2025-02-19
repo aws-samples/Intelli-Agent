@@ -1,9 +1,11 @@
 import io
 import json
 import logging
+import os
 from typing import Any, Dict, Iterator, List, Mapping, Optional
 
 import boto3
+from botocore.exceptions import ClientError
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain_community.embeddings import (
     BedrockEmbeddings,
@@ -19,9 +21,69 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_core.outputs import GenerationChunk
 from langchain_core.pydantic_v1 import Extra, root_validator
+from langchain_community.embeddings.openai import OpenAIEmbeddings
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+session = boto3.session.Session()
+secret_manager_client = session.client(
+    service_name="secretsmanager"
+)
+
+
+def get_model_details(group_name: str, chatbot_id: str, table_name: str):
+    """Get model details from DynamoDB table
+
+    Args:
+        group_name (str): The partition key (group name)
+        chatbot_id (str): Used to construct the model ID
+        table_name (str): DynamoDB table name
+
+    Returns:
+        dict: Model details from DynamoDB
+    """
+    dynamodb = boto3.resource("dynamodb")
+    table = dynamodb.Table(table_name)
+    model_id = f"{chatbot_id}-embedding"
+
+    try:
+        response = table.get_item(
+            Key={
+                "groupName": group_name,
+                "modelId": model_id
+            }
+        )
+
+        if "Item" not in response:
+            raise Exception(f"No model found for group {group_name} and model ID {model_id}")
+
+        return response["Item"]
+    except Exception as e:
+        logger.error(f"Error retrieving model details: {str(e)}")
+        raise Exception(f"Failed to get model details: {str(e)}")
+
+
+def get_secret_value(secret_arn: str):
+    """Get secret value from secret manager
+
+    Args:
+        secret_arn (str): secret arn
+
+    Returns:
+        str: secret value
+    """
+    try:
+        get_secret_value_response = secret_manager_client.get_secret_value(
+            SecretId=secret_arn
+        )
+    except ClientError as e:
+        raise Exception("Fail to retrieve the secret value: {}".format(e))
+    else:
+        if "SecretString" in get_secret_value_response:
+            secret = get_secret_value_response["SecretString"]
+            return secret
+        else:
+            raise Exception("Fail to retrieve the secret value")
 
 
 class vectorContentHandler(EmbeddingsContentHandler):
@@ -450,39 +512,70 @@ def SagemakerEndpointVectorOrCross(
     )
     return genericModel(prompt=prompt, stop=stop, **kwargs)
 
-
 def getCustomEmbeddings(
-    endpoint_name: str, region_name: str, bedrock_region: str, model_type: str
+    endpoint_name: str,
+    region_name: str,
+    bedrock_region: str,
+    model_type: str,
+    group_name: str,
+    chatbot_id: str,
+    model_table: str
 ) -> SagemakerEndpointEmbeddings:
-    client = boto3.client("sagemaker-runtime", region_name=region_name)
-    bedrock_client = boto3.client("bedrock-runtime", region_name=bedrock_region)
     embeddings = None
-    if model_type == "bedrock":
-        content_handler = BedrockEmbeddings()
-        embeddings = BedrockEmbeddings(
-            client=bedrock_client,
-            model_id=endpoint_name,
-            normalize=True,
+    model_details = get_model_details(group_name, chatbot_id, model_table)
+    model_provider = model_details["parameter"].get("ModelProvider", "Bedrock")
+    base_url = model_details["parameter"].get("BaseUrl", "")
+    api_key_arn = model_details["parameter"].get("ApiKeyArn", "")
+    logger.info(model_details)
+
+    if model_provider not in ["Bedrock API", "OpenAI API"]:
+        # Use local models
+        client = boto3.client("sagemaker-runtime", region_name=region_name)
+        bedrock_client = boto3.client("bedrock-runtime", region_name=bedrock_region)
+        if model_type == "bedrock":
+            content_handler = BedrockEmbeddings()
+            embeddings = BedrockEmbeddings(
+                client=bedrock_client,
+                model_id=endpoint_name,
+                normalize=True,
+            )
+        elif model_type == "bce":
+            content_handler = vectorContentHandler()
+            embeddings = SagemakerEndpointEmbeddings(
+                client=client,
+                endpoint_name=endpoint_name,
+                content_handler=content_handler,
+                endpoint_kwargs={"TargetModel": "bce_embedding_model.tar.gz"},
+            )
+        # compatible with both m3 and bce.
+        else:
+            content_handler = m3ContentHandler()
+            model_kwargs = {}
+            model_kwargs["batch_size"] = 12
+            model_kwargs["max_length"] = 512
+            model_kwargs["return_type"] = "dense"
+            embeddings = SagemakerEndpointEmbeddings(
+                client=client,
+                endpoint_name=endpoint_name,
+                model_kwargs=model_kwargs,
+                content_handler=content_handler,
+            )
+        return embeddings
+
+    # API inference from Bedrock API or OpenAI API
+    if model_provider == "Bedrock API":
+        embeddings = OpenAIEmbeddings(
+            model=endpoint_name,
+            api_key=get_secret_value(api_key_arn),
+            base_url=base_url
         )
-    elif model_type == "bce":
-        content_handler = vectorContentHandler()
-        embeddings = SagemakerEndpointEmbeddings(
-            client=client,
-            endpoint_name=endpoint_name,
-            content_handler=content_handler,
-            endpoint_kwargs={"TargetModel": "bce_embedding_model.tar.gz"},
+    elif model_provider == "OpenAI API":
+        embeddings = OpenAIEmbeddings(
+            model=endpoint_name,
+            api_key=get_secret_value(api_key_arn),
+            base_url=base_url
         )
-    # compatible with both m3 and bce.
     else:
-        content_handler = m3ContentHandler()
-        model_kwargs = {}
-        model_kwargs["batch_size"] = 12
-        model_kwargs["max_length"] = 512
-        model_kwargs["return_type"] = "dense"
-        embeddings = SagemakerEndpointEmbeddings(
-            client=client,
-            endpoint_name=endpoint_name,
-            model_kwargs=model_kwargs,
-            content_handler=content_handler,
-        )
+        raise ValueError(f"Unsupported API inference provider: {model_provider}")
+
     return embeddings

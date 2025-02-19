@@ -15,7 +15,10 @@ import { Constants } from '../shared/constants';
 
 export interface UserProps extends StackProps {
   readonly adminEmail: string;
-  readonly callbackUrl: string;
+  readonly callbackUrls: string[];
+  readonly logoutUrls: string[];
+  readonly userPoolName?: string;
+  readonly domainPrefix?: string;
 }
 
 export interface UserConstructOutputs {
@@ -34,8 +37,11 @@ export class UserConstruct extends Construct implements UserConstructOutputs {
   constructor(scope: Construct, id: string, props: UserProps) {
     super(scope, id);
 
+    const userPoolName = props.userPoolName || `${Constants.SOLUTION_NAME}_UserPool`
+    const domainPrefix = props.domainPrefix || `${Constants.SOLUTION_NAME.toLowerCase()}-${Aws.ACCOUNT_ID}`
+
     this.userPool = new UserPool(this, 'UserPool', {
-      userPoolName: `${Constants.SOLUTION_NAME}_UserPool`,
+      userPoolName: userPoolName,
       selfSignUpEnabled: false,
       signInCaseSensitive: false,
       accountRecovery: AccountRecovery.EMAIL_ONLY,
@@ -63,7 +69,7 @@ export class UserConstruct extends Construct implements UserConstructOutputs {
     const userPoolDomain = new UserPoolDomain(this, 'UserPoolDomain', {
       userPool: this.userPool,
       cognitoDomain: {
-        domainPrefix: `${Constants.SOLUTION_NAME.toLowerCase()}-${Aws.ACCOUNT_ID}`,
+        domainPrefix: domainPrefix,
       },
     });
 
@@ -75,8 +81,8 @@ export class UserConstruct extends Construct implements UserConstructOutputs {
         userPassword: true,
       },
       oAuth: {
-        callbackUrls: [`https://${props.callbackUrl}/signin`],
-        logoutUrls: [`https://${props.callbackUrl}`],
+        callbackUrls: props.callbackUrls,
+        logoutUrls: props.logoutUrls,
         scopes: [OAuthScope.OPENID, OAuthScope.PROFILE, OAuthScope.EMAIL],
       },
     });

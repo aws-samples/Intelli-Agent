@@ -31,6 +31,7 @@ def lambda_handler(event, context):
     prefix = event["s3Prefix"]
     # fetch index from event with default value none
     chatbot_id = event["chatbotId"]
+    group_name = event["groupName"]
     index_id = event["indexId"]
     embedding_model_type = event["embeddingModelType"]
     index_type = event.get("indexType", "qd")
@@ -76,6 +77,7 @@ def lambda_handler(event, context):
             "s3Prefix": prefix,
             "fileCount": file_count,
             "chatbotId": chatbot_id,
+            "groupName": group_name,
             "indexId": index_id,
             "embeddingModelType": embedding_model_type,
             "qaEnhance": (
@@ -97,6 +99,7 @@ def lambda_handler(event, context):
             "s3Prefix": prefix,
             "fileCount": "1",
             "chatbotId": chatbot_id,
+            "groupName": group_name,
             "qaEnhance": (
                 event["qaEnhance"].lower() if "qaEnhance" in event else "false"
             ),
