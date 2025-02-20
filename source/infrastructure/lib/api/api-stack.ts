@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, Size, StackProps } from "aws-cdk-lib";
+import { Aws, Size, StackProps } from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Runtime, Code } from 'aws-cdk-lib/aws-lambda';
@@ -27,11 +27,8 @@ import { SharedConstructOutputs } from "../shared/shared-construct";
 import { ModelConstructOutputs } from "../model/model-construct";
 import { KnowledgeBaseStackOutputs } from "../knowledge-base/knowledge-base-stack";
 import { ChatStackOutputs } from "../chat/chat-stack";
-import { UserConstructOutputs } from "../user/user-construct";
 import { LambdaFunction } from "../shared/lambda-helper";
 import { Constants } from "../shared/constants";
-import { PythonFunction } from "@aws-cdk/aws-lambda-python-alpha";
-import { BundlingFileAccess, PhysicalName } from 'aws-cdk-lib/core';
 import { PromptApi } from "./prompt-management";
 import { IntentionApi } from "./intention-management";
 import { ModelApi } from "./model-management";
@@ -114,7 +111,6 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
     const domainEndpoint = props.knowledgeBaseStackOutputs.aosDomainEndpoint;
     const sessionsTableName = props.chatStackOutputs.sessionsTableName;
     const messagesTableName = props.chatStackOutputs.messagesTableName;
-    const resBucketName = props.sharedConstructOutputs.resultBucket.bucketName;
     const executionTableName = props.knowledgeBaseStackOutputs.executionTableName;
     const etlObjTableName = props.knowledgeBaseStackOutputs.etlObjTableName;
     const etlObjIndexName = props.knowledgeBaseStackOutputs.etlObjIndexName;
@@ -626,18 +622,6 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
     this.apiEndpoint = this.api.url;
     this.documentBucket = s3Bucket.bucketName;
     // this.apiKey = apiKeyValue;
-  }
-
-  private makeApiKey(length: number) {
-    let apiKeyValue = '';
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const charactersLength = characters.length;
-    let counter = 0;
-    while (counter < length) {
-      apiKeyValue += characters.charAt(Math.floor(Math.random() * charactersLength));
-      counter += 1;
-    }
-    return apiKeyValue;
   }
 
   genRequestModel = (api: apigw.RestApi, properties: any) => {
