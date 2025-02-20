@@ -145,6 +145,7 @@ const Library: React.FC = () => {
       ]}
     >
       <ContentLayout>
+        <div style={{marginTop: '25px'}} />
         <Table
           resizableColumns
           loading={loadingData}

@@ -10,8 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@cloudscape-design/components": "^3.0.604",
-    "@cloudscape-design/global-styles": "^1.0.27",
+    "@cloudscape-design/components": "3.0.296",
+    "@cloudscape-design/global-styles": "1.0.9",
     "@reduxjs/toolkit": "^2.5.0",
     "axios": "^1.7.4",
     "classnames": "^2.5.1",
