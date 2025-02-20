@@ -6,8 +6,7 @@ import {
   SideNavigation,
   Spinner,
 } from '@cloudscape-design/components';
-import { I18nProvider } from '@cloudscape-design/components/i18n';
-import messages from '@cloudscape-design/components/i18n/messages/all.en';
+
 import TopNavigation from '@cloudscape-design/components/top-navigation';
 import { useTranslation } from 'react-i18next';
 import {
@@ -42,6 +41,7 @@ const STORAGE_KEYS = [
   TEMPERATURE,
   ADITIONAL_SETTINGS,
 ];
+import './layout.scss'
 
 interface CommonLayoutProps {
   activeHref: string;
@@ -139,8 +139,14 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
   const currentActiveHref = location.pathname;
 
   return (
-    <I18nProvider locale={i18n.language} messages={[messages]}>
+      <>
       <TopNavigation
+        i18nStrings={{searchIconAriaLabel: t('menu.search') || '',
+          searchDismissIconAriaLabel: t('menu.closeSearch') || '',
+          overflowMenuTriggerText: t('menu.more') || '',
+          overflowMenuTitleText: t('menu.all') || '',
+          overflowMenuBackIconAriaLabel: t('menu.back') || '',
+          overflowMenuDismissIconAriaLabel: t('menu.closeMenu') || '',}}
         identity={{
           href: '/',
           title: t('name'),
@@ -186,7 +192,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
         navigation={
           <SideNavigation
             activeHref={currentActiveHref}
-            header={{ href: '/', text: t('name') }}
+            header={{ href: '/', text: t('assetName') }}
             className="main-navigation"
             onFollow={(e) => {
               if (!e.detail.external) {
@@ -254,7 +260,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
         }
         content={<>{isLoading ? <Spinner /> : children}</>}
       />
-    </I18nProvider>
+      </>
   );
 };
 

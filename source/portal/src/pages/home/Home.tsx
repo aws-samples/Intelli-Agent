@@ -1,9 +1,11 @@
 import {
   Box,
   Button,
+  Container,
   ContentLayout,
   Grid,
   Header,
+  Link,
   SpaceBetween,
 } from '@cloudscape-design/components';
 import React, { useState, useEffect, useContext } from 'react';
@@ -261,7 +263,7 @@ const Home: React.FC = () => {
                 description={t('projectDescription')}
               >
                 <Box variant="h1">{t('solutionName')}</Box>
-                <Box fontSize="heading-l">{t('subTitle')}</Box>
+                {/* <Box fontSize="heading-l">{t('subTitle')}</Box> */}
               </Header>
             </div>
           }
@@ -274,9 +276,42 @@ const Home: React.FC = () => {
               ]}
             >
               <SpaceBetween direction="vertical" size="l">
+                
+                <Container
+        className="fix-mid-screen common-header"
+      >
+        {/* <SpaceBet direction='horizontal' size='m'> */}
+          <Grid gridDefinition={[{ colspan: 3 }, { colspan: 3 },{colspan: 3},{colspan: 3}]}>
+              <div>
+                <Box variant="h4" >
+                  {t('modelCnt')}
+                </Box>
+                <Link variant='awsui-value-large' className="no-link">18</Link>
+              </div>
+              <div>
+                <Box variant="h4">{t('docCnt')}</Box>
+                <Link variant='awsui-value-large' className="no-link">2</Link>
+              </div>
+              <div>
+                <Box variant="h4">{t('botCnt')}</Box>
+                <Link variant='awsui-value-large' className="no-link">3</Link>
+              </div>
+              <div>
+                <Box variant="h4">
+                  {t('sessionCnt')}
+                </Box>
+                <Link variant='awsui-value-large' className="no-link">18</Link>
+              </div>
+            </Grid>
+            
+            {/* </SpaceBet ween> */}
+       
+      </Container>
+      <Container header={<Header variant="h2">{t('architecture')}</Header>}>
                 <div className="home-banner">
                   <img alt="banner" src={BANNER} width="100%" />
                 </div>
+                </Container>
                 <BenefitsFeatures />
                 {/* <UseCases /> */}
               </SpaceBetween>

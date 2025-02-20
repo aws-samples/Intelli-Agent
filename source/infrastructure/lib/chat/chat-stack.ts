@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, StackProps, NestedStack } from "aws-cdk-lib";
+import { StackProps, NestedStack } from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 import { Construct } from "constructs";
@@ -24,11 +24,11 @@ import { IAMHelper } from "../shared/iam-helper";
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { SystemConfig } from "../shared/types";
-import { SharedConstruct, SharedConstructOutputs } from "../shared/shared-construct";
+import { SharedConstructOutputs } from "../shared/shared-construct";
 import { ModelConstructOutputs } from "../model/model-construct";
 import { ChatTablesConstruct } from "./chat-tables";
 import { LambdaFunction } from "../shared/lambda-helper";
-import { Runtime, Code, Function, Architecture } from "aws-cdk-lib/aws-lambda";
+import { Runtime, Code, Function } from "aws-cdk-lib/aws-lambda";
 import { ConnectConstruct } from "../connect/connect-construct";
 
 
@@ -68,7 +68,6 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
   private lambdaOnlineIntentionDetection: Function;
   private lambdaOnlineAgent: Function;
   private lambdaOnlineLLMGenerate: Function;
-  private chatbotTableName: string;
   // private lambdaOnlineFunctions: Function;
 
   constructor(scope: Construct, id: string, props: ChatStackProps) {
@@ -85,7 +84,6 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.messagesTableName = chatTablesConstruct.messagesTableName;
     this.promptTableName = chatTablesConstruct.promptTableName;
     this.intentionTableName = chatTablesConstruct.intentionTableName;
-    this.chatbotTableName = props.sharedConstructOutputs.chatbotTable.tableName;
     this.indexTableName = props.sharedConstructOutputs.indexTable.tableName;
     this.modelTableName = props.sharedConstructOutputs.modelTable.tableName;
 
@@ -98,7 +96,6 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
 
     const lambdaLayers = new LambdaLayers(this);
     const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineMainLayer();
-    const apiLambdaJobSourceLayer = lambdaLayers.createJobSourceLayer();
     const modelLayer = lambdaLayers.createModelDeploymentLayer();
 
 

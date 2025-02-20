@@ -22,7 +22,6 @@ import {
   RemovalPolicy,
 } from "aws-cdk-lib";
 import { CloudFrontToS3 } from "@aws-solutions-constructs/aws-cloudfront-s3";
-import { v4 as uuidv4 } from 'uuid';
 
 export interface PortalConstructOutputs {
   portalBucket: s3.Bucket;

@@ -495,6 +495,7 @@ const ChatbotManagement: React.FC = () => {
       ]}
     >
       <ContentLayout>
+      <div style={{marginTop: '25px'}} />
         <Table
           selectionType="single"
           resizableColumns

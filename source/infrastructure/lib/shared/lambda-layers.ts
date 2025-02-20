@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { LayerVersion, Runtime, Code } from "aws-cdk-lib/aws-lambda";
+import { Runtime } from "aws-cdk-lib/aws-lambda";
 import * as path from "path";
 import { Construct } from "constructs";
 import * as pyLambda from "@aws-cdk/aws-lambda-python-alpha";
