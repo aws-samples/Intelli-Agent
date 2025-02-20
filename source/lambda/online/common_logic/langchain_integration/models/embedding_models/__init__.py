@@ -1,6 +1,8 @@
-from common_logic.common_utils.constant import LLMModelType, ModelProvider
-from ..model_config import EmbeddingModelConfig
 from typing import Union
+
+from common_logic.common_utils.constant import LLMModelType, ModelProvider
+
+from ..model_config import EmbeddingModelConfig
 
 
 class ModelMeta(type):
@@ -37,11 +39,12 @@ class Model(metaclass=ModelMeta):
 
     @classmethod
     def get_model(cls, model_id, **kwargs):
-        model_provider = kwargs['provider']
+        model_provider = kwargs["provider"]
         # dynamic load module
         _load_module(model_provider)
         model_identify = cls.get_model_id(
-            model_id=model_id, model_provider=model_provider)
+            model_id=model_id, model_provider=model_provider
+        )
         return cls.model_map[model_identify].create_model(**kwargs)
 
     @classmethod
@@ -60,7 +63,9 @@ class Model(metaclass=ModelMeta):
         for part in parts:
             if any(c.isdigit() for c in part):
                 cleaned = "".join(
-                    c.upper() if i == 0 or part[i - 1] in "- " else c for i, c in enumerate(part))
+                    c.upper() if i == 0 or part[i - 1] in "- " else c
+                    for i, c in enumerate(part)
+                )
             else:
                 cleaned = part.capitalize()
             cleaned_parts.append(cleaned)
@@ -113,7 +118,9 @@ def _import_sagemaker_embeddings():
 
 def _load_module(model_provider):
     assert model_provider in MODEL_PROVIDER_LOAD_FN_MAP, (
-        model_provider, MODEL_PROVIDER_LOAD_FN_MAP)
+        model_provider,
+        MODEL_PROVIDER_LOAD_FN_MAP,
+    )
     MODEL_PROVIDER_LOAD_FN_MAP[model_provider]()
 
 
@@ -122,7 +129,7 @@ MODEL_PROVIDER_LOAD_FN_MAP = {
     ModelProvider.BRCONNECTOR_BEDROCK: _import_brconnector_bedrock_embeddings,
     ModelProvider.OPENAI: _import_openai_embeddings,
     ModelProvider.DMAA: _import_dmaa_embeddings,
-    ModelProvider.SAGEMAKER_MULTIMODEL: _import_sagemaker_embeddings,
+    ModelProvider.SAGEMAKER: _import_sagemaker_embeddings,
 }
 
 

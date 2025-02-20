@@ -1,30 +1,23 @@
-from . import Model
-from common_logic.common_utils.constant import (
-    ModelProvider
-)
-import os
-import boto3
 import json
-from langchain_community.embeddings import (
-    SagemakerEndpointEmbeddings
-)
+import os
+from typing import Dict, List
 
+import boto3
+from common_logic.common_utils.constant import ModelProvider
+from common_logic.common_utils.logger_utils import get_logger
+from langchain_community.embeddings import SagemakerEndpointEmbeddings
 from langchain_community.embeddings.sagemaker_endpoint import (
-    EmbeddingsContentHandler
+    EmbeddingsContentHandler,
 )
 
 from ..model_config import BCE_EMBEDDING_CONFIGS
-from common_logic.common_utils.logger_utils import (
-    get_logger
-)
-from typing import List, Dict
-
+from . import Model
 
 logger = get_logger("sagemaker_embedding_model")
 
 
 class SageMakerEmbeddingBaseModel(Model):
-    model_provider = ModelProvider.SAGEMAKER_MULTIMODEL
+    model_provider = ModelProvider.SAGEMAKER
 
     @classmethod
     def create_content_handler(cls, **kwargs):
@@ -44,7 +37,8 @@ class SageMakerEmbeddingBaseModel(Model):
         )
         aws_access_key_id = os.environ.get("SAGEMAKER_AWS_ACCESS_KEY_ID", "")
         aws_secret_access_key = os.environ.get(
-            "SAGEMAKER_AWS_SECRET_ACCESS_KEY", "")
+            "SAGEMAKER_AWS_SECRET_ACCESS_KEY", ""
+        )
         default_model_kwargs = cls.default_model_kwargs or {}
 
         content_handler = cls.create_content_handler(**kwargs)
@@ -52,27 +46,28 @@ class SageMakerEmbeddingBaseModel(Model):
         client = None
         if aws_access_key_id != "" and aws_secret_access_key != "":
             logger.info(
-                f"Bedrock Using AWS AKSK from environment variables. Key ID: {aws_access_key_id}")
+                f"Bedrock Using AWS AKSK from environment variables. Key ID: {aws_access_key_id}"
+            )
 
             client = boto3.client(
                 "sagemaker-runtime",
                 region_name=region_name,
                 aws_access_key_id=aws_access_key_id,
-                aws_secret_access_key=aws_secret_access_key
+                aws_secret_access_key=aws_secret_access_key,
             )
         model_kwargs = {
             **default_model_kwargs,
-            **kwargs.get("model_kwargs", {})
+            **kwargs.get("model_kwargs", {}),
         }
         model_kwargs = model_kwargs or None
         logger.info("Model kwargs: ")
         logger.info(kwargs)
-        target_model = kwargs.get('target_model')
-        model_id = kwargs.get('model_endpoint')
+        target_model = kwargs.get("target_model")
+        model_id = kwargs.get("model_endpoint")
 
         endpoint_kwargs = {}
         if target_model:
-            endpoint_kwargs['TargetModel'] = target_model
+            endpoint_kwargs["TargetModel"] = target_model
 
         endpoint_kwargs = endpoint_kwargs or None
 
@@ -83,7 +78,7 @@ class SageMakerEmbeddingBaseModel(Model):
             credentials_profile_name=credentials_profile_name,
             region_name=region_name,
             endpoint_name=model_id,
-            content_handler=content_handler
+            content_handler=content_handler,
         )
         return embedding_model
 
