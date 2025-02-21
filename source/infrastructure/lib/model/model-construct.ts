@@ -11,15 +11,11 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, CustomResource, NestedStack } from "aws-cdk-lib";
+import { Aws, Duration, NestedStack } from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as sagemaker from "aws-cdk-lib/aws-sagemaker";
 import { Construct } from "constructs";
 import * as dotenv from "dotenv";
-import * as appAutoscaling from "aws-cdk-lib/aws-applicationautoscaling";
-import { Metric } from "aws-cdk-lib/aws-cloudwatch";
-import * as cr from "aws-cdk-lib/custom-resources";
-import * as logs from "aws-cdk-lib/aws-logs";
 import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
 import { Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
@@ -238,11 +234,11 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
     let model: sagemaker.CfnModel;
     let endpointConfig: sagemaker.CfnEndpointConfig;
     let endpoint: sagemaker.CfnEndpoint;
-    let sagemakerRole: iam.Role | undefined;
+    // let sagemakerRole: iam.Role | undefined;
 
     // Create Sagemaker's model, endpointConfig, and endpoint
     if (props.modelProps) {
-      sagemakerRole = this.modelExecutionRole;
+      // sagemakerRole = this.modelExecutionRole;
       // const randomString = Math.random().toString(36).substring(2, 8);
       // const smModelName = `${props.modelProps.modelName}ia-${randomString}`;
       const smModelName = `${props.modelProps.modelName}`;
@@ -263,86 +259,6 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
     } else {
       throw Error('You need to provide at least modelProps to create Sagemaker Endpoint');
     }
-  }
-
-  private createKnowledgeBaseEndpointScaling(endpoint: sagemaker.CfnEndpoint) {
-    const scalingTarget = new appAutoscaling.ScalableTarget(
-      this,
-      "ETLAutoScalingTarget",
-      {
-        minCapacity: 0,
-        maxCapacity: 10,
-        resourceId: `endpoint/${endpoint.endpointName}/variant/${this.modelVariantName}`,
-        scalableDimension: "sagemaker:variant:DesiredInstanceCount",
-        serviceNamespace: appAutoscaling.ServiceNamespace.SAGEMAKER,
-      }
-    );
-    scalingTarget.node.addDependency(endpoint);
-    scalingTarget.scaleToTrackMetric("ApproximateBacklogSizePerInstanceTrackMetric", {
-      targetValue: 2,
-      customMetric: new Metric({
-        metricName: "ApproximateBacklogSizePerInstance",
-        namespace: "AWS/SageMaker",
-        dimensionsMap: {
-          EndpointName: endpoint.endpointName || "",
-        },
-        period: Duration.minutes(1),
-        statistic: "avg",
-      }),
-      scaleInCooldown: Duration.seconds(60),
-      scaleOutCooldown: Duration.seconds(60),
-    });
-
-    // Custom resource to update ETL endpoint autoscaling setting
-    const crLambda = new Function(this, "ETLCustomResource", {
-      runtime: Runtime.PYTHON_3_12,
-      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
-      handler: "etl_custom_resource.lambda_handler",
-      environment: {
-        ENDPOINT_NAME: endpoint.endpointName || "",
-        VARIANT_NAME: this.modelVariantName || "",
-      },
-      memorySize: 512,
-      timeout: Duration.seconds(300),
-    });
-    crLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "sagemaker:UpdateEndpoint",
-          "sagemaker:DescribeEndpoint",
-          "sagemaker:DescribeEndpointConfig",
-          "sagemaker:UpdateEndpointWeightsAndCapacities",
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: [`arn:${Aws.PARTITION}:sagemaker:${Aws.REGION}:${Aws.ACCOUNT_ID}:endpoint/${endpoint.endpointName}`],
-      }),
-    );
-    crLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "application-autoscaling:PutScalingPolicy",
-          "application-autoscaling:RegisterScalableTarget",
-          "iam:CreateServiceLinkedRole",
-          "cloudwatch:PutMetricAlarm",
-          "cloudwatch:DescribeAlarms",
-          "cloudwatch:DeleteAlarms",
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
-    crLambda.node.addDependency(scalingTarget);
-    const customResourceProvider = new cr.Provider(this, "CustomResourceProvider", {
-      onEventHandler: crLambda,
-      logRetention: logs.RetentionDays.ONE_DAY,
-    });
-
-    new CustomResource(this, "EtlEndpointCustomResource", {
-      serviceToken: customResourceProvider.serviceToken,
-      resourceType: "Custom::ETLEndpoint",
-    });
-
-
   }
 
   private initializeSageMakerConfig() {

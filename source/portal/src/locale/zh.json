@@ -1,10 +1,11 @@
 {
   "translation": {
-    "name": "Multi-modal Enterprise Knowledge Base in Manufacturing",
+    "assetName": "AI智能客服",
+    "name": "基于制造业多模态知识库构建的智能客服系统",
     "welcome": "欢迎使用 Multi-modal Enterprise Knowledge Base in Manufacturing",
     "mead": "制造",
-    "projectDescription": "Multi-modal Enterprise Knowledge Base in Manufacturing 提供一个高效简洁的工作流程，用于开发可扩展的、生产级别的、基于 agent（代理）的应用",
-    "solutionName": "Multi-modal Enterprise Knowledge Base in Manufacturing",
+    "projectDescription": "旨在提供一个高效简洁的工作流程，用于开发可扩展的、生产级别的、基于 agent（代理）的应用",
+    "solutionName": "多模态企业知识库构建的AI客服系统",
     "desc": "描述",
     "you": "你",
     "welcomeMessage": "您好，我今天有什么可以帮助您？",
@@ -181,6 +182,11 @@
     "new": "新消息",
     "referenceDocuments": "参考文档",
     "selectADocumentToPreview": "选择一个文档以预览其内容",
+    "architecture": "架构",
+    "modelCnt":"接入模型",
+    "docCnt":"文档",
+    "botCnt":"机器人",
+    "sessionCnt":"会话数",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",

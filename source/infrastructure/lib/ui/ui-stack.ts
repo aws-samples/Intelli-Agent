@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, StackProps, NestedStack, Stack, PhysicalName, CfnOutput } from "aws-cdk-lib";
+import { Aws, StackProps, Stack, CfnOutput } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { join } from "path";
 

@@ -1,4 +1,4 @@
-import { Aws, StackProps, RemovalPolicy, CfnOutput, NestedStack } from 'aws-cdk-lib';
+import { Aws, StackProps, RemovalPolicy } from 'aws-cdk-lib';
 import {
   AccountRecovery,
   AdvancedSecurityMode,

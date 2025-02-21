@@ -11,8 +11,8 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, StackProps } from "aws-cdk-lib";
-import { Function, Runtime, Code, Architecture, FunctionProps } from 'aws-cdk-lib/aws-lambda';
+import { Duration } from "aws-cdk-lib";
+import { Function, Runtime, Code, FunctionProps } from 'aws-cdk-lib/aws-lambda';
 import { Construct } from "constructs";
 import { IVpc, SecurityGroup } from "aws-cdk-lib/aws-ec2";
 import { ILayerVersion } from "aws-cdk-lib/aws-lambda";

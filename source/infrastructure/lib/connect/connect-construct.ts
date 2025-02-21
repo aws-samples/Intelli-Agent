@@ -1,10 +1,9 @@
 import { StackProps, Duration, NestedStack } from "aws-cdk-lib";
 import { Queue, QueueEncryption } from "aws-cdk-lib/aws-sqs";
-import { AnyPrincipal, Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { Function } from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
 import { Rule } from "aws-cdk-lib/aws-events";
-import { LambdaFunction, SqsQueue } from "aws-cdk-lib/aws-events-targets";
+import { SqsQueue } from "aws-cdk-lib/aws-events-targets";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
 export interface ConnectProps extends StackProps {

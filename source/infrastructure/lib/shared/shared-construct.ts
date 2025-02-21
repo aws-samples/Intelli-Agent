@@ -11,7 +11,6 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from "constructs";
 import * as dotenv from "dotenv";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
