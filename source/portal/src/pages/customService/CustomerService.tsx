@@ -159,6 +159,12 @@ const CustomerService: React.FC = () => {
   return (
     <div className="customer-service-container">
       <TopNavigation
+        i18nStrings={{searchIconAriaLabel: t('menu.search') || '',
+          searchDismissIconAriaLabel: t('menu.closeSearch') || '',
+          overflowMenuTriggerText: t('menu.more') || '',
+          overflowMenuTitleText: t('menu.all') || '',
+          overflowMenuBackIconAriaLabel: t('menu.back') || '',
+          overflowMenuDismissIconAriaLabel: t('menu.closeMenu') || '',}}
         identity={{
           href: '/',
           title: t('name'),

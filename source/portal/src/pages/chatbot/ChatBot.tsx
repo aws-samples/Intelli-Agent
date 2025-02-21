@@ -46,7 +46,7 @@ import {
   SHOW_FIGURES,
   API_ENDPOINT,
   API_KEY_ARN,
-  CUSTOM_DEPLOYMENT_MODEL_LIST,
+  CUSTOM_DEPLOYMENT_MODEL_LIST
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';
@@ -829,6 +829,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                           }}
                           value={modelOption}
                           options={modelList}
+                          enteredTextLabel={value => `Use: "${value}"`}
                           placeholder={t('validation.requireModel')}
                           empty={t('noModelFound')}
                         />
@@ -890,6 +891,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         options={modelList}
                         placeholder={t('validation.requireModel')}
                         empty={t('noModelFound')}
+                        enteredTextLabel={value => `Use: "${value}"`}
                       />
                     </FormField>
                   )}
