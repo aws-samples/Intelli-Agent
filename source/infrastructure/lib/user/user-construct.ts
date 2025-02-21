@@ -1,19 +1,20 @@
 import { Aws, StackProps, RemovalPolicy, CfnOutput, NestedStack } from 'aws-cdk-lib';
-// import {
-//   AccountRecovery,
-//   AdvancedSecurityMode,
-//   CfnUserPoolGroup,
-//   CfnUserPoolUser,
-//   CfnUserPoolUserToGroupAttachment,
-//   OAuthScope,
-//   UserPool,
-//   UserPoolDomain,
-//   VerificationEmailStyle,
-// } from 'aws-cdk-lib/aws-cognito';
+import {
+  AccountRecovery,
+  AdvancedSecurityMode,
+  CfnUserPoolGroup,
+  CfnUserPoolUser,
+  CfnUserPoolUserToGroupAttachment,
+  OAuthScope,
+  UserPool,
+  UserPoolDomain,
+  VerificationEmailStyle,
+} from 'aws-cdk-lib/aws-cognito';
 import { Construct } from 'constructs';
 import { Constants } from '../shared/constants';
 
 export interface UserProps extends StackProps {
+  readonly deployRegion: string;
   readonly adminEmail: string;
   readonly callbackUrls: string[];
   readonly logoutUrls: string[];
@@ -29,100 +30,108 @@ export interface UserConstructOutputs {
 }
 
 export class UserConstruct extends Construct implements UserConstructOutputs {
-  public readonly oidcIssuer: string;
-  public readonly oidcClientId: string;
-  public readonly oidcLogoutUrl: string;
-  public readonly userPoolId: string;
+  public oidcIssuer!: string;
+  public oidcClientId!: string;
+  public oidcLogoutUrl!: string;
+  public userPoolId!: string;
 
   constructor(scope: Construct, id: string, props: UserProps) {
     super(scope, id);
 
     const userPoolName = props.userPoolName || `${Constants.SOLUTION_NAME}_UserPool`
     const domainPrefix = props.domainPrefix || `${Constants.SOLUTION_NAME.toLowerCase()}-${Aws.ACCOUNT_ID}`
+    const isChinaRegion = props.deployRegion.startsWith('cn-');
 
-    // this.userPool = new UserPool(this, 'UserPool', {
-    //   userPoolName: userPoolName,
-    //   selfSignUpEnabled: false,
-    //   signInCaseSensitive: false,
-    //   accountRecovery: AccountRecovery.EMAIL_ONLY,
-    //   removalPolicy: RemovalPolicy.DESTROY,
-    //   signInAliases: {
-    //     email: true,
-    //   },
-    //   userVerification: {
-    //     emailStyle: VerificationEmailStyle.LINK,
-    //   },
-    //   advancedSecurityMode: AdvancedSecurityMode.ENFORCED,
-    //   passwordPolicy: {
-    //     minLength: 8,
-    //     requireUppercase: true,
-    //     requireDigits: true,
-    //     requireSymbols: true,
-    //   },
-    //   userInvitation: {
-    //     emailSubject: 'Welcome to use AI Customer Service',
-    //     emailBody: 'Hello {username}, your temporary password is {####}',
-    //   },
-    // });
+    // TODO: In ths future we will change the condition from config
+    if (isChinaRegion) {
+      this.setupCustomOidcResources();
+    } else {
+      this.setupCognitoResources(props, userPoolName, domainPrefix);
+    }
+  }
 
-    // // Create an unique cognito domain
-    // const userPoolDomain = new UserPoolDomain(this, 'UserPoolDomain', {
-    //   userPool: this.userPool,
-    //   cognitoDomain: {
-    //     domainPrefix: domainPrefix,
-    //   },
-    // });
+  private setupCognitoResources(props: UserProps, userPoolName: string, domainPrefix: string) {
+    const cognitoUserPool = new UserPool(this, 'UserPool', {
+      userPoolName: userPoolName,
+      selfSignUpEnabled: false,
+      signInCaseSensitive: false,
+      accountRecovery: AccountRecovery.EMAIL_ONLY,
+      removalPolicy: RemovalPolicy.DESTROY,
+      signInAliases: {
+        email: true,
+      },
+      userVerification: {
+        emailStyle: VerificationEmailStyle.LINK,
+      },
+      advancedSecurityMode: AdvancedSecurityMode.ENFORCED,
+      passwordPolicy: {
+        minLength: 8,
+        requireUppercase: true,
+        requireDigits: true,
+        requireSymbols: true,
+      },
+      userInvitation: {
+        emailSubject: 'Welcome to use AI Customer Service',
+        emailBody: 'Hello {username}, your temporary password is {####}',
+      },
+    });
 
-    // // Add UserPoolClient
-    // const userPoolClient = this.userPool.addClient('UserPoolClient', {
-    //   userPoolClientName: Constants.SOLUTION_NAME,
-    //   authFlows: {
-    //     userSrp: true,
-    //     userPassword: true,
-    //   },
-    //   oAuth: {
-    //     callbackUrls: props.callbackUrls,
-    //     logoutUrls: props.logoutUrls,
-    //     scopes: [OAuthScope.OPENID, OAuthScope.PROFILE, OAuthScope.EMAIL],
-    //   },
-    // });
+    const userPoolDomain = new UserPoolDomain(this, 'UserPoolDomain', {
+      userPool: cognitoUserPool,
+      cognitoDomain: {
+        domainPrefix: domainPrefix,
+      },
+    });
 
-    // // Add AdminUser
-    // const email = props.adminEmail;
-    // const adminUser = new CfnUserPoolUser(this, 'AdminUser', {
-    //   userPoolId: this.userPool.userPoolId,
-    //   username: email,
-    //   userAttributes: [
-    //     {
-    //       name: 'email',
-    //       value: email,
-    //     },
-    //     {
-    //       name: 'email_verified',
-    //       value: 'true',
-    //     },
-    //   ],
-    // });
+    const userPoolClient = cognitoUserPool.addClient('UserPoolClient', {
+      userPoolClientName: Constants.SOLUTION_NAME,
+      authFlows: {
+        userSrp: true,
+        userPassword: true,
+      },
+      oAuth: {
+        callbackUrls: props.callbackUrls,
+        logoutUrls: props.logoutUrls,
+        scopes: [OAuthScope.OPENID, OAuthScope.PROFILE, OAuthScope.EMAIL],
+      },
+    });
 
-    // // Add AdminGroup
-    // const adminGroup = new CfnUserPoolGroup(this, 'AdminGroup', {
-    //   userPoolId: this.userPool.userPoolId,
-    //   groupName: 'Admin',
-    //   description: 'Admin group',
-    // });
+    const adminUser = new CfnUserPoolUser(this, 'AdminUser', {
+      userPoolId: cognitoUserPool.userPoolId,
+      username: props.adminEmail,
+      userAttributes: [
+        {
+          name: 'email',
+          value: props.adminEmail,
+        },
+        {
+          name: 'email_verified',
+          value: 'true',
+        },
+      ],
+    });
 
-    // const grpupAttachment = new CfnUserPoolUserToGroupAttachment(this, 'UserGroupAttachment', {
-    //   userPoolId: this.userPool.userPoolId,
-    //   groupName: adminGroup.groupName!,
-    //   username: adminUser.username!,
-    // });
-    // grpupAttachment.addDependency(adminUser);
-    // grpupAttachment.addDependency(adminGroup);
+    const adminGroup = new CfnUserPoolGroup(this, 'AdminGroup', {
+      userPoolId: cognitoUserPool.userPoolId,
+      groupName: 'Admin',
+      description: 'Admin group',
+    });
 
+    const grpupAttachment = new CfnUserPoolUserToGroupAttachment(this, 'UserGroupAttachment', {
+      userPoolId: cognitoUserPool.userPoolId,
+      groupName: adminGroup.groupName!,
+      username: adminUser.username!,
+    });
+    grpupAttachment.addDependency(adminUser);
+    grpupAttachment.addDependency(adminGroup);
 
-    // this.oidcIssuer = `https://cognito-idp.${Aws.REGION}.amazonaws.com/${this.userPool.userPoolId}`;
-    // this.oidcClientId = userPoolClient.userPoolClientId;
-    // this.oidcLogoutUrl = `${userPoolDomain.baseUrl()}/logout`;
+    this.oidcIssuer = `https://cognito-idp.${props.deployRegion}.amazonaws.com/${cognitoUserPool.userPoolId}`;
+    this.oidcClientId = userPoolClient.userPoolClientId;
+    this.oidcLogoutUrl = `${userPoolDomain.baseUrl()}/logout`;
+    this.userPoolId = cognitoUserPool.userPoolId;
+  }
+
+  private setupCustomOidcResources() {
     this.oidcIssuer = `https://cognito-idp.us-east-1.amazonaws.com/test`;
     this.oidcClientId = 'test';
     this.oidcLogoutUrl = `https://test.com/logout`;

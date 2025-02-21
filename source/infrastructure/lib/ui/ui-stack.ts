@@ -49,6 +49,7 @@ export class UIStack extends Stack implements UIStackOutputs {
     });
 
     const userConstruct = new UserConstruct(this, "User", {
+      deployRegion: props.config.deployRegion,
       adminEmail: props.config.email,
       callbackUrls: [
         `https://${clientPortalConstruct.portalUrl}/signin`,
