@@ -1,8 +1,9 @@
 import json
 import logging
 import os
-from urllib.request import urlopen
 import traceback
+from urllib.request import urlopen
+
 import jwt
 
 # Replace with your Cognito User Pool info
@@ -58,10 +59,18 @@ def lambda_handler(event, context):
             # REST API
             if event["headers"].get("authorization"):
                 # Browser will change the Authorization header to lowercase
-                token = event["headers"]["authorization"].replace("Bearer", "").strip()
+                token = (
+                    event["headers"]["authorization"]
+                    .replace("Bearer", "")
+                    .strip()
+                )
             else:
                 # Postman
-                token = event["headers"]["Authorization"].replace("Bearer", "").strip()
+                token = (
+                    event["headers"]["Authorization"]
+                    .replace("Bearer", "")
+                    .strip()
+                )
         else:
             # WebSocket API
             token = event["queryStringParameters"]["idToken"]
@@ -82,12 +91,18 @@ def lambda_handler(event, context):
             )
 
         # Construct the public key
-        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(keys[key_index]))
+        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(
+            json.dumps(keys[key_index])
+        )
 
         # Verify the signature of the JWT token
         claims = jwt.decode(
-            token, public_key, algorithms=["RS256"], audience=APP_CLIENT_ID,
-            issuer=issuer, options={"verify_exp": verify_exp}
+            token,
+            public_key,
+            algorithms=["RS256"],
+            audience=APP_CLIENT_ID,
+            issuer=issuer,
+            options={"verify_exp": verify_exp},
         )
         # reformat claims to align with cognito output
         claims["cognito:groups"] = ",".join(claims["cognito:groups"])

@@ -65,12 +65,15 @@ class Model(ModeMixins, metaclass=ModelMeta):
 
     @classmethod
     def get_model(cls, model_id, model_kwargs=None, **kwargs):
-        model_provider = kwargs['provider']
+        model_provider = kwargs["provider"]
         # dynamic load module
         _load_module(model_provider)
         model_identify = cls.get_model_id(
-            model_id=model_id, model_provider=model_provider)
-        return cls.model_map[model_identify].create_model(model_kwargs=model_kwargs, **kwargs)
+            model_id=model_id, model_provider=model_provider
+        )
+        return cls.model_map[model_identify].create_model(
+            model_kwargs=model_kwargs, **kwargs
+        )
 
     @classmethod
     def model_id_to_class_name(cls, model_id: str) -> str:
@@ -88,7 +91,9 @@ class Model(ModeMixins, metaclass=ModelMeta):
         for part in parts:
             if any(c.isdigit() for c in part):
                 cleaned = "".join(
-                    c.upper() if i == 0 or part[i - 1] in "- " else c for i, c in enumerate(part))
+                    c.upper() if i == 0 or part[i - 1] in "- " else c
+                    for i, c in enumerate(part)
+                )
             else:
                 cleaned = part.capitalize()
             cleaned_parts.append(cleaned)
@@ -135,9 +140,15 @@ def _import_dmaa_models():
     from . import dmaa_models
 
 
+def _import_sagemaker_models():
+    from . import sagemaker_models
+
+
 def _load_module(model_provider):
     assert model_provider in MODEL_PROVIDER_LOAD_FN_MAP, (
-        model_provider, MODEL_PROVIDER_LOAD_FN_MAP)
+        model_provider,
+        MODEL_PROVIDER_LOAD_FN_MAP,
+    )
     MODEL_PROVIDER_LOAD_FN_MAP[model_provider]()
 
 
@@ -145,8 +156,8 @@ MODEL_PROVIDER_LOAD_FN_MAP = {
     ModelProvider.BEDROCK: _import_bedrock_models,
     ModelProvider.BRCONNECTOR_BEDROCK: _import_brconnector_bedrock_models,
     ModelProvider.OPENAI: _import_openai_models,
-    ModelProvider.DMAA: _import_dmaa_models
-
+    ModelProvider.DMAA: _import_dmaa_models,
+    ModelProvider.SAGEMAKER: _import_sagemaker_models,
 }
 
 
