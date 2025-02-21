@@ -15,15 +15,11 @@ import { Construct } from "constructs";
 import * as path from "path";
 import {
   Aws,
-  Duration,
   aws_cloudfront as cloudfront,
   aws_s3 as s3,
   aws_s3_deployment as s3d,
   RemovalPolicy,
-  aws_iam as iam,
-  aws_cloudfront_origins as origins,
 } from "aws-cdk-lib";
-import { v4 as uuidv4 } from 'uuid';
 
 export interface PortalConstructOutputs {
   portalBucket: s3.Bucket;
