@@ -61,12 +61,6 @@ class IntentType(ConstantBase):
     TEXT2SQL_SQL_VALIDATED = "text2sql_sql_validated"
 
 
-class RerankerType(ConstantBase):
-    BGE_RERANKER = "bge_reranker"
-    BGE_M3_RERANKER = "bge_m3_colbert"
-    BYPASS = "no_reranker"
-
-
 class MKTUserType(ConstantBase):
     ASSISTANT = "assistant"
     AUTO_CHAT = "auto_chat"
@@ -128,7 +122,7 @@ class ToolRuningMode(ConstantBase):
 
 
 class ModelProvider(ConstantBase):
-    DMAA = "dmaa"
+    EMD = "emd"
     BEDROCK = "Bedrock"
     BRCONNECTOR_BEDROCK = "Bedrock API"
     OPENAI = "OpenAI API"
@@ -192,8 +186,14 @@ class EmbeddingModelType(ConstantBase):
     OPENAI_TEXT_EMBEDDING_3_LARGE = "text-embedding-3-large"
     OPENAI_TEXT_EMBEDDING_ADA_002 = "text-embedding-ada-002"
     BCE_EMBEDDING = "bce-embedding-and-bge-reranker-43972-endpoint"
+    BGE_M3_EMBEDDING = "bge-m3"
     COHERE_EMBED_ENGLISH_V3 = "cohere.embed-english-v3"
     COHERE_EMBED_MULTILINGUAL_V3 = "cohere.embed-multilingual-v3"
+
+class RerankModelType(ConstantBase):
+    BGE_RERANKER_V2_M3 = "bge-reranker-v2-m3"
+    COHERE_RERANK_V3D5 = "cohere.rerank-v3-5:0"
+    AMAZON_RERANK_V1 = "amazon.rerank-v1:0"
 
 
 @unique

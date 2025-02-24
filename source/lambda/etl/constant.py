@@ -56,7 +56,7 @@ class OperationType(Enum):
 
 @unique
 class ModelProvider(Enum):
-    DMAA = "dmaa"
+    EMD = "emd"
     BEDROCK = "Bedrock"
     BRCONNECTOR_BEDROCK = "Bedrock API"
     OPENAI = "OpenAI API"

@@ -10,7 +10,7 @@ from common_logic.common_utils.logger_utils import (
     get_logger,
     llm_messages_print_decorator
 )
-from . import Model
+from . import ChatModelBase
 from ..model_config import (
     BEDROCK_MODEL_CONFIGS
 )
@@ -24,12 +24,11 @@ class ChatBedrockConverse(_ChatBedrockConverse):
     enable_prefill: bool = True
 
 
-class BedrockBaseModel(Model):
-
+class BedrockBaseModel(ChatModelBase):
     default_model_kwargs = {"max_tokens": 2000,
                             "temperature": 0.7, "top_p": 0.9}
-    enable_any_tool_choice = False
-    any_tool_choice_value: str = 'any'
+    # enable_any_tool_choice = False
+    # any_tool_choice_value: str = 'any'
     model_provider = ModelProvider.BEDROCK
 
     @classmethod

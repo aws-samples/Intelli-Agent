@@ -9,7 +9,7 @@ from common_logic.common_utils.constant import (
 from common_logic.common_utils.logger_utils import (
     get_logger
 )
-from . import Model
+from . import EmbeddingModelBase
 from ..model_config import (
     BEDROCK_EMBEDDING_CONFIGS
 )
@@ -21,7 +21,7 @@ class BrconnectorBedrockEmbeddings(_OpenAIEmbeddings):
     pass
 
 
-class BrconnectorBedrockEmbeddingBaseModel(Model):
+class BrconnectorBedrockEmbeddingBaseModel(EmbeddingModelBase):
     model_provider = ModelProvider.BRCONNECTOR_BEDROCK
 
     @classmethod
@@ -47,5 +47,4 @@ class BrconnectorBedrockEmbeddingBaseModel(Model):
         return embedding_model
 
 
-BrconnectorBedrockEmbeddingBaseModel.create_for_models(
-    BEDROCK_EMBEDDING_CONFIGS)
+BrconnectorBedrockEmbeddingBaseModel.create_for_models(BEDROCK_EMBEDDING_CONFIGS)

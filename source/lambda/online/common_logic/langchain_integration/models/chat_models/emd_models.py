@@ -1,4 +1,4 @@
-from . import Model
+from . import ChatModelBase
 from common_logic.common_utils.constant import (
     MessageType,
     LLMModelType,
@@ -6,7 +6,7 @@ from common_logic.common_utils.constant import (
 )
 import os
 import boto3
-from dmaa.integrations.langchain_clients import SageMakerVllmChatModel as _SageMakerVllmChatModel
+from emd.integrations.langchain_clients import SageMakerVllmChatModel as _SageMakerVllmChatModel
 
 session = boto3.Session()
 current_region = session.region_name
@@ -18,7 +18,8 @@ class SageMakerVllmChatModel(_SageMakerVllmChatModel):
     enable_prefill: bool = True
 
 
-class Qwen25Instruct72bAwq(Model):
+
+class Qwen25Instruct72bAwq(ChatModelBase):
     model_id = LLMModelType.QWEN25_INSTRUCT_72B_AWQ
     enable_any_tool_choice: bool = False
     any_tool_choice_value: str = 'any'
@@ -28,7 +29,7 @@ class Qwen25Instruct72bAwq(Model):
         "temperature": 0.7,
         "top_p": 0.9
     }
-    model_provider = ModelProvider.DMAA
+    model_provider = ModelProvider.EMD
 
     @classmethod
     def create_model(cls, model_kwargs=None, **kwargs):
@@ -49,22 +50,24 @@ class Qwen25Instruct72bAwq(Model):
             credentials_profile_name=credentials_profile_name,
             region_name=region_name,
             enable_any_tool_choice=cls.enable_any_tool_choice,
-            enable_prefill=cls.enable_prefill
+            enable_prefill=cls.enable_prefill,
+            model_kwargs=model_kwargs
+            
         )
         return llm
 
 
-class DeepSeekR1DistillLlama70B(Model):
+class DeepSeekR1DistillLlama70B(ChatModelBase,_SageMakerVllmChatModel):
     model_id = LLMModelType.DEEPSEEK_R1_DISTILL_LLAMA_70B
     enable_any_tool_choice: bool = False
     any_tool_choice_value: str = 'any'
     enable_prefill: bool = True
     default_model_kwargs = {
         "max_tokens": 1000,
-        "temperature": 0.7,
+        "temperature": 0.6,
         "top_p": 0.9
     }
-    model_provider = ModelProvider.DMAA
+    model_provider = ModelProvider.EMD
 
     @classmethod
     def create_model(cls, model_kwargs=None, **kwargs):
@@ -85,7 +88,8 @@ class DeepSeekR1DistillLlama70B(Model):
             credentials_profile_name=credentials_profile_name,
             region_name=region_name,
             enable_any_tool_choice=cls.enable_any_tool_choice,
-            enable_prefill=cls.enable_prefill
+            enable_prefill=cls.enable_prefill,
+            model_kwargs=model_kwargs
         )
         return llm
 

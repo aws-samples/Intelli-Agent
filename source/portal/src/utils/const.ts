@@ -250,7 +250,7 @@ export const MODEL_TYPE_LIST: SelectProps.Option[] = [
   },
   {
     label: 'Custom Deployment',
-    value: 'dmaa',
+    value: 'emd',
   },
 ];
 

@@ -3,8 +3,9 @@ chat models build in command pattern
 """
 
 from common_logic.common_utils.constant import ModelProvider
-
+from typing import Union,Dict
 from ..model_config import ModelConfig
+from .. import ModelBase 
 
 
 class ModeMixins:
@@ -29,72 +30,16 @@ class ModeMixins:
         return new_messages
 
 
-class ModelMeta(type):
-    def __new__(cls, name, bases, attrs):
-        new_cls = type.__new__(cls, name, bases, attrs)
-        if (
-            name == "Model"
-            or new_cls.model_id is None
-            or name.endswith("BaseModel")
-            or name.lower().endswith("basemodel")
-        ):
-            return new_cls
-        new_cls.model_map[new_cls.get_model_id()] = new_cls
-        return new_cls
-
-
-class Model(ModeMixins, metaclass=ModelMeta):
-    model_id: str = None
+class ChatModelBase(ModeMixins, ModelBase):
     enable_any_tool_choice: bool = True
     enable_prefill: bool = True
     any_tool_choice_value = "any"
+    default_model_kwargs: Union[Dict,None] = None
     model_map = {}
-    model_provider: ModelProvider = ModelProvider.BEDROCK
 
-    @classmethod
-    def create_model(cls, model_kwargs=None, **kwargs):
-        raise NotImplementedError
-
-    @classmethod
-    def get_model_id(cls, model_id=None, model_provider=None):
-        if model_id is None:
-            model_id = cls.model_id
-        if model_provider is None:
-            model_provider = cls.model_provider
-        return f"{model_id}__{model_provider}"
-
-    @classmethod
-    def get_model(cls, model_id, model_kwargs=None, **kwargs):
-        model_provider = kwargs['provider']
-        # dynamic load module
+    def load_module(cls,model_provider):
         _load_module(model_provider)
-        model_identify = cls.get_model_id(
-            model_id=model_id, model_provider=model_provider)
-        return cls.model_map[model_identify].create_model(model_kwargs=model_kwargs, **kwargs)
-
-    @classmethod
-    def model_id_to_class_name(cls, model_id: str) -> str:
-        """Convert model ID to a valid Python class name.
-
-        Examples:
-            anthropic.claude-3-haiku-20240307-v1:0 -> Claude3Haiku20240307V1Model
-        """
-        # Remove version numbers and vendor prefixes
-        name = str(model_id).split(":")[0]
-        name = name.split(".")[-1]
-        parts = name.replace("_", "-").split("-")
-
-        cleaned_parts = []
-        for part in parts:
-            if any(c.isdigit() for c in part):
-                cleaned = "".join(
-                    c.upper() if i == 0 or part[i - 1] in "- " else c for i, c in enumerate(part))
-            else:
-                cleaned = part.capitalize()
-            cleaned_parts.append(cleaned)
-
-        return "".join(cleaned_parts) + "Model"
-
+    
     @classmethod
     def create_for_model(cls, config: ModelConfig):
         """Factory method to create a model with a specific model id"""
@@ -113,11 +58,6 @@ class Model(ModeMixins, metaclass=ModelMeta):
         )
         return model_class
 
-    @classmethod
-    def create_for_models(cls, configs: list[ModelConfig]):
-        for config in configs:
-            cls.create_for_model(config)
-
 
 def _import_bedrock_models():
     from . import bedrock_models
@@ -131,8 +71,8 @@ def _import_openai_models():
     from . import openai_models
 
 
-def _import_dmaa_models():
-    from . import dmaa_models
+def _import_emd_models():
+    from . import emd_models
 
 
 def _load_module(model_provider):
@@ -145,12 +85,10 @@ MODEL_PROVIDER_LOAD_FN_MAP = {
     ModelProvider.BEDROCK: _import_bedrock_models,
     ModelProvider.BRCONNECTOR_BEDROCK: _import_brconnector_bedrock_models,
     ModelProvider.OPENAI: _import_openai_models,
-    ModelProvider.DMAA: _import_dmaa_models
+    ModelProvider.EMD: _import_emd_models
 
 }
 
-
-ChatModel = Model
 
 # MODEL_MODULE_LOAD_FN_MAP = {
 #     LLMModelType.CHATGPT_35_TURBO_0125: _import_openai_models,
@@ -183,5 +121,5 @@ ChatModel = Model
 #     LLMModelType.CLAUDE_3_5_SONNET_APAC: _import_bedrock_models,
 #     LLMModelType.CLAUDE_3_HAIKU_APAC: _import_bedrock_models,
 #     LLMModelType.LLAMA3_1_70B_INSTRUCT_US: _import_bedrock_models,
-#     LLMModelType.QWEN25_INSTRUCT_72B_AWQ: _import_dmaa_models,
+#     LLMModelType.QWEN25_INSTRUCT_72B_AWQ: _import_emd_models,
 # }

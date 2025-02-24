@@ -358,7 +358,7 @@ def default_event_handler(event_body: dict, context: dict, entry_executor):
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body: dict, context: dict):
     logger.info(f"Raw event_body: {event_body}")
-    # set GROUP_NAME for dmaa model initialize
+    # set GROUP_NAME for emd model initialize
     os.environ['GROUP_NAME'] = event_body.get(
         "chatbot_config", {}).get("group_name", "Admin")
     param_type = event_body.get("param_type", ParamType.NEST).lower()

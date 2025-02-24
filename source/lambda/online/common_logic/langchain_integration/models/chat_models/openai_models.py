@@ -4,7 +4,7 @@ from common_logic.common_utils.constant import (
     ModelProvider
 )
 from common_logic.common_utils.logger_utils import get_logger, llm_messages_print_decorator
-from . import Model
+from . import ChatModelBase
 from langchain_openai import ChatOpenAI as _ChatOpenAI
 from ..model_config import OPENAI_MODEL_CONFIGS
 
@@ -17,7 +17,7 @@ class ChatOpenAI(_ChatOpenAI):
     enable_prefill: bool = False
 
 
-class OpenAIBaseModel(Model):
+class OpenAIBaseModel(ChatModelBase):
     default_model_kwargs = {"max_tokens": 2000,
                             "temperature": 0.7, "top_p": 0.9}
     enable_any_tool_choice: bool = True

@@ -60,9 +60,9 @@ build_client_frontend() {
 
 build_deployment_module() {
     echo "Building Model Deployment Module"
-    # curl https://aws-gcr-solutions-assets.s3.us-east-1.amazonaws.com/dmaa/wheels/dmaa-0.5.0-py3-none-any.whl -o dmaa-0.5.0-py3-none-any.whl && pip install dmaa-0.5.0-py3-none-any.whl"[all]"
-    curl https://aws-gcr-solutions-assets.s3.us-east-1.amazonaws.com/dmaa/wheels/dmaa-0.6.0%2B0.6.0.mini-py3-none-any.whl -o dmaa-0.6.0-py3-none-any.whl && pip install dmaa-0.6.0-py3-none-any.whl"[all]"
-    dmaa bootstrap
+    # curl https://aws-gcr-solutions-assets.s3.us-east-1.amazonaws.com/emd/wheels/emd-0.5.0-py3-none-any.whl -o emd-0.5.0-py3-none-any.whl && pip install emd-0.5.0-py3-none-any.whl"[all]"
+    curl https://aws-gcr-solutions-assets.s3.us-east-1.amazonaws.com/emd/wheels/emd-0.6.0%2B0.6.0.mini-py3-none-any.whl -o emd-0.6.0-py3-none-any.whl && pip install emd-0.6.0-py3-none-any.whl"[all]"
+    emd bootstrap
 }
 
 build_lambda_asset() {

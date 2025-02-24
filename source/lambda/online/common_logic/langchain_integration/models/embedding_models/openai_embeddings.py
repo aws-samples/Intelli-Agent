@@ -1,6 +1,6 @@
 from langchain_openai.embeddings import OpenAIEmbeddings as _OpenAIEmbeddings
 import os
-from . import Model
+from . import EmbeddingModelBase
 from common_logic.common_utils.constant import (
     ModelProvider
 )
@@ -12,7 +12,7 @@ class OpenAIEmbeddings(_OpenAIEmbeddings):
     pass
 
 
-class OpenAIEmbeddingBaseModel(Model):
+class OpenAIEmbeddingBaseModel(EmbeddingModelBase):
     model_provider = ModelProvider.OPENAI
 
     @classmethod

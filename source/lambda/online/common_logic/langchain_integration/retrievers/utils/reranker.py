@@ -133,6 +133,7 @@ class BGEReranker(BaseDocumentCompressor):
         batch_size = 128
         task_list = []
         loop = asyncio.get_event_loop()
+      
         for batch_start in range(0, len(rerank_pair), batch_size):
             task = asyncio.create_task(self.__ainvoke_rerank_model(
                 rerank_pair[batch_start:batch_start + batch_size], loop))
