@@ -30,6 +30,7 @@ import { SystemConfig } from "../shared/types";
 import { SharedConstructOutputs } from "../shared/shared-construct";
 import { ModelConstructOutputs } from "../model/model-construct";
 import { AOSConstruct } from "./os-stack";
+import * as s3Deployment from "aws-cdk-lib/aws-s3-deployment";
 
 interface KnowledgeBaseStackProps extends StackProps {
   readonly config: SystemConfig;
@@ -77,6 +78,14 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     this.glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
+
+    new s3Deployment.BucketDeployment(this, "DeployGlueLibs", {
+      sources: [s3Deployment.Source.asset(join(__dirname, "../../../lambda/job/dep/dist"), {
+        exclude: ["*", "!llm_bot_dep-0.1.0-py3-none-any.whl"]
+      })],
+      destinationBucket: this.glueLibS3Bucket,
+    });
+
     const createKnowledgeBaseTablesAndPoliciesResult = this.createKnowledgeBaseTablesAndPolicies(props);
     this.executionTableName = createKnowledgeBaseTablesAndPoliciesResult.executionTable.tableName;
     this.etlObjTableName = createKnowledgeBaseTablesAndPoliciesResult.etlObjTable.tableName;
