@@ -9,6 +9,9 @@ export interface Config {
   oidcClientId: string;
   oidcLogoutUrl: string;
   oidcRedirectUrl: string;
+  oidcDomain: string;
+  oidcPoolId: string;
+  oidcRegion: string;
   kbEnabled: string;
   kbType: string;
   embeddingEndpoint: string;

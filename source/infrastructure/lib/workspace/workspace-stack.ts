@@ -47,6 +47,9 @@ interface WorkspaceProps extends StackProps {
   readonly clientPortalBucketName: string;
   readonly portalUrl: string;
   readonly clientPortalUrl: string;
+  readonly oidcDomain: string;
+  // readonly oidcPoolId: string;
+  readonly oidcRegion: string;
 }
 
 export interface WorkspaceOutputs {
@@ -220,6 +223,9 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
         kbEnabled: props.config.knowledgeBase.enabled.toString(),
         kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
         embeddingEndpoint: embeddingEndpoint,
+        oidcDomain: props.oidcDomain,
+        oidcPoolId: props.userPoolId,
+        oidcRegion: props.oidcRegion
       },
     });
 
@@ -240,6 +246,9 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
         kbEnabled: props.config.knowledgeBase.enabled.toString(),
         kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
         embeddingEndpoint: embeddingEndpoint,
+        oidcDomain: props.oidcDomain,
+        oidcPoolId: props.userPoolId,
+        oidcRegion: props.oidcRegion
       },
     });
 

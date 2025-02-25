@@ -47,7 +47,7 @@ export class UIStack extends Stack implements UIStackOutputs {
       uiSourcePath: join(__dirname, "../../../cs-portal/dist"),
       responseHeadersPolicyName: `SecHdr${Aws.REGION}${Aws.STACK_NAME}-client`
     });
-
+    if (!props.config.deployRegion.startsWith("cn-")) {
     const userConstruct = new UserConstruct(this, "User", {
       deployRegion: props.config.deployRegion,
       adminEmail: props.config.email,
@@ -62,10 +62,7 @@ export class UIStack extends Stack implements UIStackOutputs {
       // userPoolName: `${Constants.SOLUTION_NAME}-workspace_UserPool`,
       // domainPrefix: `${Constants.SOLUTION_NAME.toLowerCase()}-workspace-${Aws.ACCOUNT_ID}`,
     });
-    this.mainPortalConstruct = mainPortalConstruct;
-    this.clientPortalConstruct = clientPortalConstruct;
     this.userConstruct = userConstruct;
-
     // Add CfnOutputs to export values
     new CfnOutput(this, 'UserPoolId', {
       value: userConstruct.userPoolId,
@@ -86,6 +83,19 @@ export class UIStack extends Stack implements UIStackOutputs {
       value: userConstruct.oidcLogoutUrl,
       exportName: `${id}-oidc-logout-url`
     });
+    new CfnOutput(this, 'OidcRegion', {
+      value: userConstruct.userPoolId,
+      exportName: `${id}-oidc-region`
+    });
+    new CfnOutput(this, 'OidcDomain', {
+      value: userConstruct.userPoolId,
+      exportName: `${id}-oidc-domain`
+    });
+    }
+    this.mainPortalConstruct = mainPortalConstruct;
+    this.clientPortalConstruct = clientPortalConstruct;
+
+    
 
     new CfnOutput(this, 'PortalBucketName', {
       value: mainPortalConstruct.portalBucket.bucketName,

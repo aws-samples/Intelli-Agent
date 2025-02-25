@@ -167,6 +167,9 @@ const workspaceStack = new WorkspaceStack(app, `${stackName}-workspace`, {
   portalUrl: Fn.importValue(`${stackName}-frontend-portal-url`),
   clientPortalUrl: Fn.importValue(`${stackName}-frontend-client-portal-url`),
   suppressTemplateIndentation: true,
+  oidcDomain: Fn.importValue(`${stackName}-frontend-oidc-domain`),
+  oidcRegion: Fn.importValue(`${stackName}-frontend-oidc-region`)
+
 });
 
 // Add dependencies
