@@ -33,6 +33,7 @@ import { PromptApi } from "./prompt-management";
 import { IntentionApi } from "./intention-management";
 import { ModelApi } from "./model-management";
 import { ChatHistoryApi } from "./chat-history";
+import { AuthHub } from "../auth-hub";
 
 interface ApiStackProps extends StackProps {
   config: SystemConfig;
@@ -186,6 +187,14 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
     });
 
     this.api.deploymentStage = stage;
+
+    new AuthHub(this, 'AuthHub', {
+      solutionName: Constants.SOLUTION_NAME,
+      apiGateway: this.api
+    })
+
+    // authHub.node.addDependency(distribution)
+
 
     this.customAuthorizerLambda = new LambdaFunction(this, "CustomAuthorizerLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/authorizer")),

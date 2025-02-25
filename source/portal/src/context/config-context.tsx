@@ -4,6 +4,7 @@ export interface Config {
   apiUrl: string;
   docsS3Bucket: string;
   workspaceId: string;
+  oidcProvider: string;
   oidcIssuer: string;
   oidcClientId: string;
   oidcLogoutUrl: string;

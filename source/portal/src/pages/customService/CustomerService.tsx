@@ -16,6 +16,7 @@ import {
   USE_CHAT_HISTORY,
   ZH_LANGUAGE_LIST,
   ZH_TEXT,
+  ROUTES,
 } from 'src/utils/const';
 import './CustomerService.scss';
 import { initResize } from './resize';
@@ -166,7 +167,7 @@ const CustomerService: React.FC = () => {
           overflowMenuBackIconAriaLabel: t('menu.back') || '',
           overflowMenuDismissIconAriaLabel: t('menu.closeMenu') || '',}}
         identity={{
-          href: '/',
+          href: ROUTES.Home,
           title: t('name'),
         }}
         utilities={[

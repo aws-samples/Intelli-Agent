@@ -12,31 +12,39 @@ import SessionDetail from './pages/history/SessionDetail';
 import PromptList from './pages/prompts/PromptList';
 import ChatbotManagement from './pages/chatbotManagement/ChatbotManagement';
 
-import LoginCallback from './comps/LoginCallback';
+// import LoginCallback from './comps/LoginCallback';
 import Intention from './pages/intention/Intention';
 import IntentionDetail from './pages/intention/IntentionDetail';
 import Home from './pages/home/Home';
 import ChatbotDetail from './pages/chatbotManagement/ChatbotDetail';
 import CustomerService from './pages/customService/CustomerService';
+import { ROUTES } from './utils/const';
+import Login from './pages/login';
+import FindPWD from './pages/find-pwd';
+import Register from './pages/register';
+import ChangePWD from './pages/change-pwd';
 
 const SignedInRouter = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/signin" element={<LoginCallback />} />
-        <Route path="/chats" element={<ChatBot />} />
-        <Route path="/" element={<Home />} />
-        <Route path="/library" element={<Library />} />
-        <Route path="/library/detail/:id" element={<LibraryDetail />} />
-        <Route path="/sessions" element={<SessionHistory />} />
-        <Route path="/session/detail/:id" element={<SessionDetail />} />
-        <Route path="/prompts" element={<PromptList />} />
-        <Route path="/intention" element={<Intention />} />
-        <Route path="/intention/detail/:id" element={<IntentionDetail />} />
-        <Route path="/chatbot-management" element={<ChatbotManagement />} />
-        <Route path="/chatbot/detail/:id" element={<ChatbotDetail />} />
-        <Route path="/workspace" element={<CustomerService />} />
-        <Route path="/workspace/chat/:id" element={<CustomerService />} />
+        <Route path={ROUTES.Login} element={<Login />} />
+        <Route path={ROUTES.FindPWD} element={<FindPWD />} />
+        <Route path={ROUTES.Register} element={<Register />} />
+        <Route path={ROUTES.ChangePWD} element={<ChangePWD />} />
+        <Route path={ROUTES.Home} element={<Home />} />
+        <Route path={ROUTES.Chat} element={<ChatBot />} />
+        <Route path={ROUTES.Library} element={<Library />} />
+        <Route path={ROUTES.LibraryDetail} element={<LibraryDetail />} />
+        <Route path={ROUTES.Session} element={<SessionHistory />} />
+        <Route path={ROUTES.SessionDetail} element={<SessionDetail />} />
+        <Route path={ROUTES.Prompt} element={<PromptList />} />
+        <Route path={ROUTES.Intention} element={<Intention />} />
+        <Route path={ROUTES.IntentionDetail} element={<IntentionDetail />} />
+        <Route path={ROUTES.Chatbot} element={<ChatbotManagement />} />
+        <Route path={ROUTES.ChatbotDetail} element={<ChatbotDetail />} />
+        <Route path={ROUTES.Workspace} element={<CustomerService />} />
+        <Route path={ROUTES.WorkspaceChat} element={<CustomerService />} />
       </Routes>
       <CommonAlert />
     </BrowserRouter>
@@ -46,7 +54,7 @@ const SignedInRouter = () => {
 const AppRouter = () => {
   const auth = useAuth();
   const { t } = useTranslation();
-  if (auth.isLoading) {
+  if (auth?.isLoading) {
     return (
       <div className="page-loading">
         <Spinner />
@@ -54,7 +62,7 @@ const AppRouter = () => {
     );
   }
 
-  if (auth.error) {
+  if (auth?.error) {
     return (
       <>
         <ReSignIn />
@@ -64,20 +72,23 @@ const AppRouter = () => {
   }
 
   // auth.isAuthenticated = true
-  if (auth.isAuthenticated) {
-    return <SignedInRouter />;
+  if (auth?.isAuthenticated) {
+  return <SignedInRouter />;
   }
   return (
-    <div className="login-container">
-      <div className="text-center">
-        <Box variant="h2">{t('welcome')}</Box>
-        <div className="mt-10">
-          <Button variant="primary" onClick={() => void auth.signinRedirect()}>
-            {t('button.login')}
-          </Button>
-        </div>
-      </div>
-    </div>
+    <SignedInRouter />
+    // <>
+    // <div className="login-container">
+    //   <div className="text-center">
+    //     <Box variant="h2">{t('welcome')}</Box>
+    //     <div className="mt-10">
+    //       <Button variant="primary" onClick={() => void auth.signinRedirect()}>
+    //         {t('button.login')}
+    //       </Button>
+    //     </div>
+    //   </div>
+    // </div>
+    // </>
   );
 };
 

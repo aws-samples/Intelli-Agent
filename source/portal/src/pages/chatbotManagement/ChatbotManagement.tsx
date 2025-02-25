@@ -35,6 +35,7 @@ import {
   EMBEDDING_MODEL_LIST,
   INDEX_TYPE_OPTIONS,
   OPENAI_API_EMBEDDING_MODEL_LIST,
+  ROUTES,
 } from 'src/utils/const';
 import { useNavigate } from 'react-router-dom';
 import RightModal from '../right-modal';
@@ -482,15 +483,15 @@ const ChatbotManagement: React.FC = () => {
 
   return (
     <CommonLayout
-      activeHref="/chatbots"
+      activeHref={ROUTES.Chatbot}
       breadCrumbs={[
         {
           text: t('name'),
-          href: '/',
+          href: ROUTES.Home,
         },
         {
           text: t('chatbot'),
-          href: '/chatbots',
+          href: ROUTES.Chatbot,
         },
       ]}
     >

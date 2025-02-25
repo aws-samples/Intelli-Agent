@@ -19,6 +19,7 @@ import {
   setActiveDocumentId,
   // setAutoSendMessage,
 } from 'src/app/slice/cs-workspace';
+import { ROUTES } from 'src/utils/const';
 
 interface MessageProps {
   type: 'ai' | 'human';
@@ -96,7 +97,7 @@ const Message: React.FC<MessageProps> = ({
               {documentList && documentList.length > 0 && (
                 <div className="document-list">
                   {documentList.map((doc) => {
-                    const fileName = doc.source.split('/').pop() || '';
+                    const fileName = doc.source.split(ROUTES.Home).pop() || '';
                     const iconName = getFileIcon(fileName);
 
                     return (

@@ -1,0 +1,84 @@
+.pwd-div {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(45deg, rgba(0, 7, 22, 1), rgb(128 128 128 / 0%));
+
+  .container {
+    width: 600px;
+    background-color: white;
+    padding: 15px;
+    padding-bottom: 30px;
+    border-radius: 8px;
+  }
+
+  .banner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 70px;
+    margin-top: 20px;
+    vertical-align: middle;
+    font-size: 30px;
+    font-weight: 800;
+  }
+  .sub-title {
+    width: 100%;
+    text-align: center;
+    color: grey;
+    font-size: 12px;
+    margin-bottom: 35px;
+  }
+  
+  [class^="awsui_tabs-tab-label"] {
+    border-right: none !important;
+  }
+
+  [class^="awsui_tabs-header-with-divider"] {
+    border-bottom: none !important;
+  }
+
+  [class^="awsui_button-trigger"] {
+    border: 1px solid #80808061 !important;
+    border-radius: 5px !important;
+    height: 40px !important;
+  }
+  [class^="awsui_input_"] {
+    border: 1px solid #80808061 !important;
+    border-radius: 5px !important;
+    height: 40px !important;
+  }
+  [class^="awsui_options-list_"] li {
+    border: 1px solid #80808061 !important;
+    border-radius: 0px !important;
+  }
+
+  .keep {
+    color: grey;
+  }
+  
+  .disable {
+    color: rgb(155, 167, 182)
+  }
+  
+  .selected {
+    color: #0972d3;
+  }
+  
+  .item {
+    margin-bottom: 15px;
+  }
+
+  .button-group {
+    margin-top: 20px;
+    width: 90%;
+
+    [class^="send-email awsui_button"] {
+      text-align: center !important;
+      width: 100%;
+      height: 40px;
+    }
+  }
+}

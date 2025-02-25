@@ -46,7 +46,8 @@ import {
   SHOW_FIGURES,
   API_ENDPOINT,
   API_KEY_ARN,
-  CUSTOM_DEPLOYMENT_MODEL_LIST
+  CUSTOM_DEPLOYMENT_MODEL_LIST,
+  ROUTES,
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';
@@ -742,15 +743,15 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   return (
     <CommonLayout
       isLoading={loadingHistory}
-      activeHref={!historySessionId ? '/' : '/sessions'}
+      activeHref={!historySessionId ? ROUTES.Home : ROUTES.Session}
       breadCrumbs={[
         {
           text: t('name'),
-          href: '/',
+          href: ROUTES.Home,
         },
         {
           text: t('conversation'),
-          href: '/chats',
+          href: ROUTES.Chat,
         },
       ]}
     >

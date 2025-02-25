@@ -1,4 +1,7 @@
 import { SelectProps } from '@cloudscape-design/components';
+import ChatbotDetail from 'src/pages/chatbotManagement/ChatbotDetail';
+import Intention from 'src/pages/intention/Intention';
+import IntentionDetail from 'src/pages/intention/IntentionDetail';
 
 export const DEFAULT_ZH_LANG = 'zh';
 export const DEFAULT_EN_LANG = 'en';
@@ -334,3 +337,46 @@ export const HISTORY_CHATBOT_ID = 'history_chatbot_id';
 export const API_ENDPOINT = 'API_ENDPOINT';
 export const API_KEY_ARN = 'API_KEY_ARN';
 export const SHOW_FIGURES = 'SHOW_FIGURES';
+
+// export const ZH_LANGUAGE_LIST = ['zh', 'zh-cn', 'zh_CN', 'zh-CN'];
+export const EN_LANGUAGE_LIST = ['en', 'en-US', 'en_UK'];
+export const EN_LANG = 'en';
+export const ZH_LANG = 'zh';
+
+export const LOGIN_TYPE = {
+  USER: 'user',
+  SNS: 'sns',
+  OIDC: 'oidc',
+};
+
+export const TOKEN = "token"
+export const USER = "user"
+export const API_URL = "api_url"
+export const APP_URL = "app_url"
+export const OIDC_STORAGE = "oidc"
+export const OIDC_REDIRECT_URL = "oidc_uri"
+export const PROVIDER = "provider"
+export const CLIENT_ID = "client_id"
+export const REFRESH_TOKEN = "refresh_token"
+export const AUTO_LOGOUT_TIME = 15 * 60 * 1000
+
+export const ROUTES = {
+  Login: '/login',
+  FindPWD: '/find-password',
+  Register: '/create-account',
+  ChangePWD: '/change-password',
+  LoginCallback: '/signin',
+  Home: '/',
+  Chat: '/chats',
+  Library: '/library',
+  LibraryDetail: '/library/detail/:id',
+  Session: '/sessions',
+  SessionDetail: '/session/detail/:id',
+  Prompt: '/prompts',
+  Intention: '/intentions',
+  IntentionDetail: '/intention/detail/:id',
+  Chatbot: '/chatbots',
+  ChatbotDetail: '/chatbot/detail/:id',
+  Workspace: '/workspace',
+  WorkspaceChat: '/workspace/chat/:id'
+};

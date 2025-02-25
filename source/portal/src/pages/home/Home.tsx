@@ -18,6 +18,7 @@ import BANNER from 'src/assets/images/banner.jpeg';
 import { useNavigate } from 'react-router-dom';
 import Joyride, { CallBackProps, STATUS, ACTIONS } from 'react-joyride';
 import ConfigContext from 'src/context/config-context';
+import { ROUTES } from 'src/utils/const';
 
 const Home: React.FC = () => {
   const { t } = useTranslation();
@@ -32,35 +33,35 @@ const Home: React.FC = () => {
       disableBeacon: true,
     },
     {
-      target: 'a[href="/chats"]',
+      target: `a[href=${ROUTES.Chat}]`,
       content: t('tour.chat'),
       disableBeacon: true,
     },
     {
-      target: 'a[href="/sessions"]',
+      target: `a[href=${ROUTES.Session}]`,
       content: t('tour.session'),
       disableBeacon: true,
     },
     {
-      target: 'a[href="/chatbot-management"]',
+      target: `a[href=${ROUTES.Chatbot}]`,
       content: t('tour.chatbot'),
       disableBeacon: true,
     },
     {
-      target: 'a[href="/intention"]',
+      target: `a[href=${ROUTES.Intention}]`,
       content: t('tour.intention'),
       disableBeacon: true,
     },
   ];
 
   const kbStep = {
-    target: 'a[href="/library"]',
+    target: `a[href=${ROUTES.Library}]`,
     content: t('tour.kb'),
     disableBeacon: true,
   };
 
   const promptsStep = {
-    target: 'a[href="/prompts"]',
+    target: `a[href=${ROUTES.Prompt}]`,
     content: t('tour.prompt'),
     disableBeacon: true,
   };
@@ -246,7 +247,7 @@ const Home: React.FC = () => {
                       iconAlign="right"
                       variant="primary"
                       onClick={() => {
-                        navigate('/chats');
+                        navigate(ROUTES.Chat);
                       }}
                     >
                       {t('button.startToChat')}

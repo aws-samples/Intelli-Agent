@@ -10,14 +10,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.588.0",
     "@cloudscape-design/components": "3.0.296",
     "@cloudscape-design/global-styles": "1.0.9",
     "@reduxjs/toolkit": "^2.5.0",
+    "aws-amplify": "^6.11.0",
     "axios": "^1.7.4",
     "classnames": "^2.5.1",
     "date-fns": "^4.1.0",
     "i18next": "^23.11.3",
     "i18next-browser-languagedetector": "^7.2.1",
+    "i18next-http-backend": "^3.0.2",
+    "jwt-decode": "^4.0.0",
     "lodash": "^4.17.21",
     "mammoth": "^1.9.0",
     "moment": "^2.30.1",
@@ -39,7 +43,8 @@
     "remark-gfm": "^4.0.0",
     "remark-html": "^16.0.1",
     "sass": "^1.74.1",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "yaml": "^2.4.2"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.0",
@@ -61,6 +66,7 @@
     "eslint-plugin-react-refresh": "^0.4.6",
     "prettier": "^3.2.5",
     "typescript": "^5.2.2",
-    "vite": "^5.2.0"
+    "vite": "^5.2.0",
+    "web-vitals": "^2.1.4"
   }
 }

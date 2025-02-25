@@ -24,6 +24,7 @@ import {
   MODEL_OPTION,
   MAX_TOKEN,
   TEMPERATURE,
+  ROUTES,
 } from 'src/utils/const';
 import { useAuth } from 'react-oidc-context';
 import ConfigContext from 'src/context/config-context';
@@ -108,19 +109,19 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
     {
       type: 'link',
       text: t('chatbotManagement'),
-      href: '/chatbot-management',
+      href: ROUTES.Chatbot,
     },
     {
       type: 'link',
       text: t('intention'),
-      href: '/intention',
+      href: ROUTES.Intention,
     },
   ];
 
   const promptItem = {
     type: 'link',
     text: t('prompt'),
-    href: '/prompts',
+    href: ROUTES.Prompt,
   };
 
   const kbItem =
@@ -128,7 +129,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
       ? {
           type: 'link',
           text: t('docLibrary'),
-          href: '/library',
+          href: ROUTES.Library,
         }
       : null;
 
@@ -148,7 +149,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
           overflowMenuBackIconAriaLabel: t('menu.back') || '',
           overflowMenuDismissIconAriaLabel: t('menu.closeMenu') || '',}}
         identity={{
-          href: '/',
+          href: ROUTES.Home,
           title: t('name'),
         }}
         utilities={[
@@ -192,7 +193,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
         navigation={
           <SideNavigation
             activeHref={currentActiveHref}
-            header={{ href: '/', text: t('assetName') }}
+            header={{ href: ROUTES.Home, text: t('assetName') }}
             className="main-navigation"
             onFollow={(e) => {
               if (!e.detail.external) {
@@ -205,7 +206,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                 {
                   type: 'link',
                   text: t('homeSidebar'),
-                  href: '/',
+                  href: ROUTES.Home,
                   id: 'home-sidebar',
                   itemID: 'home-nav',
                 },
@@ -217,14 +218,14 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                     {
                       type: 'link',
                       text: t('chat'),
-                      href: '/chats',
+                      href: ROUTES.Chat,
                       id: 'chat',
                       itemID: 'chat-nav',
                     },
                     {
                       type: 'link',
                       text: t('sessionHistory'),
-                      href: '/sessions',
+                      href: ROUTES.Session,
                       id: 'session-history',
                       itemID: 'session-history-nav',
                     },

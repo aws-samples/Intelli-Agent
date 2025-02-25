@@ -32,7 +32,7 @@ import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import { alertMsg } from 'src/utils/utils';
 import { useNavigate, useParams } from 'react-router-dom';
-import { INDEX_TYPE_OPTIONS } from 'src/utils/const';
+import { INDEX_TYPE_OPTIONS, ROUTES } from 'src/utils/const';
 
 const INITIAL_ADD_INDEX = {
   name: '',
@@ -127,7 +127,7 @@ const ChatbotDetail: React.FC = () => {
   };
 
   const discardChange = () => {
-    navigate('/chatbot-management');
+    navigate(ROUTES.Chatbot);
   };
   const addNewIndex = () => {
     setAddIndexModel(true);
@@ -180,7 +180,7 @@ const ChatbotDetail: React.FC = () => {
         alertMsg(t('updated'), 'success');
         setTimeout(() => {
           setLoadingSave(false);
-          navigate('/chatbot-management');
+          navigate(ROUTES.Chatbot);
         }, 1500);
 
         // setShowCreate(false);
@@ -249,15 +249,15 @@ const ChatbotDetail: React.FC = () => {
 
   return (
     <CommonLayout
-      activeHref="/chatbots"
+      activeHref={ROUTES.Chatbot}
       breadCrumbs={[
         {
           text: t('name'),
-          href: '/',
+          href: ROUTES.Home,
         },
         {
           text: t('chatbot'),
-          href: '/chatbots',
+          href: ROUTES.Chatbot,
         },
       ]}
     >
