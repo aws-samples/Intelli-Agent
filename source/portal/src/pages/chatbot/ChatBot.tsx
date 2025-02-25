@@ -739,6 +739,45 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     localStorage.setItem('SHOW_FIGURES', showFigures ? "true" : "false");
   }, [showFigures]);
 
+  const handleStopMessage = () => {
+    const message = {
+      message_type: "STOP",
+      session_id: sessionId,
+      user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
+    };
+
+    console.info('Send stop message:', message);
+    sendMessage(JSON.stringify(message));
+    
+    // Reset states to stop generation
+    setAiSpeaking(false);
+    setIsMessageEnd(true);
+  };
+
+  // Update the render send button section
+  const renderSendButton = () => {
+    if (aiSpeaking) {
+      return (
+        <Button
+          variant="icon"
+          onClick={handleStopMessage}
+          iconName="status-stopped"
+          ariaLabel={t('button.stop')}
+        />
+      );
+    }
+
+    return (
+      <Button
+        variant="icon"
+        disabled={readyState !== ReadyState.OPEN}
+        onClick={handleClickSendMessage}
+        iconName="arrow-up"
+        ariaLabel={t('button.send')}
+      />
+    );
+  };
+
   return (
     <CommonLayout
       isLoading={loadingHistory}
@@ -1130,14 +1169,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               />
             </div>
             <div>
-              <Button
-                disabled={aiSpeaking || readyState !== ReadyState.OPEN}
-                onClick={() => {
-                  handleClickSendMessage();
-                }}
-              >
-                {t('button.send')}
-              </Button>
+              {renderSendButton()}
             </div>
           </div>
           <div>

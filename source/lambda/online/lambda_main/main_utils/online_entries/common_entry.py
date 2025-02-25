@@ -21,7 +21,7 @@ from langchain_core.messages import ToolMessage, AIMessage
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.python_utils import add_messages, update_nest_dict
-from common_logic.common_utils.response_utils import process_response
+from common_logic.common_utils.response_utils import process_response, clear_stop_signal
 from common_logic.langchain_integration.tools import ToolManager
 from langchain_core.tools import BaseTool
 from langchain_core.messages.tool import ToolCall
@@ -271,10 +271,12 @@ def intention_detection(state: ChatbotState):
 
 @node_monitor_wrapper
 def agent(state: ChatbotState):
-    # two cases to invoke rag function
+    # Two cases to invoke rag function
     # 1. when valid intention fewshot found
     # 2. for the first time, agent decides to give final results
-    # deal with once tool calling
+    # Deal with once tool calling
+    # The agent node can set exit_tool_calling=True in two ways:
+    # Case 1: Direct tool response
     last_tool_messages = state["last_tool_messages"]
     if last_tool_messages and len(last_tool_messages) == 1:
         last_tool_message = last_tool_messages[0]
@@ -368,6 +370,7 @@ def agent(state: ChatbotState):
         state["stream"],
         state["ws_connection_id"]
     )
+    # Case 2: Agent decides no more tools needed
     if not agent_message.tool_calls:
         return {"answer": agent_message.content, "exit_tool_calling": True}
 
@@ -407,13 +410,7 @@ def llm_direct_results_generation(state: ChatbotState):
 
 @node_monitor_wrapper
 def tool_execution(state):
-    """executor lambda
-    Args:
-        state (NestUpdateState): _description_
-
-    Returns:
-        _type_: _description_
-    """
+    """Execute lambda functions"""
     tools: List[BaseTool] = state['tools']
 
     def handle_tool_errors(e):
@@ -481,9 +478,6 @@ def agent_route(state: dict):
     # if state["agent_repeated_call_validation"]:
 
     return "valid tool calling"
-    # else:
-    #     # TODO give final strategy
-    #     raise RuntimeError
 
 
 #############################
@@ -732,7 +726,7 @@ def common_entry(event_body):
         },
         config={"recursion_limit": 20}
     )
-    # print('extra_response',response['extra_response'])
+    clear_stop_signal(ws_connection_id)
     return response["app_response"]
 
 

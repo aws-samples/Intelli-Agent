@@ -49,7 +49,7 @@ def filter_response(res: Iterable, state: dict):
                     ref_num = int(ref_content)
                     references.append(ref_num)
                 except ValueError:
-                    logger.error(f"Invalid reference number: {ref_content}")
+                    logger.warning(f"Invalid reference number: {ref_content}")
                 buffer = ""
             continue
         else:
