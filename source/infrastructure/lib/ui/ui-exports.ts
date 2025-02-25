@@ -50,6 +50,18 @@ export class UiExportsConstruct extends Construct {
     const configFile = 'aws-exports.json';
     new AwsCustomResource(this, 'WebConfig', {
       logRetention: RetentionDays.ONE_DAY,
+      onCreate: {
+        action: 'putObject',
+        parameters: {
+          Body: JSON.stringify(props.uiProps),
+          Bucket: props.portalBucketName,
+          CacheControl: 'max-age=0, no-cache, no-store, must-revalidate',
+          ContentType: 'application/json',
+          Key: configFile,
+        },
+        service: 'S3',
+        physicalResourceId: PhysicalResourceId.of(`config-${Date.now()}`),
+      },
       onUpdate: {
         action: 'putObject',
         parameters: {
@@ -65,7 +77,6 @@ export class UiExportsConstruct extends Construct {
       policy: AwsCustomResourcePolicy.fromStatements([
         new PolicyStatement({
           actions: ['s3:PutObject'],
-          // resources: [props.portalBucket.arnForObjects(configFile)]
           resources: ["*"]
         })
       ])

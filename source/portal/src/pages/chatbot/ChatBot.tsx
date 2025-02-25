@@ -47,7 +47,7 @@ import {
   API_ENDPOINT,
   API_KEY_ARN,
   CUSTOM_DEPLOYMENT_MODEL_LIST,
-  ROUTES,
+  ROUTES
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';

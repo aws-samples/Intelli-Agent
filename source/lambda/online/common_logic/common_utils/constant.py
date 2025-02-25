@@ -52,7 +52,7 @@ class IntentType(ConstantBase):
     COMMON_QUICK_REPLY_TOO_SHORT = "common_quick_reply_too_short_query"
     # domain intention
     # KNOWLEDGE_QA = "knowledge_qa"
-    MARKET_EVENT = 'market_event'
+    MARKET_EVENT = "market_event"
     # text2sql intention
     TEXT2SQL_SQL_QA = "text2sql_sql_qa"
     TEXT2SQL_SQL_QUICK_REPLY = "text2sql_sql_quick_reply"
@@ -73,7 +73,7 @@ class MKTUserType(ConstantBase):
 
 
 class HistoryType(ConstantBase):
-    DDB = 'ddb'
+    DDB = "ddb"
     MESSAGE = "message"
 
 
@@ -95,14 +95,14 @@ class LLMTaskType(ConstantBase):
     RETAIL_TOOL_CALLING = "retail_tool_calling"
     RAG = "rag"
     MTK_RAG = "mkt_rag"
-    CHAT = 'chat'
+    CHAT = "chat"
     AUTO_EVALUATION = "auto_evaluation"
 
 
 class MessageType(ConstantBase):
-    HUMAN_MESSAGE_TYPE = 'human'
-    AI_MESSAGE_TYPE = 'ai'
-    SYSTEM_MESSAGE_TYPE = 'system'
+    HUMAN_MESSAGE_TYPE = "human"
+    AI_MESSAGE_TYPE = "ai"
+    SYSTEM_MESSAGE_TYPE = "system"
     OBSERVATION = "observation"
     TOOL_MESSAGE_TYPE = "tool"
 
@@ -132,7 +132,7 @@ class ModelProvider(ConstantBase):
     BEDROCK = "Bedrock"
     BRCONNECTOR_BEDROCK = "Bedrock API"
     OPENAI = "OpenAI API"
-    SAGEMAKER_MULTIMODEL = "SageMaker"
+    SAGEMAKER = "SageMaker"
 
 
 class LLMModelType(ConstantBase):

@@ -48,9 +48,11 @@
   "dependencies": {
     "@aws-cdk/aws-glue-alpha": "^2.118.0-alpha.0",
     "@aws-cdk/aws-lambda-python-alpha": "^2.139.0-alpha.0",
+    "@aws-sdk/client-sts": "^3.750.0",
+    "@aws-sdk/credential-providers": "^3.750.0",
+    "@aws-sdk/shared-ini-file-loader": "^3.370.0",
     "@aws-solutions-constructs/aws-cloudfront-s3": "2.9.0",
     "aws-cdk-lib": "^2.118.0",
-    "aws-sdk": "^2.1664.0",
     "commander": "^11.0.0",
     "constructs": "^10.0.5",
     "dotenv": "^16.0.3",
