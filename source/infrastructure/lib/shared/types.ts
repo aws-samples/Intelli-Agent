@@ -96,6 +96,8 @@ export enum SupportedRegion {
   US_EAST_2 = "us-east-2",
   US_WEST_1 = "us-west-1",
   US_WEST_2 = "us-west-2",
+  CN_NORTH_1 = "cn-north-1",
+  CN_NORTHWEST_1 = "cn-northwest-1",
 }
 
 export enum SupportedBedrockRegion {

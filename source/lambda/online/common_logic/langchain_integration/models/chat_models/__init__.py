@@ -75,9 +75,15 @@ def _import_emd_models():
     from . import emd_models
 
 
+def _import_sagemaker_models():
+    from . import sagemaker_models
+
+
 def _load_module(model_provider):
     assert model_provider in MODEL_PROVIDER_LOAD_FN_MAP, (
-        model_provider, MODEL_PROVIDER_LOAD_FN_MAP)
+        model_provider,
+        MODEL_PROVIDER_LOAD_FN_MAP,
+    )
     MODEL_PROVIDER_LOAD_FN_MAP[model_provider]()
 
 
@@ -85,41 +91,7 @@ MODEL_PROVIDER_LOAD_FN_MAP = {
     ModelProvider.BEDROCK: _import_bedrock_models,
     ModelProvider.BRCONNECTOR_BEDROCK: _import_brconnector_bedrock_models,
     ModelProvider.OPENAI: _import_openai_models,
-    ModelProvider.EMD: _import_emd_models
-
+    ModelProvider.EMD: _import_emd_models,
+    ModelProvider.SAGEMAKER: _import_sagemaker_models,
 }
 
-
-# MODEL_MODULE_LOAD_FN_MAP = {
-#     LLMModelType.CHATGPT_35_TURBO_0125: _import_openai_models,
-#     LLMModelType.CHATGPT_4_TURBO: _import_openai_models,
-#     LLMModelType.CHATGPT_4O: _import_openai_models,
-#     LLMModelType.CLAUDE_2: _import_bedrock_models,
-#     LLMModelType.CLAUDE_INSTANCE: _import_bedrock_models,
-#     LLMModelType.CLAUDE_21: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_SONNET: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_HAIKU: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_5_SONNET: _import_bedrock_models,
-#     LLMModelType.LLAMA3_1_70B_INSTRUCT: _import_bedrock_models,
-#     LLMModelType.LLAMA3_2_90B_INSTRUCT: _import_bedrock_models,
-#     LLMModelType.MISTRAL_LARGE_2407: _import_bedrock_models,
-#     LLMModelType.COHERE_COMMAND_R_PLUS: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_5_SONNET_V2: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_5_HAIKU: _import_bedrock_models,
-#     LLMModelType.NOVA_PRO: _import_bedrock_models,
-#     LLMModelType.NOVA_LITE: _import_bedrock_models,
-#     LLMModelType.NOVA_MICRO: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_SONNET_US: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_OPUS_US: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_HAIKU_US: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_5_SONNET_V2_US: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_5_HAIKU_US: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_SONNET_EU: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_5_SONNET_EU: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_HAIKU_EU: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_SONNET_APAC: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_5_SONNET_APAC: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_HAIKU_APAC: _import_bedrock_models,
-#     LLMModelType.LLAMA3_1_70B_INSTRUCT_US: _import_bedrock_models,
-#     LLMModelType.QWEN25_INSTRUCT_72B_AWQ: _import_emd_models,
-# }

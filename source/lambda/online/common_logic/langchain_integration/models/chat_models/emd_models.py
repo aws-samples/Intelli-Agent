@@ -18,7 +18,6 @@ class SageMakerVllmChatModel(_SageMakerVllmChatModel):
     enable_prefill: bool = True
 
 
-
 class Qwen25Instruct72bAwq(ChatModelBase):
     model_id = LLMModelType.QWEN25_INSTRUCT_72B_AWQ
     enable_any_tool_choice: bool = False

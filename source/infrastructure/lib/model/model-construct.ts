@@ -68,7 +68,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
   public defaultEmbeddingModelName: string = "";
   public defaultKnowledgeBaseModelName: string = "";
   modelAccount = Aws.ACCOUNT_ID;
-  modelRegion = Aws.REGION;
+  modelRegion: string;
   modelIamHelper: IAMHelper;
   modelExecutionRole?: iam.Role = undefined;
   modelImageUrlDomain?: string;
@@ -77,6 +77,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
 
   constructor(scope: Construct, id: string, props: ModelConstructProps) {
     super(scope, id);
+    this.modelRegion = props.config.deployRegion;
     this.modelIamHelper = props.sharedConstructOutputs.iamHelper;
 
     // handle embedding model name setup
@@ -130,7 +131,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
         },
       });
       rule.addTarget(new targets.LambdaFunction(modelTriggerLambda));
- 
+
     }
   }
 
@@ -264,6 +265,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
     this.modelVariantName = "variantProd";
 
     const isChinaRegion = this.modelRegion === "cn-north-1" || this.modelRegion === "cn-northwest-1";
+
     this.modelImageUrlDomain = isChinaRegion ? ".amazonaws.com.cn/" : ".amazonaws.com/";
     this.modelPublicEcrAccount = isChinaRegion ? "727897471807.dkr.ecr." : "763104351884.dkr.ecr.";
 

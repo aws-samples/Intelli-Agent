@@ -22,8 +22,6 @@ class SageMakerVllmRerank(_SageMakerVllmRerank):
     pass 
 
 
-from emd.integrations.langchain_clients import SageMakerVllmRerank
-
 class EmdRerankBaseModel(RerankModelBase):
     model_provider = ModelProvider.EMD
 

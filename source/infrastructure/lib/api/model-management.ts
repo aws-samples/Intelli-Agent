@@ -40,7 +40,7 @@ export class ModelApi extends Construct {
 
   constructor(scope: Construct, id: string, props: ModelApiProps) {
     super(scope, id);
-    
+
     this.api = props.api;
     this.auth = props.auth;
     this.modelTable = props.modelTable;
@@ -81,5 +81,7 @@ export class ModelApi extends Construct {
     apiResourceModelManagementDestroy.addMethod("POST", lambdaModelIntegration, this.genMethodOption(this.api, this.auth, null));
     const apiResourceModelManagementStatus = apiResourceModelManagement.addResource("status").addResource("{modelId}");
     apiResourceModelManagementStatus.addMethod("GET", lambdaModelIntegration, this.genMethodOption(this.api, this.auth, null));
+    const apiResourceModelManagementEndpoints = apiResourceModelManagement.addResource("endpoints");
+    apiResourceModelManagementEndpoints.addMethod("GET", lambdaModelIntegration, this.genMethodOption(this.api, this.auth, null));
   }
 }

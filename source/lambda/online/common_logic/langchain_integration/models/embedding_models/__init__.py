@@ -1,7 +1,9 @@
-from common_logic.common_utils.constant import LLMModelType, ModelProvider
-from ..model_config import EmbeddingModelConfig
 from typing import Union
 from .. import ModelBase 
+
+from common_logic.common_utils.constant import LLMModelType, ModelProvider
+
+from ..model_config import EmbeddingModelConfig
 
 
 class EmbeddingModelBase(ModelBase):
@@ -50,7 +52,9 @@ def _import_sagemaker_embeddings():
 
 def _load_module(model_provider):
     assert model_provider in MODEL_PROVIDER_LOAD_FN_MAP, (
-        model_provider, MODEL_PROVIDER_LOAD_FN_MAP)
+        model_provider,
+        MODEL_PROVIDER_LOAD_FN_MAP,
+    )
     MODEL_PROVIDER_LOAD_FN_MAP[model_provider]()
 
 
