@@ -11,7 +11,6 @@ const ChangePWD: FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [projectName, setProjectName] = useState("" as string);
-  const [selectedThird, setSelectedThird] = useState("" as string);
   const [newPass, setNewPass] = useState("" as string);
   const [error, setError] = useState("" as string);
   const [confirmPass, setConfirmPass] = useState("" as string);
@@ -34,7 +33,7 @@ const ChangePWD: FC = () => {
 
 
   useEffect(()=>{
-    setIsloading(true)
+    // setIsloading(true)
     if(params.provider === undefined){
       const loadConfig = async ()=> {
         let response = await fetch('/config.yaml')
@@ -55,7 +54,7 @@ const ChangePWD: FC = () => {
           region,
           clientId
         })
-        setIsloading(false)
+        // setIsloading(false)
       })
     }
   },[])
@@ -125,13 +124,13 @@ const ChangePWD: FC = () => {
     navigate(ROUTES.Register)
   }
 
-  const handleMouseEnter =(target: string)=>{
-    setSelectedThird(target)
-  }
+  // const handleMouseEnter =(target: string)=>{
+  //   setSelectedThird(target)
+  // }
 
-  const handleMouseLeave =()=>{
-    setSelectedThird("")
-  }
+  // const handleMouseLeave =()=>{
+  //   setSelectedThird("")
+  // }
 
   const changeNewPass=(target:string)=>{
       if(target===null || target===""){
@@ -259,12 +258,12 @@ useEffect(()=>{
           {(params.thirdLogin && params.thirdLogin.length>0)?(
           <Grid gridDefinition={[{colspan:4},{colspan:8}]}>
             <SpaceBetween direction='horizontal' size='s'>
-              {params.thirdLogin.map((item:any)=>{
+              {/* {params.thirdLogin.map((item:any)=>{
                 return (<div key={item.type} onMouseEnter={()=>handleMouseEnter(item.type)} onMouseLeave={()=>handleMouseLeave(item.type)}>
                           <img src={selectedThird===item.type? `../imgs/${item.iconUrlSelected}.png`:`../imgs/${item.iconUrl}.png`} alt="" style={item.iconStyle}/>
                         </div>)
                 })
-              }
+              } */}
             </SpaceBetween>
             <div style={{paddingTop:15, textAlign:'right'}}>
               <span style={{color: 'rgb(128, 128, 128)'}}>Don't have an account? </span>

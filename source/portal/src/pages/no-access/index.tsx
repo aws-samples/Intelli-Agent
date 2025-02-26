@@ -3,7 +3,6 @@ import Header from '@cloudscape-design/components/header';
 import './style.scss';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import React from 'react';
 
 const NoAccess = () => {
   const jumpToIndex = () => {

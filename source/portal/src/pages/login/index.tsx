@@ -1,6 +1,6 @@
 import { Button, Checkbox, Grid, Link, SpaceBetween, Spinner, Tabs } from '@cloudscape-design/components';
 import { Hub } from "aws-amplify/utils";
-import { signInWithRedirect, fetchUserAttributes, fetchAuthSession, signOut } from "aws-amplify/auth";
+import { fetchUserAttributes, fetchAuthSession } from "aws-amplify/auth";
 
 import { FC, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -9,13 +9,11 @@ import OIDC from './component/oidc';
 import SNS from './component/sns';
 import User from './component/user';
 import './style.scss';
-import axios, { AxiosError } from 'axios';
+import { AxiosError } from 'axios';
 // import apiClient from 'request/client';
 // import { APP_URL, EN_LANG, LOGIN_TYPE, OIDC_STORAGE, ROUTES, TOKEN, USER, ZH_LANG, ZH_LANGUAGE_LIST } from 'common/constants';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Amplify } from 'aws-amplify';
-import { APP_URL, EN_LANG, LOGIN_TYPE, OIDC_STORAGE, ROUTES, TOKEN, USER, ZH_LANG, ZH_LANGUAGE_LIST } from 'src/utils/const';
+import { EN_LANG, LOGIN_TYPE, OIDC_STORAGE, ROUTES, TOKEN, USER, ZH_LANG, ZH_LANGUAGE_LIST } from 'src/utils/const';
 
 
 const Login: FC = () => {
@@ -271,7 +269,7 @@ const Login: FC = () => {
   //   }
   // }
 
-  let userInfo: any= {}
+  // let userInfo: any= {}
   const oidcLogin = async(currentProvider: any)=>{
     let response: any
     try{
@@ -377,20 +375,20 @@ const Login: FC = () => {
 export default Login;
 
 
-const processForUserAlreadySignin = async(navigate: any) => {
-  try {
-    const currentSession = await fetchAuthSession();
-    const currentUser = await fetchUserAttributes();
-    localStorage.setItem(OIDC_STORAGE, "midway");
-    localStorage.setItem(USER, currentUser.email?.split('@')[0] || currentUser.username || currentUser.name || "");
-    localStorage.setItem(TOKEN, JSON.stringify({ access_token: currentSession.tokens?.accessToken.toString(), id_token: currentSession.tokens?.idToken?.toString() }));
-    navigate(ROUTES.Home);
-  } catch (error) {
-    if ((error as { name: string }).name === 'NotAuthorizedException') {
-      await signOut({ global: true });
-      return null;
-    } else {
-      console.error('Failed to fetch current user:', error);
-    }
-  }
-}
+// const processForUserAlreadySignin = async(navigate: any) => {
+//   try {
+//     const currentSession = await fetchAuthSession();
+//     const currentUser = await fetchUserAttributes();
+//     localStorage.setItem(OIDC_STORAGE, "midway");
+//     localStorage.setItem(USER, currentUser.email?.split('@')[0] || currentUser.username || currentUser.name || "");
+//     localStorage.setItem(TOKEN, JSON.stringify({ access_token: currentSession.tokens?.accessToken.toString(), id_token: currentSession.tokens?.idToken?.toString() }));
+//     navigate(ROUTES.Home);
+//   } catch (error) {
+//     if ((error as { name: string }).name === 'NotAuthorizedException') {
+//       await signOut({ global: true });
+//       return null;
+//     } else {
+//       console.error('Failed to fetch current user:', error);
+//     }
+//   }
+// }

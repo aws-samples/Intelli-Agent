@@ -1,9 +1,7 @@
 import { Input, Select } from '@cloudscape-design/components';
 import './style.scss';
-import { useContext } from 'react';
 // import ConfigContext from 'context/config-context';
 import { useTranslation } from 'react-i18next';
-import ConfigContext from 'src/context/config-context';
 interface OIDCProps {
     provider: any,
     username: string,

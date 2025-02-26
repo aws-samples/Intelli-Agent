@@ -39,7 +39,7 @@ export interface AuthHubProps {
           "APILambdaAuthLayer",
           {
             code: Code.fromAsset(
-              path.join(__dirname, "../../lambda"),
+              path.join(__dirname, "../../../lambda/auth-hub"),
               {
                 bundling: {
                   image: Runtime.PYTHON_3_12.bundlingImage,
@@ -65,7 +65,7 @@ export interface AuthHubProps {
 
         const authFunction = new Function(this, `${solutionName}AuthFunction`, {
           runtime: Runtime.PYTHON_3_12,
-          code: Code.fromAsset('../../lambda'),
+          code: Code.fromAsset(path.join(__dirname, "../../../lambda/auth-hub"),),
           handler: 'auth_api.handler',
           memorySize: 4096,
           timeout: Duration.seconds(10),

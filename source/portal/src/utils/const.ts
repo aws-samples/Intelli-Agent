@@ -1,7 +1,4 @@
 import { SelectProps } from '@cloudscape-design/components';
-import ChatbotDetail from 'src/pages/chatbotManagement/ChatbotDetail';
-import Intention from 'src/pages/intention/Intention';
-import IntentionDetail from 'src/pages/intention/IntentionDetail';
 
 export const DEFAULT_ZH_LANG = 'zh';
 export const DEFAULT_EN_LANG = 'en';

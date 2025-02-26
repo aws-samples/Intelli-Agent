@@ -1,10 +1,9 @@
 import { Alert } from '@cloudscape-design/components';
 import React, { useEffect, useState } from 'react';
 
-import { COMMON_ALERT_TYPE } from './types/data_config';
+import { COMMON_ALERT_PROPS, COMMON_ALERT_TYPE } from './types/data_config';
 import classnames from 'classnames';
 import './style.scss';
-import { CommonAlertProps } from 'common/types';
 
 const CommonAlert: React.FC = () => {
   const [alertVisible, setAlertVisible] = useState(false);
@@ -12,7 +11,7 @@ const CommonAlert: React.FC = () => {
   const [alertProps, setAlertProps] = useState({
     alertTxt: '',
     alertType: 'info',
-  } as CommonAlertProps);
+  } as COMMON_ALERT_PROPS);
   useEffect(() => {
     window.addEventListener('showAlertMsg', showAlertMsg);
     return () => {

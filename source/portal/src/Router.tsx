@@ -4,9 +4,8 @@ import Library from './pages/library/Library';
 import LibraryDetail from './pages/library/LibraryDetail';
 import CommonAlert from './comps/alert';
 import { useAuth } from 'react-oidc-context';
-import { Box, Button, Spinner } from '@cloudscape-design/components';
+import { Spinner } from '@cloudscape-design/components';
 import ReSignIn from './comps/ReSignIn';
-import { useTranslation } from 'react-i18next';
 import SessionHistory from './pages/history/SessionHistory';
 import SessionDetail from './pages/history/SessionDetail';
 import PromptList from './pages/prompts/PromptList';
@@ -53,7 +52,6 @@ const SignedInRouter = () => {
 
 const AppRouter = () => {
   const auth = useAuth();
-  const { t } = useTranslation();
   if (auth?.isLoading) {
     return (
       <div className="page-loading">

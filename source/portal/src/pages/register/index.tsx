@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import yaml from 'yaml';
 import './style.scss';
 // import { EN_LANG, ROUTES, ZH_LANG, ZH_LANGUAGE_LIST } from 'common/constants';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { EN_LANG, ROUTES, ZH_LANG, ZH_LANGUAGE_LIST } from 'src/utils/const';
 
@@ -12,7 +11,6 @@ const Register: FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState(null as any);
   const [projectName, setProjectName] = useState("" as string);
-  const [selectedThird, setSelectedThird] = useState("" as string);
   const [loginType, setLoginType] = useState([] as any[]);
   const [thirdLogin, setThirdLogin] = useState([] as any[]);
   const [author, setAuthor] = useState("" as string)
@@ -110,13 +108,13 @@ const Register: FC = () => {
     navigate(ROUTES.Login)
   }
 
-  const handleMouseEnter =(target: string)=>{
-    setSelectedThird(target)
-  }
+  // const handleMouseEnter =(target: string)=>{
+  //   setSelectedThird(target)
+  // }
 
-  const handleMouseLeave =(target: string)=>{
-    setSelectedThird("")
-  }
+  // const handleMouseLeave =()=>{
+  //   setSelectedThird("")
+  // }
 
   const changeLoginType = (checked:boolean,loginType: string)=>{
     if(checked){ 
@@ -224,12 +222,12 @@ const Register: FC = () => {
           {(thirdLogin && thirdLogin.length>0)?(
           <Grid gridDefinition={[{colspan:4},{colspan:8}]}>
             <SpaceBetween direction='horizontal' size='s'>
-              {thirdLogin.map(item=>{
+              {/* {thirdLogin.map(item=>{
                 return (<div key={item.type} onMouseEnter={()=>handleMouseEnter(item.type)} onMouseLeave={()=>handleMouseLeave(item.type)}>
                           <img src={selectedThird===item.type? `../imgs/${item.iconUrlSelected}.png`:`../imgs/${item.iconUrl}.png`} alt="" style={item.iconStyle}/>
                         </div>)
                 })
-              }
+              } */}
             </SpaceBetween>
             <div style={{paddingTop:15, textAlign:'right'}}>
               <span style={{color: 'rgb(128, 128, 128)'}}>{t('auth:create:hasAccount')}</span>

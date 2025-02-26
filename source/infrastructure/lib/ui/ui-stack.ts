@@ -28,14 +28,14 @@ interface UIStackProps extends StackProps {
 export interface UIStackOutputs {
   readonly mainPortalConstruct: PortalConstruct;
   readonly clientPortalConstruct: PortalConstruct;
-  readonly userConstruct: UserConstruct;
+  readonly userConstruct?: UserConstruct;
 }
 
 export class UIStack extends Stack implements UIStackOutputs {
 
   public mainPortalConstruct: PortalConstruct;
   public clientPortalConstruct: PortalConstruct;
-  public userConstruct: UserConstruct;
+  public userConstruct?: UserConstruct;
 
   constructor(scope: Construct, id: string, props: UIStackProps) {
     super(scope, id, props);
@@ -94,6 +94,7 @@ export class UIStack extends Stack implements UIStackOutputs {
     }
     this.mainPortalConstruct = mainPortalConstruct;
     this.clientPortalConstruct = clientPortalConstruct;
+    
 
     
 

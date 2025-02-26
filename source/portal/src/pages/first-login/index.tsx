@@ -1,4 +1,4 @@
-import { Button, Checkbox, FormField, Grid, Input, Link, Select, SpaceBetween } from '@cloudscape-design/components';
+import { Button, FormField, Grid, Input, Link, Select, SpaceBetween } from '@cloudscape-design/components';
 import { FC, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import yaml from 'yaml';
@@ -10,9 +10,8 @@ const FIRSTLOGIN: FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState(null as any);
   const [projectName, setProjectname] = useState("" as string);
-  const [selectedThird, setSelectedThird] = useState("" as string);
-  const [loginType, setLoginType] = useState([] as any[]);
-  const [selectedLoginType, setSelectedLoginType] = useState("oidc" as string);
+  // const [loginType, setLoginType] = useState([] as any[]);
+  // const [selectedLoginType, setSelectedLoginType] = useState("oidc" as string);
   const [thirdLogin, setThirdLogin] = useState([] as any[]);
   const [author, setAuthor] =useState("" as string)
   const [username, setUsername] =useState("" as string)
@@ -74,7 +73,7 @@ const FIRSTLOGIN: FC = () => {
         tmp_third_login = configData.login.third
         setThirdLogin(tmp_third_login)
       }
-      setLoginType(tmp_login_type)
+      // setLoginType(tmp_login_type)
     })
   })
 
@@ -94,14 +93,14 @@ const FIRSTLOGIN: FC = () => {
     return description
   }
   
-  const changeLoginType = (checked:boolean,loginType: string)=>{
-    if(checked){ 
-      setSelectedLoginType(loginType)
-    } else{
-      setSelectedLoginType("")
-    }
+  // const changeLoginType = (checked:boolean,loginType: string)=>{
+  //   if(checked){ 
+  //     setSelectedLoginType(loginType)
+  //   } else{
+  //     setSelectedLoginType("")
+  //   }
     
-  }
+  // }
 
   const changeLanguage = () => {
     if(lang===EN_LANG){
@@ -121,13 +120,13 @@ const FIRSTLOGIN: FC = () => {
     navigate(ROUTES.Register)
   }
 
-  const handleMouseEnter =(target: string)=>{
-    setSelectedThird(target)
-  }
+  // const handleMouseEnter =(target: string)=>{
+  //   setSelectedThird(target)
+  // }
 
-  const handleMouseLeave =(target: string)=>{
-    setSelectedThird("")
-  }
+  // const handleMouseLeave =(target: string)=>{
+  //   setSelectedThird("")
+  // }
   
   const sendEmail=()=> {
     setError(t('auth:waiting'))
@@ -181,12 +180,12 @@ const FIRSTLOGIN: FC = () => {
           {(thirdLogin && thirdLogin.length>0)?(
           <Grid gridDefinition={[{colspan:4},{colspan:8}]}>
             <SpaceBetween direction='horizontal' size='s'>
-              {thirdLogin.map(item=>{
+              {/* {thirdLogin.map(item=>{
                 return (<div key={item.type} onMouseEnter={()=>handleMouseEnter(item.type)} onMouseLeave={()=>handleMouseLeave(item.type)}>
                           <img src={selectedThird===item.type? `../imgs/${item.iconUrlSelected}.png`:`../imgs/${item.iconUrl}.png`} alt="" style={item.iconStyle}/>
                         </div>)
                 })
-              }
+              } */}
             </SpaceBetween>
             <div style={{paddingTop:15, textAlign:'right'}}>
               <span style={{color: 'rgb(128, 128, 128)'}}>{t('auth:first-login.needAccount')}</span>
