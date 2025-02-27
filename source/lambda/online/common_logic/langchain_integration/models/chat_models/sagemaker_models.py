@@ -7,7 +7,7 @@ from common_logic.common_utils.constant import (
     ModelProvider,
 )
 from dmaa.integrations.langchain_clients import (
-    SageMakerVllmChatModel as _SageMakerVllmChatModel,
+    SageMakerVllmChatModel as _SageMakerVllmChatModel
 )
 
 from . import Model

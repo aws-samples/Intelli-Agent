@@ -144,7 +144,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         BEDROCK_AWS_SECRET_ACCESS_KEY: props.config.chat.bedrockSk || ""
       },
       // layers: [apiLambdaOnlineSourceLayer, modelLayer],
-      layers: [apiLambdaOnlineSourceLayer],
+      layers: [apiLambdaOnlineSourceLayer]
     });
     this.lambdaOnlineMain = lambdaOnlineMain.function;
 
