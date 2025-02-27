@@ -45,7 +45,7 @@ const embeddingModels = [
 const supportedRegions = Object.values(SupportedRegion) as string[];
 const supportedBedrockRegions = Object.values(SupportedBedrockRegion) as string[];
 
-const llms = [
+let llms = [
   {
     provider: "bedrock",
     name: "anthropic.claude-3-sonnet-20240229-v1:0",
@@ -195,6 +195,7 @@ async function processCreateOptions(options: any): Promise<void> {
   ]
 
   const mandatoryQuestionAnswers: any = await prompt(mandatoryQuestions);
+  const deployInChina = mandatoryQuestionAnswers.intelliAgentDeployRegion.includes("cn");
 
   let questions = [
     {
@@ -330,36 +331,38 @@ async function processCreateOptions(options: any): Promise<void> {
       initial: options.enableChat ?? true,
     },
     {
-      type: "input",
+      type: "select",
       name: "bedrockRegion",
+      hint: "ENTER to confirm selection",
       message: "Which region would you like to use Bedrock?",
-      initial: options.bedrockRegion ?? mandatoryQuestionAnswers.intelliAgentDeployRegion,
-      validate(bedrockRegion: string) {
-        if (Object.values(supportedBedrockRegions).includes(bedrockRegion)) {
-          return true;
+      choices: supportedBedrockRegions.map((region) => ({ name: region, value: region })),
+      initial: options.bedrockRegion,
+      validate(value: string) {
+        if ((this as any).state.answers.bedrockRegion) {
+          return value ? true : "Select a Bedrock Region";
         }
-        return "Enter a valid region for Bedrock. Supported regions: " + supportedBedrockRegions.join(", ");
+        return true;
       },
       skip(): boolean {
-        return (!(this as any).state.answers.enableChat);
+        return (deployInChina);
       },
     },
     {
       type: "confirm",
       name: "useOpenSourceLLM",
       message: "Do you want to use open source LLM(eg. Qwen, ChatGLM, IntermLM)?",
-      initial: options.useOpenSourceLLM ?? true,
+      initial: options.useOpenSourceLLM ?? false,
       skip(): boolean {
-        return (!(this as any).state.answers.enableChat);
+        return (!(this as any).state.answers.enableChat || deployInChina);
       },
     },
     {
       type: "confirm",
       name: "enableConnect",
       message: "Do you want to integrate it with Amazon Connect?",
-      initial: options.enableConnect ?? true,
+      initial: options.enableConnect ?? false,
       skip(): boolean {
-        return (!(this as any).state.answers.enableChat);
+        return (!(this as any).state.answers.enableChat || deployInChina);
       },
     },
     {
@@ -376,8 +379,7 @@ async function processCreateOptions(options: any): Promise<void> {
         return true;
       },
       skip(): boolean {
-        return (!(this as any).state.answers.enableKnowledgeBase &&
-          !(this as any).state.answers.enableChat);
+        return (!(this as any).state.answers.enableKnowledgeBase || deployInChina);
       },
     },
     {
@@ -445,6 +447,13 @@ async function processCreateOptions(options: any): Promise<void> {
       enableFederatedAuth: true,
       federatedAuthProvider: "cognito",
     };
+  }
+
+  // Modify the config for China Region
+  if (deployInChina) {
+    answers.bedrockRegion = "";
+    answers.defaultEmbedding = "bce-embedding-and-bge-reranker";
+    llms = []
   }
 
   // Create the config object
