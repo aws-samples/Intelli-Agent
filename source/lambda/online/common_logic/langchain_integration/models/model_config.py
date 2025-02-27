@@ -6,10 +6,12 @@ from common_logic.common_utils.constant import LLMModelType, EmbeddingModelType
 @dataclass
 class ModelConfig:
     model_id: str
+    model: Union[str,None] = None
     default_model_kwargs: Dict[str, Any] = None
     enable_any_tool_choice: bool = True
     any_tool_choice_value: str = "any"
     enable_prefill: bool = True
+
 
     def __post_init__(self):
         if self.default_model_kwargs is None:
@@ -181,6 +183,58 @@ QWEN25_MODEL_CONFIGS = [
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
         enable_any_tool_choice=False,
         enable_prefill=True
+    )
+]
+
+SILICONFLOW_DEEPSEEK_MODEL_CONFIGS = [
+    ModelConfig(
+        model_id=LLMModelType.DEEPSEEK_R1_DISTILL_LLAMA_70B,
+        model="deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_any_tool_choice=False,
+        enable_prefill=False
+    ),
+    ModelConfig(
+        model_id=LLMModelType.DEEPSEEK_R1_DISTILL_LLAMA_8B,
+        model="deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_any_tool_choice=False,
+        enable_prefill=False
+    ),
+    ModelConfig(
+        model_id=LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_7B,
+        model="deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_any_tool_choice=False,
+        enable_prefill=False
+    ),
+    ModelConfig(
+        model_id=LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_14B,
+        model="deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_any_tool_choice=False,
+        enable_prefill=False
+    ),
+    ModelConfig(
+        model_id=LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_1d5B,
+        model="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_any_tool_choice=False,
+        enable_prefill=False
+    ),
+    ModelConfig(
+        model_id=LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_32B,
+        model="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_any_tool_choice=False,
+        enable_prefill=False
+    ),
+    ModelConfig(
+        model_id=LLMModelType.DEEPSEEK_R1,
+        model="deepseek-ai/DeepSeek-R1",
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_any_tool_choice=False,
+        enable_prefill=False
     )
 ]
 

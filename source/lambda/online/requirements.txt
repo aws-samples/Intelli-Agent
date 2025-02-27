@@ -5,4 +5,5 @@ opensearch-py==2.2.0
 requests_aws4auth==1.2.2
 pydantic==2.9.2
 datamodel-code-generator==0.26.2
-langchain-openai==0.2.6
+langchain-openai==0.3.7
+langchain-deepseek==0.1.2
