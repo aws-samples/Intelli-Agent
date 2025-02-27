@@ -57,9 +57,11 @@ async function getAwsAccountAndRegion() {
   let AWS_ACCOUNT;
   let AWS_REGION;
 
+  const aws_profile = process.env.AWS_PROFILE || "default";
+
   // Create STS client
   const stsClient = new STSClient({
-    credentials: fromIni({ profile: "default" })
+    credentials: fromIni({ profile: aws_profile })
   });
 
   try {
