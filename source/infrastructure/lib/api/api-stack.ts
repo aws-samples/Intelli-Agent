@@ -44,8 +44,8 @@ interface ApiStackProps extends StackProps {
   modelConstructOutputs: ModelConstructOutputs;
   knowledgeBaseStackOutputs: KnowledgeBaseStackOutputs;
   chatStackOutputs: ChatStackOutputs;
-  userPoolId: string;
-  oidcClientId: string;
+  // userPoolId: string;
+  // oidcClientId: string;
   // userConstructOutputs: UserConstructOutputs;
 }
 
@@ -244,9 +244,9 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
       code: Code.fromAsset(join(__dirname, "../../../lambda/authorizer")),
       handler: "custom_authorizer.lambda_handler",
       environment: {
-        USER_POOL_ID: props.userPoolId,
+        // USER_POOL_ID: props.userPoolId,
         REGION: Aws.REGION,
-        APP_CLIENT_ID: props.oidcClientId,
+        // APP_CLIENT_ID: props.oidcClientId,
       },
       layers: [apiLambdaAuthorizerLayer],
       statements: [props.sharedConstructOutputs.iamHelper.logStatement],
