@@ -248,10 +248,10 @@ export const MODEL_TYPE_LIST: SelectProps.Option[] = [
     label: 'OpenAI API',
     value: 'OpenAI API',
   },
-  {
-    label: 'Custom Deployment',
-    value: 'dmaa',
-  },
+  // {
+  //   label: 'Custom Deployment',
+  //   value: 'dmaa',
+  // },
 ];
 
 export const RETAIL_GOODS_LIST: SelectProps.Option[] = [
