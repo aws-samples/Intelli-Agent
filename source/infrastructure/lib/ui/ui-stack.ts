@@ -17,7 +17,7 @@ import { join } from "path";
 
 import { SystemConfig } from "../shared/types";
 import { PortalConstruct } from "../ui/ui-portal";
-import { UserConstruct } from "../user/user-construct";
+
 
 
 
@@ -28,14 +28,12 @@ interface UIStackProps extends StackProps {
 export interface UIStackOutputs {
   readonly mainPortalConstruct: PortalConstruct;
   readonly clientPortalConstruct: PortalConstruct;
-  readonly userConstruct: UserConstruct;
 }
 
 export class UIStack extends Stack implements UIStackOutputs {
 
   public mainPortalConstruct: PortalConstruct;
   public clientPortalConstruct: PortalConstruct;
-  public userConstruct: UserConstruct;
 
   constructor(scope: Construct, id: string, props: UIStackProps) {
     super(scope, id, props);
@@ -48,44 +46,8 @@ export class UIStack extends Stack implements UIStackOutputs {
       responseHeadersPolicyName: `SecHdr${Aws.REGION}${Aws.STACK_NAME}-client`
     });
 
-    const userConstruct = new UserConstruct(this, "User", {
-      deployRegion: props.config.deployRegion,
-      adminEmail: props.config.email,
-      callbackUrls: [
-        `https://${clientPortalConstruct.portalUrl}/signin`,
-        `https://${mainPortalConstruct.portalUrl}/signin`
-      ],
-      logoutUrls: [
-        `https://${clientPortalConstruct.portalUrl}`,
-        `https://${mainPortalConstruct.portalUrl}`
-      ],
-      // userPoolName: `${Constants.SOLUTION_NAME}-workspace_UserPool`,
-      // domainPrefix: `${Constants.SOLUTION_NAME.toLowerCase()}-workspace-${Aws.ACCOUNT_ID}`,
-    });
     this.mainPortalConstruct = mainPortalConstruct;
     this.clientPortalConstruct = clientPortalConstruct;
-    this.userConstruct = userConstruct;
-
-    // Add CfnOutputs to export values
-    new CfnOutput(this, 'UserPoolId', {
-      value: userConstruct.userPoolId,
-      exportName: `${id}-user-pool-id`
-    });
-
-    new CfnOutput(this, 'OidcClientId', {
-      value: userConstruct.oidcClientId,
-      exportName: `${id}-oidc-client-id`
-    });
-
-    new CfnOutput(this, 'OidcIssuer', {
-      value: userConstruct.oidcIssuer,
-      exportName: `${id}-oidc-issuer`
-    });
-
-    new CfnOutput(this, 'OidcLogoutUrl', {
-      value: userConstruct.oidcLogoutUrl,
-      exportName: `${id}-oidc-logout-url`
-    });
 
     new CfnOutput(this, 'PortalBucketName', {
       value: mainPortalConstruct.portalBucket.bucketName,
