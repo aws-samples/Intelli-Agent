@@ -9,7 +9,6 @@ from typing import Generator, Iterable, List
 
 import boto3
 import chardet
-import nltk
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import OpenSearchVectorSearch
@@ -23,73 +22,39 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-try:
-    from awsglue.utils import getResolvedOptions
 
-    args = getResolvedOptions(
-        sys.argv,
-        [
-            "AOS_ENDPOINT",
-            "BATCH_FILE_NUMBER",
-            "BATCH_INDICE",
-            "DOCUMENT_LANGUAGE",
-            "EMBEDDING_MODEL_ENDPOINT",
-            "ETL_MODEL_ENDPOINT",
-            "JOB_NAME",
-            "OFFLINE",
-            "ETL_OBJECT_TABLE",
-            "TABLE_ITEM_ID",
-            "QA_ENHANCEMENT",
-            "REGION",
-            "RES_BUCKET",
-            "S3_BUCKET",
-            "S3_PREFIX",
-            "CHATBOT_ID",
-            "INDEX_ID",
-            "EMBEDDING_MODEL_TYPE",
-            "CHATBOT_TABLE",
-            "INDEX_TYPE",
-            "OPERATION_TYPE",
-            "PORTAL_BUCKET",
-            "BEDROCK_REGION",
-            "MODEL_TABLE",
-            "GROUP_NAME",
-        ],
-    )
-except Exception as e:
-    logger.warning("Running locally")
-    import argparse
+from awsglue.utils import getResolvedOptions
 
-    parser = argparse.ArgumentParser(description="local ingestion parameters")
-    parser.add_argument("--offline", type=bool, default=True)
-    parser.add_argument("--batch_indice", type=int, default=0)
-    parser.add_argument("--batch_file_number", type=int, default=1000)
-    parser.add_argument("--document_language", type=str, default="zh")
-    parser.add_argument("--embedding_model_endpoint", type=str, required=True)
-    parser.add_argument("--table_item_id", type=str, default="x")
-    parser.add_argument("--qa_enhancement", type=str, default=False)
-    parser.add_argument("--s3_bucket", type=str, required=True)
-    parser.add_argument("--s3_prefix", type=str, required=True)
-    parser.add_argument("--chatbot_id", type=str, required=True)
-    parser.add_argument("--index_id", type=str, required=True)
-    parser.add_argument("--embedding_model_type", type=str, required=True)
-    parser.add_argument("--index_type", type=str, required=True)
-    parser.add_argument("--operation_type", type=str, default="create")
-    command_line_args = parser.parse_args()
-    sys.path.append("dep")
-    command_line_args_dict = vars(command_line_args)
-    args = {}
-    for key in command_line_args_dict.keys():
-        args[key.upper()] = command_line_args_dict[key]
-    args["AOS_ENDPOINT"] = os.environ["AOS_ENDPOINT"]
-    args["CHATBOT_TABLE"] = os.environ["CHATBOT_TABLE_NAME"]
-    args["ETL_OBJECT_TABLE"] = os.environ["ETL_OBJECT_TABLE_NAME"]
-    args["ETL_MODEL_ENDPOINT"] = os.environ["ETL_ENDPOINT"]
-    args["RES_BUCKET"] = os.environ["RES_BUCKET"]
-    args["REGION"] = os.environ["REGION"]
-    args["BEDROCK_REGION"] = os.environ["BEDROCK_REGION"]
-    args["CROSS_ACCOUNT_BEDROCK_KEY"] = os.environ["CROSS_ACCOUNT_BEDROCK_KEY"]
-    args["PORTAL_BUCKET"] = os.environ.get("PORTAL_BUCKET", None)
+args = getResolvedOptions(
+    sys.argv,
+    [
+        "AOS_ENDPOINT",
+        "BATCH_FILE_NUMBER",
+        "BATCH_INDICE",
+        "DOCUMENT_LANGUAGE",
+        "EMBEDDING_MODEL_ENDPOINT",
+        "ETL_MODEL_ENDPOINT",
+        "JOB_NAME",
+        "OFFLINE",
+        "ETL_OBJECT_TABLE",
+        "TABLE_ITEM_ID",
+        "QA_ENHANCEMENT",
+        "REGION",
+        "RES_BUCKET",
+        "S3_BUCKET",
+        "S3_PREFIX",
+        "CHATBOT_ID",
+        "INDEX_ID",
+        "EMBEDDING_MODEL_TYPE",
+        "CHATBOT_TABLE",
+        "INDEX_TYPE",
+        "OPERATION_TYPE",
+        "PORTAL_BUCKET",
+        "BEDROCK_REGION",
+        "MODEL_TABLE",
+        "GROUP_NAME",
+    ],
+)
 
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
@@ -99,7 +64,6 @@ from llm_bot_dep.storage_utils import save_content_to_s3
 # Adaption to allow nougat to run in AWS Glue with writable /tmp
 os.environ["TRANSFORMERS_CACHE"] = "/tmp/transformers_cache"
 os.environ["NOUGAT_CHECKPOINT"] = "/tmp/nougat_checkpoint"
-os.environ["NLTK_DATA"] = "/tmp/nltk_data"
 
 # Parse arguments
 if "BATCH_INDICE" not in args:
@@ -144,8 +108,6 @@ OBJECT_EXPIRY_TIME = 3600
 
 credentials = boto3.Session().get_credentials()
 MAX_OS_DOCS_PER_PUT = 8
-
-nltk.data.path.append("/tmp/nltk_data")
 
 
 def get_aws_auth():
@@ -598,7 +560,9 @@ def ingestion_pipeline(
                     SplittingType.SEMANTIC.value,
                 )
 
-            gen_chunk_flag = False if file_type in ["csv", "xlsx", "xls"] else True
+            gen_chunk_flag = (
+                False if file_type in ["csv", "xlsx", "xls"] else True
+            )
             batches = batch_chunk_processor.batch_generator(res, gen_chunk_flag)
 
             for batch in batches:
@@ -744,7 +708,7 @@ def main():
             model_type=embedding_model_type,
             group_name=group_name,
             chatbot_id=chatbot_id,
-            model_table=model_table
+            model_table=model_table,
         )
         aws_auth = get_aws_auth()
         docsearch = OpenSearchVectorSearch(
@@ -789,12 +753,4 @@ def main():
 if __name__ == "__main__":
     logger.info("boto3 version: %s", boto3.__version__)
 
-    # Set the NLTK data path to the /tmp directory for AWS Glue jobs
-    nltk.data.path.append("/tmp")
-    # List of NLTK packages to download
-    nltk_packages = ["words", "punkt"]
-    # Download the required NLTK packages to /tmp
-    for package in nltk_packages:
-        # Download the package to /tmp/nltk_data
-        nltk.download(package, download_dir="/tmp/nltk_data")
     main()
