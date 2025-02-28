@@ -138,8 +138,18 @@ def rag_tool(retriever_config: dict, query=None):
     )
     output = chain.invoke(llm_input)
 
-    
+    if not state["stream"]:
+        output = str(output)
+        filtered_output = filter_response(output, state)
+        return filtered_output, filtered_output
+    else:
+        output.content_stream = filter_response(
+            output.content_stream,
+            state
+        )
+        output.message_stream = filter_response(
+            output.message_stream,
+            state
+        )
+        return output, output
 
-    filtered_output = filter_response(output, state)
-
-    return filtered_output, filtered_output

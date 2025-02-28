@@ -5,9 +5,14 @@ chat models build in command pattern
 from common_logic.common_utils.constant import ModelProvider
 
 from ..model_config import ModelConfig
+from langchain_openai import ChatOpenAI
+ChatOpenAI.stream
+from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
+from langchain_core.messages import BaseMessage,BaseMessageChunk
+from typing import Iterator
+import threading
 
-
-class ModeMixins:
+class ModelMixins:
     @staticmethod
     def convert_messages_role(messages: list[dict], role_map: dict):
         """
@@ -43,13 +48,14 @@ class ModelMeta(type):
         return new_cls
 
 
-class Model(ModeMixins, metaclass=ModelMeta):
+class Model(ModelMixins, metaclass=ModelMeta):
     model_id: str = None
     enable_any_tool_choice: bool = True
     enable_prefill: bool = True
     any_tool_choice_value = "any"
     model_map = {}
     model_provider: ModelProvider = ModelProvider.BEDROCK
+    is_reasoning_model: bool = False
 
     @classmethod
     def create_model(cls, model_kwargs=None, **kwargs):
@@ -163,36 +169,72 @@ MODEL_PROVIDER_LOAD_FN_MAP = {
 
 ChatModel = Model
 
-# MODEL_MODULE_LOAD_FN_MAP = {
-#     LLMModelType.CHATGPT_35_TURBO_0125: _import_openai_models,
-#     LLMModelType.CHATGPT_4_TURBO: _import_openai_models,
-#     LLMModelType.CHATGPT_4O: _import_openai_models,
-#     LLMModelType.CLAUDE_2: _import_bedrock_models,
-#     LLMModelType.CLAUDE_INSTANCE: _import_bedrock_models,
-#     LLMModelType.CLAUDE_21: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_SONNET: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_HAIKU: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_5_SONNET: _import_bedrock_models,
-#     LLMModelType.LLAMA3_1_70B_INSTRUCT: _import_bedrock_models,
-#     LLMModelType.LLAMA3_2_90B_INSTRUCT: _import_bedrock_models,
-#     LLMModelType.MISTRAL_LARGE_2407: _import_bedrock_models,
-#     LLMModelType.COHERE_COMMAND_R_PLUS: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_5_SONNET_V2: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_5_HAIKU: _import_bedrock_models,
-#     LLMModelType.NOVA_PRO: _import_bedrock_models,
-#     LLMModelType.NOVA_LITE: _import_bedrock_models,
-#     LLMModelType.NOVA_MICRO: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_SONNET_US: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_OPUS_US: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_HAIKU_US: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_5_SONNET_V2_US: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_5_HAIKU_US: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_SONNET_EU: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_5_SONNET_EU: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_HAIKU_EU: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_SONNET_APAC: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_5_SONNET_APAC: _import_bedrock_models,
-#     LLMModelType.CLAUDE_3_HAIKU_APAC: _import_bedrock_models,
-#     LLMModelType.LLAMA3_1_70B_INSTRUCT_US: _import_bedrock_models,
-#     LLMModelType.QWEN25_INSTRUCT_72B_AWQ: _import_dmaa_models,
-# }
+class ReasonModelResult:
+    def __init__(self,
+                 ai_message:BaseMessage,
+                 think_start_tag="<think>",
+                 think_end_tag="</think>",
+                 reasoning_content_key="reasoning_content"
+        ):
+        self.ai_message = ai_message
+        self.content = ai_message.content
+        self.think_start_tag = think_start_tag
+        self.think_end_tag = think_end_tag
+        self.reasoning_content = ai_message.additional_kwargs.get(reasoning_content_key,"")
+    
+    def __str__(self):
+        return f"{self.think_start_tag}{self.reasoning_content}{self.think_end_tag}{self.content}"
+
+class ReasonModelStreamResult:
+    def __init__(
+        self,
+        message_stream: Iterator[BaseMessageChunk],
+        think_start_tag="<think>",
+        think_end_tag="</think>",
+        reasoning_content_key="reasoning_content"
+    ):
+        self.message_stream = message_stream
+        self.think_start_tag = think_start_tag
+        self.think_end_tag = think_end_tag
+        self.reasoning_content_key = reasoning_content_key
+
+        self.think_stream = self.create_think_stream(message_stream)
+        self.content_stream = self.create_content_stream(message_stream)
+    
+    def create_think_stream(self,message_stream: Iterator[BaseMessageChunk]):
+        think_start_flag = False
+        for message in message_stream:
+            reasoning_content = message.additional_kwargs.get(
+                self.reasoning_content_key, 
+                None
+            )
+            
+            if reasoning_content is None and think_start_flag:
+                return 
+            
+            if reasoning_content is not None:
+                if not think_start_flag:
+                    think_start_flag = True
+                yield reasoning_content
+    
+    def create_content_stream(self, message_stream: Iterator[BaseMessageChunk]):
+        for message in message_stream:
+            yield message.content
+
+
+    def __iter__(self):
+        think_start_flag = False
+        for message in self.message_stream:
+            reasoning_content = message.additional_kwargs.get(self.reasoning_content_key, None)
+            if reasoning_content is not None:
+                if not think_start_flag:
+                    think_start_flag = True
+                    yield self.think_start_tag
+                yield reasoning_content
+                continue
+            if reasoning_content is None and think_start_flag:
+                think_start_flag = False
+                yield self.think_end_tag
+            
+            yield message.content
+                
