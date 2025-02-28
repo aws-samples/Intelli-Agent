@@ -21,7 +21,7 @@ from ..models.model_config import (
 )
 from common_logic.common_utils.prompt_utils import get_prompt_template
 from common_logic.common_utils.logger_utils import print_llm_messages
-
+from ..models.chat_models import ReasonModelResult,ReasonModelStreamResult
 # from ...prompt_template import convert_chat_history_from_fstring_format
 from ..models import ChatModel
 from . import LLMChain
@@ -65,17 +65,25 @@ class RagBaseChain(LLMChain):
         )
         llm = ChatModel.get_model(
             cls.model_id, model_kwargs=model_kwargs, **kwargs)
+        
         chain = context_chain | ChatPromptTemplate.from_messages(chat_messages) | RunnableLambda(
             lambda x: print_llm_messages(f"rag messages: {x.messages}") or x)
+        
+        chain = chain | llm
+        if not llm.is_reasoning_model:
+            chain = chain | StrOutputParser()
+            if stream:
+                final_chain = RunnableLambda(lambda x: chain.stream(x))
+            else:
+                final_chain = RunnableLambda(lambda x: chain.invoke(x))
 
-        chain = chain | llm | StrOutputParser()
-
-        if stream:
-            final_chain = RunnableLambda(lambda x: chain.stream(x))
+            return final_chain
         else:
-            final_chain = RunnableLambda(lambda x: chain.invoke(x))
-
-        return final_chain
+            if stream:
+                final_chain = RunnableLambda(lambda x: ReasonModelStreamResult(chain.stream(x)))
+            else:
+                final_chain = RunnableLambda(lambda x: ReasonModelResult(chain.invoke(x)))
+            return final_chain
 
 
 RagBaseChain.create_for_chains(BEDROCK_MODEL_CONFIGS,LLMTaskType.RAG)
