@@ -10,18 +10,20 @@ from ..model_config import SILICONFLOW_DEEPSEEK_MODEL_CONFIGS
 
 logger = get_logger("siliconflow_models")
 
-class ChatDeepSeek(_ChatDeepSeek):
+class ChatDeepSeekR1(_ChatDeepSeek):
     enable_any_tool_choice: bool = False
-    any_tool_choice_value: str = 'required'
+    # any_tool_choice_value: str = 'required'
     enable_prefill: bool = False
+    is_reasoning_model: bool = True
 
 
-class DeepSeekBaseModel(Model):
+class DeepSeekR1BaseModel(Model):
     default_model_kwargs = {"max_tokens": 2000,
                             "temperature": 0.6, "top_p": 0.9}
     enable_any_tool_choice: bool = False
     enable_prefill: bool = False
     model_provider = ModelProvider.SILICONFLOW
+    is_reasoning_model: bool = True
 
     @classmethod
     def create_model(cls, model_kwargs=None, **kwargs):
@@ -31,15 +33,15 @@ class DeepSeekBaseModel(Model):
         #     "OPENAI_BASE_URL", None)
         api_key = kwargs.get('siliconflow_api_key', None) or os.environ.get(
             "SILICONFLOW_API_KEY", None)
-        return ChatDeepSeek(
+        return ChatDeepSeekR1(
             enable_any_tool_choice=cls.enable_any_tool_choice,
             enable_prefill=cls.enable_prefill,
             base_url="https://api.siliconflow.cn/v1",
             api_key=api_key,
-            model=cls.model_id,
+            model=cls.model,
             **model_kwargs
         )
 
 
-DeepSeekBaseModel.create_for_models(SILICONFLOW_DEEPSEEK_MODEL_CONFIGS)
+DeepSeekR1BaseModel.create_for_models(SILICONFLOW_DEEPSEEK_MODEL_CONFIGS)
 

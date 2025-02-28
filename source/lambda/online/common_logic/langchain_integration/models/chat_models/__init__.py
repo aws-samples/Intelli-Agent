@@ -9,7 +9,7 @@ from langchain_openai import ChatOpenAI
 ChatOpenAI.stream
 from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
 from langchain_core.messages import BaseMessage,BaseMessageChunk
-from typing import Iterator
+from typing import Iterator,Union
 import threading
 
 class ModelMixins:
@@ -50,6 +50,7 @@ class ModelMeta(type):
 
 class Model(ModelMixins, metaclass=ModelMeta):
     model_id: str = None
+    model: Union[str,None] = None
     enable_any_tool_choice: bool = True
     enable_prefill: bool = True
     any_tool_choice_value = "any"
@@ -117,6 +118,7 @@ class Model(ModelMixins, metaclass=ModelMeta):
             (cls,),
             {
                 "model_id": model_id,
+                "model":config.model,
                 "default_model_kwargs": config.default_model_kwargs,
                 "enable_any_tool_choice": config.enable_any_tool_choice,
                 "enable_prefill": config.enable_prefill,

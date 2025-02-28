@@ -151,5 +151,10 @@ def rag_tool(retriever_config: dict, query=None):
             output.message_stream,
             state
         )
+        # for i in output.think_stream:
+        #     sxxx
+        # for j in output.content_stram:
+        #     xxx
+
         return output, output
 
