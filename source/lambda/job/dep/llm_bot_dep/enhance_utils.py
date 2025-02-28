@@ -5,7 +5,6 @@ import os
 from typing import Dict, List
 
 import boto3
-import nltk
 import openai
 from langchain.docstore.document import Document
 
@@ -127,7 +126,9 @@ class EnhanceWithBedrock:
                 answer = line
                 qa_content = f"{question}\n{answer}"
                 enhanced_prompt_list.append(
-                    Document(page_content=qa_content, metadata=document.metadata)
+                    Document(
+                        page_content=qa_content, metadata=document.metadata
+                    )
                 )
                 question = ""
                 answer = ""
@@ -137,7 +138,11 @@ class EnhanceWithBedrock:
         return enhanced_prompt_list
 
     def EnhanceWithOpenAI(
-        self, prompt: str, solution_title: str, document: Document, zh: bool = True
+        self,
+        prompt: str,
+        solution_title: str,
+        document: Document,
+        zh: bool = True,
     ) -> List[Dict[str, str]]:
         """
         Enhances a given prompt with additional information and performs a chat completion using OpenAI's GPT-3.5 Turbo model.
@@ -165,7 +170,10 @@ class EnhanceWithBedrock:
         # error and retry handling for openai api due to request cap limit
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo", messages=messages, temperature=0, max_tokens=2048
+                model="gpt-3.5-turbo",
+                messages=messages,
+                temperature=0,
+                max_tokens=2048,
             )
         except Exception as e:
             logger.error("OpenAI API request failed: {}".format(e))
@@ -208,7 +216,9 @@ class EnhanceWithBedrock:
         - List[Document]: A list of documents, each containing a slice of the original document.
         """
         # Get the token number of input paragraph
-        tokens = nltk.word_tokenize(document.page_content)
+        # tokens = nltk.word_tokenize(document.page_content)
+        # TODO: Currently Disable tokenization for now
+        tokens = []
         metadata = document.metadata
         if "content_type" in metadata:
             metadata["content_type"] = "qa"
