@@ -1,52 +1,56 @@
-import boto3
 import datetime
+import io
 import json
 import logging
 import os
 import re
 import subprocess
+import time
 from pathlib import Path
 
-from ocr import TextSystem
-from table import TableSystem
-from layout import LayoutPredictor
-import numpy as np
-from markdownify import markdownify as md
-from utils import check_and_read
-from figure_llm import figureUnderstand
-from xycut import recursive_xy_cut
-import time
-from PIL import Image
+import boto3
 import cv2
-import io
+import numpy as np
+from figure_llm import figureUnderstand
+from layout import LayoutPredictor
+from markdownify import markdownify as md
+from ocr import TextSystem
+from PIL import Image
+from table import TableSystem
+from utils import check_and_read
+from xycut import recursive_xy_cut
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class StructureSystem(object):
     def __init__(self):
-        self.mode = 'structure'
+        self.mode = "structure"
         self.recovery = True
         drop_score = 0
         # init model
         self.layout_predictor = LayoutPredictor()
         self.text_system = TextSystem()
         self.table_system = TableSystem(
-            self.text_system.text_detector,
-            self.text_system.text_recognizer)
-    def __call__(self, img, return_ocr_result_in_table=False, lang='ch', auto_dpi=False):
+            self.text_system.text_detector, self.text_system.text_recognizer
+        )
+
+    def __call__(
+        self, img, return_ocr_result_in_table=False, lang="ch", auto_dpi=False
+    ):
         time_dict = {
-            'image_orientation': 0,
-            'layout': 0,
-            'table': 0,
-            'table_match': 0,
-            'det': 0,
-            'rec': 0,
-            'kie': 0,
-            'all': 0
+            "image_orientation": 0,
+            "layout": 0,
+            "table": 0,
+            "table_match": 0,
+            "det": 0,
+            "rec": 0,
+            "kie": 0,
+            "all": 0,
         }
-        if lang == 'zh':
-            lang = 'ch'
+        if lang == "zh":
+            lang = "ch"
         start = time.time()
         ori_im_shape = img.shape
         ori_im_dtype = img.dtype
@@ -54,101 +58,131 @@ class StructureSystem(object):
         final_s = None
         if auto_dpi:
             final_s = 0
-            height_limit =  18 if lang=='ch' else 15
+            height_limit = 18 if lang == "ch" else 15
             for scale_base in [1, 0.66, 0.33]:
-                img_cur_scale = cv2.resize(img, (None, None), fx=scale_base, fy=scale_base)
-                temp_result = self.text_system.text_detector[lang](img_cur_scale, scale=1)
-                height_list = [max(text_line[:, 1]) - min(text_line[:, 1]) for text_line in temp_result]
+                img_cur_scale = cv2.resize(
+                    img, (None, None), fx=scale_base, fy=scale_base
+                )
+                temp_result = self.text_system.text_detector[lang](
+                    img_cur_scale, scale=1
+                )
+                height_list = [
+                    max(text_line[:, 1]) - min(text_line[:, 1])
+                    for text_line in temp_result
+                ]
                 height_list.sort()
                 if len(height_list) == 0:
-                    min_text_line_h = 2*height_limit
+                    min_text_line_h = 2 * height_limit
                 else:
-                    min_text_line_h = height_list[int(len(height_list)*0.05)]
-                min_s = (height_limit/min_text_line_h)*scale_base
-                if min_s>final_s:
+                    min_text_line_h = height_list[int(len(height_list) * 0.05)]
+                min_s = (height_limit / min_text_line_h) * scale_base
+                if min_s > final_s:
                     final_s = min_s
-        time_dict['layout'] += elapse
+        time_dict["layout"] += elapse
         res_list = []
         for region in layout_res:
-            res = ''
-            if region['bbox'] is not None:
-                x1, y1, x2, y2 = region['bbox']
+            res = ""
+            if region["bbox"] is not None:
+                x1, y1, x2, y2 = region["bbox"]
                 x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
                 x1, y1, x2, y2 = max(x1, 0), max(y1, 0), max(x2, 0), max(y2, 0)
                 roi_img = img[y1:y2, x1:x2, :]
             else:
                 x1, y1, x2, y2 = 0, 0, w, h
                 roi_img = img
-            if region['label'] == 'table':
+            if region["label"] == "table":
                 res, table_time_dict = self.table_system(
-                    roi_img, return_ocr_result_in_table, lang)
-                time_dict['table'] += table_time_dict['table']
-                time_dict['table_match'] += table_time_dict['match']
-                time_dict['det'] += table_time_dict['det']
-                time_dict['rec'] += table_time_dict['rec']
+                    roi_img, return_ocr_result_in_table, lang
+                )
+                time_dict["table"] += table_time_dict["table"]
+                time_dict["table_match"] += table_time_dict["match"]
+                time_dict["det"] += table_time_dict["det"]
+                time_dict["rec"] += table_time_dict["rec"]
             else:
                 wht_im = np.ones(ori_im_shape, dtype=ori_im_dtype)
                 wht_im[y1:y2, x1:x2, :] = roi_img
-                top = min(y2-y1, y1)
-                left = min(x2-x1, x1)
-                cur_wht_im = wht_im[y1-top:min(y2+(y2-y1), wht_im.shape[0]), x1-left:min(x2+(x2-x1), wht_im.shape[1])]
+                top = min(y2 - y1, y1)
+                left = min(x2 - x1, x1)
+                cur_wht_im = wht_im[
+                    y1 - top : min(y2 + (y2 - y1), wht_im.shape[0]),
+                    x1 - left : min(x2 + (x2 - x1), wht_im.shape[1]),
+                ]
                 filter_boxes, filter_rec_res = self.text_system(
-                    cur_wht_im, lang, final_s)
+                    cur_wht_im, lang, final_s
+                )
 
                 # remove style char,
                 # when using the recognition model trained on the PubtabNet dataset,
                 # it will recognize the text format in the table, such as <b>
                 style_token = [
-                    '<strike>', '<strike>', '<sup>', '</sub>', '<b>',
-                    '</b>', '<sub>', '</sup>', '<overline>',
-                    '</overline>', '<underline>', '</underline>', '<i>',
-                    '</i>'
+                    "<strike>",
+                    "<strike>",
+                    "<sup>",
+                    "</sub>",
+                    "<b>",
+                    "</b>",
+                    "<sub>",
+                    "</sup>",
+                    "<overline>",
+                    "</overline>",
+                    "<underline>",
+                    "</underline>",
+                    "<i>",
+                    "</i>",
                 ]
                 res = []
                 for box, rec_res in zip(filter_boxes, filter_rec_res):
                     rec_str, rec_conf = rec_res
                     for token in style_token:
                         if token in rec_str:
-                            rec_str = rec_str.replace(token, '')
+                            rec_str = rec_str.replace(token, "")
                     if not self.recovery:
-                        box += [x1+left, y1+top]
-                    res.append({
-                        'text': rec_str,
-                        'confidence': float(rec_conf),
-                        'text_region': box.tolist()
-                    })
-            res_list.append({
-                'type': region['label'].lower(),
-                'bbox': [x1, y1, x2, y2],
-                'img': roi_img,
-                'res': res,
-            })
+                        box += [x1 + left, y1 + top]
+                    res.append(
+                        {
+                            "text": rec_str,
+                            "confidence": float(rec_conf),
+                            "text_region": box.tolist(),
+                        }
+                    )
+            res_list.append(
+                {
+                    "type": region["label"].lower(),
+                    "bbox": [x1, y1, x2, y2],
+                    "img": roi_img,
+                    "res": res,
+                }
+            )
         end = time.time()
-        time_dict['all'] = end - start
+        time_dict["all"] = end - start
         return res_list, time_dict
+
 
 structure_engine = StructureSystem()
 figure_understand = figureUnderstand()
 s3 = boto3.client("s3")
 
 
-def upload_images_to_s3(
-    images, bucket: str, prefix: str, splitting_type: str
-):
+def upload_images_to_s3(images, bucket: str, prefix: str, splitting_type: str):
     # round the timestamp to hours to avoid too many folders
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H")
     # make the logger file name unique
     name_s3path = {}
-    for key,image in images.items():
+    for key, image in images.items():
         object_key = f"{prefix}/{splitting_type}/{timestamp}/{key.replace('.jpg', '-'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')+'.jpg')}"
         try:
             buffer = io.BytesIO()
-            image.save(buffer, format='JPEG')
+            image.save(buffer, format="JPEG")
             buffer.seek(0)
-            res = s3.put_object(Bucket=bucket, Key=object_key, Body=buffer, ContentType='image/jpeg')
+            res = s3.put_object(
+                Bucket=bucket,
+                Key=object_key,
+                Body=buffer,
+                ContentType="image/jpeg",
+            )
         except Exception as e:
             continue
-        name_s3path[key] = f'{object_key}'
+        name_s3path[key] = f"{object_key}"
     return name_s3path
 
 
@@ -194,7 +228,7 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
     """
 
     # img_list, flag_gif, flag_pdf are returned from check_and_read
-    #img_list, _, _ = check_and_read(file_path)
+    # img_list, _, _ = check_and_read(file_path)
 
     all_res = []
     for index, img in enumerate(check_and_read(file_path)):
@@ -202,7 +236,9 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
         if result != []:
             boxes = [row["bbox"] for row in result]
             res = []
-            recursive_xy_cut(np.asarray(boxes).astype(int), np.arange(len(boxes)), res)
+            recursive_xy_cut(
+                np.asarray(boxes).astype(int), np.arange(len(boxes)), res
+            )
             result_sorted = [result[idx] for idx in res]
             all_res += result_sorted
     doc = ""
@@ -214,24 +250,35 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
         if region["type"].lower() == "figure":
             region_text = ""
             if figure_rec:
-                doc += '<{{figure_' + str(len(figure)) + '}}>\n'
-                figure['<{{figure_' + str(len(figure)) + '}}>'] = [Image.fromarray(region["img"][:,:,::-1]), None]
+                doc += "<{{figure_" + str(len(figure)) + "}}>\n"
+                figure["<{{figure_" + str(len(figure)) + "}}>"] = [
+                    Image.fromarray(region["img"][:, :, ::-1]),
+                    None,
+                ]
             else:
-                doc += '<{{figure_' + str(len(figure)) + '}}>\n'
+                doc += "<{{figure_" + str(len(figure)) + "}}>\n"
                 for _, line in enumerate(region["res"]):
                     region_text += line["text"] + " "
-                if remove_symbols(region_text) != remove_symbols(prev_region_text):
-                    figure['<{{figure_' + str(len(figure)) + '}}>'] = [Image.fromarray(region["img"][:,:,::-1]), region_text]
+                if remove_symbols(region_text) != remove_symbols(
+                    prev_region_text
+                ):
+                    figure["<{{figure_" + str(len(figure)) + "}}>"] = [
+                        Image.fromarray(region["img"][:, :, ::-1]),
+                        region_text,
+                    ]
                     prev_region_text = region_text
                 else:
-                    figure['<{{figure_' + str(len(figure)) + '}}>'] = [Image.fromarray(region["img"][:,:,::-1]), None]
-            
+                    figure["<{{figure_" + str(len(figure)) + "}}>"] = [
+                        Image.fromarray(region["img"][:, :, ::-1]),
+                        None,
+                    ]
+
         elif region["type"].lower() == "title":
-            region_text = ''
-            for i, line in enumerate(region['res']):
-                region_text += line['text'] + ''
+            region_text = ""
+            for i, line in enumerate(region["res"]):
+                region_text += line["text"] + ""
             if remove_symbols(region_text) != remove_symbols(prev_region_text):
-                doc += '## ' + region_text + '\n\n'
+                doc += "## " + region_text + "\n\n"
                 prev_region_text = region_text
         elif region["type"].lower() == "table":
             if "<thead>" not in region["res"]["html"]:
@@ -260,17 +307,28 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
         doc += "\n\n"
     doc = re.sub("\n{2,}", "\n\n", doc.strip())
     images = {}
-    for figure_idx, (k,v) in enumerate(figure.items()):
-        images[f'{figure_idx:05d}.jpg'] = v[0]
-        region_text = v[1] if not v[1] is None else ''
+    for figure_idx, (k, v) in enumerate(figure.items()):
+        images[f"{figure_idx:05d}.jpg"] = v[0]
+        region_text = v[1] if not v[1] is None else ""
         if figure_rec:
             start_pos = doc.index(k)
-            context = doc[max(start_pos-200, 0): min(start_pos+200, len(doc))]
-            doc = doc.replace(k, figure_understand(v[0], context, k, s3_link=f'{figure_idx:05d}.jpg'))
+            context = doc[
+                max(start_pos - 200, 0) : min(start_pos + 200, len(doc))
+            ]
+            doc = doc.replace(
+                k,
+                figure_understand(
+                    v[0], context, k, s3_link=f"{figure_idx:05d}.jpg"
+                ),
+            )
         else:
-            doc = doc.replace(k, f"\n<figure>\n<link>{figure_idx:05d}.jpg</link>\n<type>ocr</type>\n<desp>\n{region_text}\n</desp>\n</figure>\n")
+            doc = doc.replace(
+                k,
+                f"\n<figure>\n<link>{figure_idx:05d}.jpg</link>\n<type>ocr</type>\n<desp>\n{region_text}\n</desp>\n</figure>\n",
+            )
     doc = re.sub("\n{2,}", "\n\n", doc.strip())
     return doc, images
+
 
 def process_pdf_pipeline(request_body):
     """
@@ -306,15 +364,15 @@ def process_pdf_pipeline(request_body):
 
     content, images = structure_predict(local_path, lang, auto_dpi, figure_rec)
     filename = file_path.stem
-    name_s3path = upload_images_to_s3(
-        images, portal_bucket, filename, "image"
-    )
+    name_s3path = upload_images_to_s3(images, portal_bucket, filename, "image")
     for key, s3_path in name_s3path.items():
-        content = content.replace(f'<link>{key}</link>', f'<link>{s3_path}</link>')
+        content = content.replace(
+            f"<link>{key}</link>", f"<link>{s3_path}</link>"
+        )
     destination_s3_path = upload_chunk_to_s3(
         content, destination_bucket, filename, "before-splitting"
     )
-    
+
     result = {"destination_prefix": destination_s3_path}
 
     return result
