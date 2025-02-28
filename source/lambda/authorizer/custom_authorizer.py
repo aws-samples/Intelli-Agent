@@ -7,9 +7,9 @@ from urllib.request import urlopen
 import jwt
 
 # Replace with your Cognito User Pool info
-# USER_POOL_ID = os.environ["USER_POOL_ID"]
-# REGION = os.environ["REGION"]
-# APP_CLIENT_ID = os.environ["APP_CLIENT_ID"]
+USER_POOL_ID = os.getenv("USER_POOL_ID", "")
+REGION = os.getenv("REGION", "")
+APP_CLIENT_ID = os.getenv("APP_CLIENT_ID", "")
 verify_exp = os.getenv("mode") != "dev"
 
 logger = logging.getLogger()
