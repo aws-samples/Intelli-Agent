@@ -246,3 +246,7 @@ class Threshold(ConstantBase):
     TOP_K_RETRIEVALS = 6
     MAX_TOKENS = 1000
     TEMPERATURE = 0.1
+
+
+class WSConnectionSignal(ConstantBase):
+    STOP = "STOP"

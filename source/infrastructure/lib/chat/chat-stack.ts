@@ -56,6 +56,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
   public messagesTableName: string;
   public promptTableName: string;
   public intentionTableName: string;
+  public stopSignalsTableName: string;
   public sqsStatement: iam.PolicyStatement;
   public messageQueue: Queue;
   public dlq: Queue;
@@ -68,7 +69,6 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
   private lambdaOnlineIntentionDetection: Function;
   private lambdaOnlineAgent: Function;
   private lambdaOnlineLLMGenerate: Function;
-  // private lambdaOnlineFunctions: Function;
 
   constructor(scope: Construct, id: string, props: ChatStackProps) {
     super(scope, id);
@@ -84,6 +84,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.messagesTableName = chatTablesConstruct.messagesTableName;
     this.promptTableName = chatTablesConstruct.promptTableName;
     this.intentionTableName = chatTablesConstruct.intentionTableName;
+    this.stopSignalsTableName = chatTablesConstruct.stopSignalsTableName;
     this.indexTableName = props.sharedConstructOutputs.indexTable.tableName;
     this.modelTableName = props.sharedConstructOutputs.modelTable.tableName;
 
@@ -129,6 +130,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         MESSAGES_TABLE_NAME: chatTablesConstruct.messagesTableName,
         PROMPT_TABLE_NAME: chatTablesConstruct.promptTableName,
         INTENTION_TABLE_NAME: chatTablesConstruct.intentionTableName,
+        STOP_SIGNALS_TABLE_NAME: chatTablesConstruct.stopSignalsTableName,
         MODEL_TABLE_NAME: this.modelTableName,
         INDEX_TABLE_NAME: this.indexTableName,
         OPENAI_KEY_ARN: openAiKey.secretArn,
