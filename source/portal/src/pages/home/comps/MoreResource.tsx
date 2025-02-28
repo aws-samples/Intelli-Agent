@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 const MoreResource: React.FC = () => {
   const { t } = useTranslation();
   return (
-    <Container header={<Header variant="h2">{t('moreResources.name')}</Header>}>
+    <Container header={<Header variant="h3">{t('moreResources.name')}</Header>}>
       <Box padding={{ vertical: 'xs' }}>
         <Link href="https://catalog.us-east-1.prod.workshops.aws/workshops/1ebc087e-17a7-406b-99c1-62a34238a14c" target="_blank">
           {t('moreResources.workshop')}

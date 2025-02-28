@@ -1,9 +1,10 @@
 {
   "translation": {
+    "assetName": "AI Customer Service",
     "name": "Multi-modal Enterprise Knowledge Base in Manufacturing",
     "welcome": "Welcome to Multi-modal Enterprise Knowledge Base in Manufacturing",
     "mead": "Manufacturing",
-    "projectDescription": "Multi-modal Enterprise Knowledge Base in Manufacturing offers a streamlined workflow for developing scalable, production-grade agent-based applications",
+    "projectDescription": "Offers a streamlined workflow for developing scalable, production-grade agent-based applications",
     "solutionName": "Multi-modal Enterprise Knowledge Base in Manufacturing",
     "desc": "Description",
     "you": "Y o u",
@@ -181,10 +182,16 @@
     "new": "New",
     "referenceDocuments": "Reference Documents",
     "selectADocumentToPreview": "Select a document to preview its content",
+    "architecture": "Architecture",
+    "modelCnt":"Models",
+    "docCnt":"Documents",
+    "botCnt":"Bots",
+    "sessionCnt":"Sessions",
     "button": {
       "login": "Log in to Multi-modal Enterprise Knowledge Base in Manufacturing",
       "reload": "Reload",
       "send": "Send",
+      "stop": "Stop",
       "modelSettings": "Model Settings",
       "cancel": "Cancel",
       "confirm": "Confirm",

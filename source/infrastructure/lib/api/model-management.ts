@@ -17,7 +17,6 @@ import * as apigw from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 import { join } from "path";
 import { PythonFunction } from "@aws-cdk/aws-lambda-python-alpha";
-import * as pyLambda from "@aws-cdk/aws-lambda-python-alpha";
 import { IAMHelper } from "../shared/iam-helper";
 
 
@@ -25,7 +24,7 @@ export interface ModelApiProps {
   api: apigw.RestApi;
   auth: apigw.RequestAuthorizer;
   modelTable: string;
-  sharedLayer: pyLambda.PythonLayerVersion;
+  // sharedLayer: pyLambda.PythonLayerVersion;
   iamHelper: IAMHelper;
   genMethodOption: any;
 }
@@ -33,18 +32,18 @@ export interface ModelApiProps {
 export class ModelApi extends Construct {
   private readonly api: apigw.RestApi;
   private readonly auth: apigw.RequestAuthorizer;
-  private readonly sharedLayer: pyLambda.PythonLayerVersion;
+  // private readonly sharedLayer: pyLambda.PythonLayerVersion;
   private readonly modelTable: string;
   private readonly iamHelper: IAMHelper;
   private readonly genMethodOption: any;
 
   constructor(scope: Construct, id: string, props: ModelApiProps) {
     super(scope, id);
-    
+
     this.api = props.api;
     this.auth = props.auth;
     this.modelTable = props.modelTable;
-    this.sharedLayer = props.sharedLayer;
+    // this.sharedLayer = props.sharedLayer;
     this.iamHelper = props.iamHelper;
     this.genMethodOption = props.genMethodOption;
 
@@ -58,7 +57,7 @@ export class ModelApi extends Construct {
       environment: {
         MODEL_TABLE_NAME: this.modelTable,
       },
-      layers: [this.sharedLayer],
+      // layers: [this.sharedLayer],
     });
     modelLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
     modelLambda.addToRolePolicy(this.iamHelper.logStatement);
@@ -81,5 +80,7 @@ export class ModelApi extends Construct {
     apiResourceModelManagementDestroy.addMethod("POST", lambdaModelIntegration, this.genMethodOption(this.api, this.auth, null));
     const apiResourceModelManagementStatus = apiResourceModelManagement.addResource("status").addResource("{modelId}");
     apiResourceModelManagementStatus.addMethod("GET", lambdaModelIntegration, this.genMethodOption(this.api, this.auth, null));
+    const apiResourceModelManagementEndpoints = apiResourceModelManagement.addResource("endpoints");
+    apiResourceModelManagementEndpoints.addMethod("GET", lambdaModelIntegration, this.genMethodOption(this.api, this.auth, null));
   }
 }

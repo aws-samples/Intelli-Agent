@@ -15,6 +15,8 @@ ROOT_RESOURCE = "/model-management"
 DEPLOY_RESOURCE = f"{ROOT_RESOURCE}/deploy"
 DESTROY_RESOURCE = f"{ROOT_RESOURCE}/destroy"
 STATUS_RESOURCE = "/model-management/status/{modelId}"
+LIST_ENDPOINTS_RESOURCE = f"{ROOT_RESOURCE}/endpoints"
+ENDPOINT_TYPE_TAG = "aics-endpoint-type"
 
 class ModelStatus:
     UNDEPLOYED = "Undeployed"
@@ -23,10 +25,16 @@ class ModelStatus:
     FAILED = "Failed"
     DELETING = "Deleting"
 
+class EndpointType:
+    LLM = "llm"
+    EMBEDDING = "embedding"
+    MULTIMODAL = "multimodal"
+
 
 dynamodb_resource = boto3.resource("dynamodb")
 model_table_name = os.getenv("MODEL_TABLE_NAME", "model-management")
 model_table = dynamodb_resource.Table(model_table_name)
+sagemaker_client = boto3.client('sagemaker')
 
 resp_header = {
     "Content-Type": "application/json",
@@ -210,6 +218,63 @@ def __status(event, group_name):
     return item
 
 
+def __list_endpoints(event, group_name):
+    """
+    List all SageMaker endpoints with the specified endpoint type
+    """
+    endpoints = []
+
+    # Get endpoint type from query parameters
+    endpoint_type = get_query_parameter(event, "endpoint_type")
+
+    # Validate endpoint type if provided
+    if endpoint_type and endpoint_type not in vars(EndpointType).values():
+        raise ValueError(f"Invalid endpoint_type. Must be one of: {', '.join(vars(EndpointType).values())}")
+
+    # Initialize pagination
+    paginator = sagemaker_client.get_paginator("list_endpoints")
+
+    try:
+        # Iterate through all pages
+        for page in paginator.paginate():
+            for endpoint in page["Endpoints"]:
+                endpoint_name = endpoint["EndpointName"]
+
+                # Get endpoint tags
+                response = sagemaker_client.list_tags(
+                    ResourceArn=endpoint["EndpointArn"]
+                )
+
+                # Convert tags to dictionary
+                tags = {tag["Key"]: tag["Value"] for tag in response["Tags"]}
+
+                # Check if endpoint matches the endpoint type filter
+                if (
+                    endpoint_type
+                    and tags.get(ENDPOINT_TYPE_TAG) == endpoint_type
+                ):
+                    # Get additional endpoint details
+                    endpoint_details = sagemaker_client.describe_endpoint(
+                        EndpointName=endpoint_name
+                    )
+
+                    endpoints.append(
+                        {
+                            "endpoint_name": endpoint_name,
+                            "endpoint_status": endpoint_details[
+                                "EndpointStatus"
+                            ],
+                            "endpoint_type": tags.get(ENDPOINT_TYPE_TAG),
+                        }
+                    )
+
+        return {"endpoints": endpoints, "count": len(endpoints)}
+
+    except Exception as e:
+        logger.error(f"Error listing endpoints: {str(e)}")
+        raise
+
+
 def lambda_handler(event, context):
     """
     Example body for deploy and destroy APIs
@@ -222,6 +287,7 @@ def lambda_handler(event, context):
         ("POST", DEPLOY_RESOURCE): __deploy,
         ("POST", DESTROY_RESOURCE): __destroy,
         ("GET", STATUS_RESOURCE): __status,
+        ("GET", LIST_ENDPOINTS_RESOURCE): __list_endpoints,
     }
 
     authorizer_type = (

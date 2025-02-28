@@ -6,7 +6,7 @@ const GetStarted: React.FC = () => {
   const { t } = useTranslation();
   return (
     <Container
-      header={<Header variant="h2">{t('gettingStarted.name')}</Header>}
+      header={<Header variant="h3">{t('gettingStarted.name')}</Header>}
     >
       {/* <Box padding={{ vertical: 'xs' }}>
         <Link href="/" target="_blank">

@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, StackProps, NestedStack, Stack, PhysicalName, CfnOutput } from "aws-cdk-lib";
+import { Aws, StackProps, Stack, CfnOutput } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { join } from "path";
 
@@ -49,6 +49,7 @@ export class UIStack extends Stack implements UIStackOutputs {
     });
 
     const userConstruct = new UserConstruct(this, "User", {
+      deployRegion: props.config.deployRegion,
       adminEmail: props.config.email,
       callbackUrls: [
         `https://${clientPortalConstruct.portalUrl}/signin`,
@@ -67,7 +68,7 @@ export class UIStack extends Stack implements UIStackOutputs {
 
     // Add CfnOutputs to export values
     new CfnOutput(this, 'UserPoolId', {
-      value: userConstruct.userPool.userPoolId,
+      value: userConstruct.userPoolId,
       exportName: `${id}-user-pool-id`
     });
 

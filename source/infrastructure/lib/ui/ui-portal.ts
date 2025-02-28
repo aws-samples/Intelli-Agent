@@ -15,14 +15,11 @@ import { Construct } from "constructs";
 import * as path from "path";
 import {
   Aws,
-  Duration,
   aws_cloudfront as cloudfront,
   aws_s3 as s3,
   aws_s3_deployment as s3d,
   RemovalPolicy,
 } from "aws-cdk-lib";
-import { CloudFrontToS3 } from "@aws-solutions-constructs/aws-cloudfront-s3";
-import { v4 as uuidv4 } from 'uuid';
 
 export interface PortalConstructOutputs {
   portalBucket: s3.Bucket;
@@ -46,79 +43,72 @@ export class PortalConstruct extends Construct implements PortalConstructOutputs
 
   constructor(scope: Construct, id: string, props: PortalConstructProps) {
     super(scope, id);
-    const getDefaultBehaviour = () => {
-      return {
-        responseHeadersPolicy: new cloudfront.ResponseHeadersPolicy(
-          this,
-          "ResponseHeadersPolicy",
-          {
-            responseHeadersPolicyName: props.responseHeadersPolicyName,
-            comment: "AI-Customer-Service Security Headers Policy",
-            securityHeadersBehavior: {
-              contentTypeOptions: { override: true },
-              frameOptions: {
-                frameOption: cloudfront.HeadersFrameOption.DENY,
-                override: true,
-              },
-              referrerPolicy: {
-                referrerPolicy: cloudfront.HeadersReferrerPolicy.NO_REFERRER,
-                override: true,
-              },
-              strictTransportSecurity: {
-                accessControlMaxAge: Duration.seconds(600),
-                includeSubdomains: true,
-                override: true,
-              },
-              xssProtection: {
-                protection: true,
-                modeBlock: true,
-                override: true,
-              },
-            },
-          },
-        ),
-      };
-    };
-    // const randomUuid = uuidv4();
 
-    // Use cloudfrontToS3 solution constructs
-    const portal = new CloudFrontToS3(this, "UI", {
-      bucketProps: {
-        // bucketName: `ui-construct-asset-${randomUuid}`,
-        versioned: false,
-        encryption: s3.BucketEncryption.S3_MANAGED,
-        accessControl: s3.BucketAccessControl.PRIVATE,
-        enforceSSL: true,
-        removalPolicy: RemovalPolicy.RETAIN,
-        autoDeleteObjects: false,
-        objectOwnership: s3.ObjectOwnership.OBJECT_WRITER,
-      },
-      cloudFrontDistributionProps: {
-        priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
-        minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2019,
-        enableIpv6: false,
-        comment: `${Aws.STACK_NAME} portal (${Aws.REGION})`,
-        enableLogging: true,
-        errorResponses: [
-          {
-            httpStatus: 403,
-            responseHttpStatus: 200,
-            responsePagePath: "/index.html",
-          },
-        ],
-        defaultBehavior: getDefaultBehaviour(),
-      },
-      insertHttpSecurityHeaders: false,
-      loggingBucketProps: {
-        objectOwnership: s3.ObjectOwnership.OBJECT_WRITER,
-      },
-      cloudFrontLoggingBucketProps: {
-        objectOwnership: s3.ObjectOwnership.OBJECT_WRITER,
-      },
+    // Create S3 bucket for web assets
+    this.portalBucket = new s3.Bucket(this, 'WebsiteBucket', {
+      versioned: false,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      accessControl: s3.BucketAccessControl.PRIVATE,
+      enforceSSL: true,
+      removalPolicy: RemovalPolicy.RETAIN,
+      autoDeleteObjects: false,
+      objectOwnership: s3.ObjectOwnership.OBJECT_WRITER,
     });
 
-    this.portalBucket = portal.s3Bucket as s3.Bucket;
-    this.portalUrl = portal.cloudFrontWebDistribution.distributionDomainName;
+    // Create Origin Access Identity
+    const originAccessIdentity = new cloudfront.OriginAccessIdentity(this, 'OAI');
+    originAccessIdentity.applyRemovalPolicy(RemovalPolicy.DESTROY);
+
+    // Grant read permissions to CloudFront
+    this.portalBucket.grantRead(originAccessIdentity);
+    const oaiId = `origin-access-identity/cloudfront/${originAccessIdentity.originAccessIdentityId}`;
+
+    // Create CloudFront distribution using CfnDistribution
+    const distribution = new cloudfront.CfnDistribution(this, 'Distribution', {
+      distributionConfig: {
+        enabled: true,
+        comment: `${Aws.STACK_NAME} portal (${Aws.REGION})`,
+        defaultRootObject: 'index.html',
+        priceClass: 'PriceClass_All',
+        ipv6Enabled: false,
+        origins: [
+          {
+            id: this.portalBucket.bucketName,
+            domainName: this.portalBucket.bucketRegionalDomainName,
+            s3OriginConfig: {
+              originAccessIdentity: oaiId,
+            },
+          }
+        ],
+        defaultCacheBehavior: {
+          targetOriginId: this.portalBucket.bucketName,
+          viewerProtocolPolicy: 'redirect-to-https',
+          compress: true,
+          forwardedValues: {
+            queryString: false,
+            cookies: { forward: 'none' }
+          },
+          minTtl: 0,
+          defaultTtl: 86400,
+          maxTtl: 31536000,
+        },
+        customErrorResponses: [
+          {
+            errorCode: 403,
+            responseCode: 200,
+            responsePagePath: '/index.html',
+          },
+          {
+            errorCode: 404,
+            responseCode: 200,
+            responsePagePath: '/index.html',
+          }
+        ],
+        httpVersion: 'http2',
+      }
+    });
+
+    this.portalUrl = `${distribution.attrDomainName}`;
 
     // Use provided source path or fall back to default
     const uiSourcePath = props.uiSourcePath || path.join(__dirname, "../../../portal/dist");
@@ -127,6 +117,11 @@ export class PortalConstruct extends Construct implements PortalConstructOutputs
     new s3d.BucketDeployment(this, "DeployWebAssets", {
       sources: [s3d.Source.asset(uiSourcePath)],
       destinationBucket: this.portalBucket,
+      distribution: cloudfront.Distribution.fromDistributionAttributes(this, 'ImportedDist', {
+        distributionId: distribution.attrId,
+        domainName: distribution.attrDomainName
+      }),
+      distributionPaths: ['/*'],
       prune: false,
     });
   }

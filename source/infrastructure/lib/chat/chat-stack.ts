@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, StackProps, NestedStack } from "aws-cdk-lib";
+import { StackProps, NestedStack } from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 import { Construct } from "constructs";
@@ -24,11 +24,11 @@ import { IAMHelper } from "../shared/iam-helper";
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { SystemConfig } from "../shared/types";
-import { SharedConstruct, SharedConstructOutputs } from "../shared/shared-construct";
+import { SharedConstructOutputs } from "../shared/shared-construct";
 import { ModelConstructOutputs } from "../model/model-construct";
 import { ChatTablesConstruct } from "./chat-tables";
 import { LambdaFunction } from "../shared/lambda-helper";
-import { Runtime, Code, Function, Architecture } from "aws-cdk-lib/aws-lambda";
+import { Runtime, Code, Function } from "aws-cdk-lib/aws-lambda";
 import { ConnectConstruct } from "../connect/connect-construct";
 
 
@@ -56,6 +56,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
   public messagesTableName: string;
   public promptTableName: string;
   public intentionTableName: string;
+  public stopSignalsTableName: string;
   public sqsStatement: iam.PolicyStatement;
   public messageQueue: Queue;
   public dlq: Queue;
@@ -68,8 +69,6 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
   private lambdaOnlineIntentionDetection: Function;
   private lambdaOnlineAgent: Function;
   private lambdaOnlineLLMGenerate: Function;
-  private chatbotTableName: string;
-  // private lambdaOnlineFunctions: Function;
 
   constructor(scope: Construct, id: string, props: ChatStackProps) {
     super(scope, id);
@@ -85,7 +84,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.messagesTableName = chatTablesConstruct.messagesTableName;
     this.promptTableName = chatTablesConstruct.promptTableName;
     this.intentionTableName = chatTablesConstruct.intentionTableName;
-    this.chatbotTableName = props.sharedConstructOutputs.chatbotTable.tableName;
+    this.stopSignalsTableName = chatTablesConstruct.stopSignalsTableName;
     this.indexTableName = props.sharedConstructOutputs.indexTable.tableName;
     this.modelTableName = props.sharedConstructOutputs.modelTable.tableName;
 
@@ -98,7 +97,6 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
 
     const lambdaLayers = new LambdaLayers(this);
     const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineMainLayer();
-    const apiLambdaJobSourceLayer = lambdaLayers.createJobSourceLayer();
     const modelLayer = lambdaLayers.createModelDeploymentLayer();
 
 
@@ -132,6 +130,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         MESSAGES_TABLE_NAME: chatTablesConstruct.messagesTableName,
         PROMPT_TABLE_NAME: chatTablesConstruct.promptTableName,
         INTENTION_TABLE_NAME: chatTablesConstruct.intentionTableName,
+        STOP_SIGNALS_TABLE_NAME: chatTablesConstruct.stopSignalsTableName,
         MODEL_TABLE_NAME: this.modelTableName,
         INDEX_TABLE_NAME: this.indexTableName,
         OPENAI_KEY_ARN: openAiKey.secretArn,

@@ -264,7 +264,6 @@ const IntentionDetail: React.FC = () => {
           currentPage * pageSize,
         ),);
       }}
-      enableKeyboardNavigation
       items={tableQAList||[]}
       loadingText="Loading resources"
       stickyHeader
@@ -317,21 +316,6 @@ const IntentionDetail: React.FC = () => {
             options: [
               { value: 10, label: "10 resources" },
               { value: 20, label: "20 resources" }
-            ]
-          }}
-          wrapLinesPreference={{}}
-          stripedRowsPreference={{}}
-          contentDensityPreference={{}}
-          contentDisplayPreference={{
-            options: [
-              {
-                id: "variable",
-                label: "Variable name",
-                alwaysVisible: true
-              },
-              { id: "value", label: "Text value" },
-              { id: "type", label: "Type" },
-              { id: "description", label: "Description" }
             ]
           }}
           stickyColumnsPreference={{

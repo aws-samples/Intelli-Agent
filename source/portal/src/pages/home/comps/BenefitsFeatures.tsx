@@ -11,7 +11,7 @@ const BenefitsFeatures: React.FC = () => {
   const { t } = useTranslation();
   return (
     <Container
-      header={<Header variant="h2">{t('featuresAndBenefits.name')}</Header>}
+      header={<Header variant="h3">{t('featuresAndBenefits.name')}</Header>}
     >
       <ColumnLayout columns={2} variant="text-grid">
         {[1, 2].map((item) => {

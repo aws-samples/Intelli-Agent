@@ -53,7 +53,6 @@ export class RootStack extends Stack {
 
     let knowledgeBaseStack: KnowledgeBaseStack = {} as KnowledgeBaseStack;
     let knowledgeBaseStackOutputs: KnowledgeBaseStackOutputs = {} as KnowledgeBaseStackOutputs;
-    let chatStack: ChatStack = {} as ChatStack;
     let chatStackOutputs: ChatStackOutputs = {} as ChatStackOutputs;
 
     const modelConstruct = new ModelConstruct(this, "model-construct", {

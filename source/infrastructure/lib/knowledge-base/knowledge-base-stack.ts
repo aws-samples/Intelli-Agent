@@ -11,12 +11,11 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, NestedStack, RemovalPolicy, StackProps, CustomResource } from "aws-cdk-lib";
+import { Duration, NestedStack, StackProps } from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { Architecture, Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import * as s3 from "aws-cdk-lib/aws-s3";
-import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
@@ -31,6 +30,7 @@ import { SystemConfig } from "../shared/types";
 import { SharedConstructOutputs } from "../shared/shared-construct";
 import { ModelConstructOutputs } from "../model/model-construct";
 import { AOSConstruct } from "./os-stack";
+import * as s3Deployment from "aws-cdk-lib/aws-s3-deployment";
 
 interface KnowledgeBaseStackProps extends StackProps {
   readonly config: SystemConfig;
@@ -78,6 +78,14 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     this.glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
+
+    new s3Deployment.BucketDeployment(this, "DeployGlueLibs", {
+      sources: [s3Deployment.Source.asset(join(__dirname, "../../../lambda/job/dep/dist"), {
+        exclude: ["*", "!llm_bot_dep-0.1.0-py3-none-any.whl"]
+      })],
+      destinationBucket: this.glueLibS3Bucket,
+    });
+
     const createKnowledgeBaseTablesAndPoliciesResult = this.createKnowledgeBaseTablesAndPolicies(props);
     this.executionTableName = createKnowledgeBaseTablesAndPoliciesResult.executionTable.tableName;
     this.etlObjTableName = createKnowledgeBaseTablesAndPoliciesResult.etlObjTable.tableName;
@@ -153,20 +161,6 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
 
     // If this.region is cn-north-1 or cn-northwest-1, use the glue-job-script-cn.py
     const glueJobScript = "glue-job-script.py";
-
-
-    const extraPythonFiles = new s3deploy.BucketDeployment(
-      this,
-      "extraPythonFiles",
-      {
-        sources: [
-          s3deploy.Source.asset(
-            join(__dirname, "../../../lambda/job/dep/dist"),
-          ),
-        ],
-        destinationBucket: this.glueLibS3Bucket
-      },
-    );
 
     // Assemble the extra python files list using _S3Bucket.s3UrlForObject("llm_bot_dep-0.1.0-py3-none-any.whl") and _S3Bucket.s3UrlForObject("nougat_ocr-0.1.17-py3-none-any.whl") and convert to string
     const extraPythonFilesList = [

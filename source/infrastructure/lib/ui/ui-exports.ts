@@ -13,7 +13,6 @@
 
 import { Construct } from "constructs";
 import {
-  aws_s3 as s3,
   StackProps,
 } from "aws-cdk-lib";
 import { AwsCustomResource, AwsCustomResourcePolicy, PhysicalResourceId } from "aws-cdk-lib/custom-resources";
@@ -49,8 +48,20 @@ export class UiExportsConstruct extends Construct {
     super(scope, id);
 
     const configFile = 'aws-exports.json';
-    const configLambda = new AwsCustomResource(this, 'WebConfig', {
+    new AwsCustomResource(this, 'WebConfig', {
       logRetention: RetentionDays.ONE_DAY,
+      onCreate: {
+        action: 'putObject',
+        parameters: {
+          Body: JSON.stringify(props.uiProps),
+          Bucket: props.portalBucketName,
+          CacheControl: 'max-age=0, no-cache, no-store, must-revalidate',
+          ContentType: 'application/json',
+          Key: configFile,
+        },
+        service: 'S3',
+        physicalResourceId: PhysicalResourceId.of(`config-${Date.now()}`),
+      },
       onUpdate: {
         action: 'putObject',
         parameters: {
@@ -66,7 +77,6 @@ export class UiExportsConstruct extends Construct {
       policy: AwsCustomResourcePolicy.fromStatements([
         new PolicyStatement({
           actions: ['s3:PutObject'],
-          // resources: [props.portalBucket.arnForObjects(configFile)]
           resources: ["*"]
         })
       ])

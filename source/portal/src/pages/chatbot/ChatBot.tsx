@@ -46,7 +46,7 @@ import {
   SHOW_FIGURES,
   API_ENDPOINT,
   API_KEY_ARN,
-  CUSTOM_DEPLOYMENT_MODEL_LIST,
+  CUSTOM_DEPLOYMENT_MODEL_LIST
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';
@@ -475,11 +475,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     }
   }, [isMessageEnd]);
 
-  const handleClickSendMessage = () => {
+  const handleClickSendMessage = (customQuery?: string) => {
     if (aiSpeaking) {
       return;
     }
-    if (!userMessage.trim()) {
+
+    const messageToSend = customQuery ?? userMessage;
+
+    if (!messageToSend.trim()) {
       setShowMessageError(true);
       return;
     }
@@ -582,9 +585,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     setCurrentAIMessage('');
     setCurrentMonitorMessage('');
     setIsMessageEnd(false);
+
     const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     let message = {
-      query: userMessage,
+      query: messageToSend,
       entry_type: 'common',
       session_id: sessionId,
       user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
@@ -632,20 +636,23 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
 
     console.info('send message:', message);
     sendMessage(JSON.stringify(message));
-    setMessages((prev) => {
-      return [
-        ...prev,
-        {
-          messageId: '',
-          type: 'human',
-          message: {
-            data: userMessage,
-            monitoring: '',
+    
+    // Only add to messages if it's a new message (not regeneration)
+    if (!customQuery) {
+      setMessages((prev) => {
+        return [
+          ...prev,
+          {
+            messageId: '',
+            type: 'human',
+            message: {
+              data: messageToSend,
+              monitoring: '',
+            },
           },
-        },
-      ];
-    });
-    setUserMessage('');
+        ];
+      });
+    }
   };
 
   useEffect(() => {
@@ -739,6 +746,71 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     localStorage.setItem('SHOW_FIGURES', showFigures ? "true" : "false");
   }, [showFigures]);
 
+  const handleStopMessage = () => {
+    const message = {
+      message_type: "STOP",
+      session_id: sessionId,
+      user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
+    };
+
+    console.info('Send stop message:', message);
+    sendMessage(JSON.stringify(message));
+    
+    // Reset states to stop generation
+    setAiSpeaking(false);
+    setIsMessageEnd(true);
+  };
+
+  // Update the render send button section
+  const renderSendButton = () => {
+    if (aiSpeaking) {
+      return (
+        <Button
+          onClick={handleStopMessage}
+          ariaLabel={t('button.stop')}
+        >
+          {t('button.stop')}
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        disabled={readyState !== ReadyState.OPEN}
+        onClick={() => handleClickSendMessage()}
+        ariaLabel={t('button.send')}
+      >
+        {t('button.send')}
+      </Button>
+    );
+  };
+
+  const handleRegenerateMessage = async (index: number) => {
+    if (aiSpeaking) {
+      return;
+    }
+
+    // Get the last human message before this AI message
+    let humanMessage = '';
+    for (let i = index - 1; i >= 0; i--) {
+      if (messages[i].type === 'human') {
+        humanMessage = messages[i].message.data;
+        break;
+      }
+    }
+
+    if (!humanMessage) {
+      console.error('No human message found to regenerate response');
+      return;
+    }
+
+    // Remove the AI message and all subsequent messages
+    setMessages(messages.slice(0, index));
+    
+    // Reuse handleClickSendMessage with the found human message
+    handleClickSendMessage(humanMessage);
+  };
+
   return (
     <CommonLayout
       isLoading={loadingHistory}
@@ -829,6 +901,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                           }}
                           value={modelOption}
                           options={modelList}
+                          enteredTextLabel={value => `Use: "${value}"`}
                           placeholder={t('validation.requireModel')}
                           empty={t('noModelFound')}
                         />
@@ -890,6 +963,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         options={modelList}
                         placeholder={t('validation.requireModel')}
                         empty={t('noModelFound')}
+                        enteredTextLabel={value => `Use: "${value}"`}
                       />
                     </FormField>
                   )}
@@ -1050,6 +1124,13 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               {msg.type === 'ai' && index !== 0 && (
                 <div className="feedback-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                   <Button
+                    iconName="refresh"
+                    variant="icon"
+                    disabled={aiSpeaking}
+                    onClick={() => handleRegenerateMessage(index)}
+                    ariaLabel={t('regenerate')}
+                  />
+                  <Button
                     iconName={feedbackGiven[index] === 'thumb_up' ? "thumbs-up-filled" : "thumbs-up"}
                     variant="icon"
                     onClick={() => handleThumbUpClick(index)}
@@ -1078,6 +1159,13 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               />
               {isMessageEnd && (
                 <div className="feedback-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  <Button
+                    iconName="refresh"
+                    variant="icon"
+                    disabled={aiSpeaking}
+                    onClick={() => handleRegenerateMessage(messages.length)}
+                    ariaLabel={t('regenerate')}
+                  />
                   <Button
                     iconName={feedbackGiven[messages.length] === 'thumb_up' ? "thumbs-up-filled" : "thumbs-up"}
                     variant="icon"
@@ -1128,14 +1216,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               />
             </div>
             <div>
-              <Button
-                disabled={aiSpeaking || readyState !== ReadyState.OPEN}
-                onClick={() => {
-                  handleClickSendMessage();
-                }}
-              >
-                {t('button.send')}
-              </Button>
+              {renderSendButton()}
             </div>
           </div>
           <div>
