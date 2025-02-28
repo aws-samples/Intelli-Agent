@@ -29,10 +29,6 @@ dotenv.config();
 
 export interface RootStackProps extends StackProps {
   readonly config: SystemConfig;
-  readonly userPoolId: string;
-  readonly oidcClientId: string;
-  readonly oidcIssuer: string;
-  readonly oidcLogoutUrl: string;
   readonly portalBucketName: string;
   readonly portalUrl: string;
 }
@@ -88,9 +84,7 @@ export class RootStack extends Stack {
       sharedConstructOutputs: sharedConstruct,
       modelConstructOutputs: modelConstruct,
       knowledgeBaseStackOutputs: knowledgeBaseStackOutputs,
-      chatStackOutputs: chatStackOutputs,
-      userPoolId: props.userPoolId,
-      oidcClientId: props.oidcClientId,
+      chatStackOutputs: chatStackOutputs
     });
     apiConstruct.node.addDependency(sharedConstruct);
     apiConstruct.node.addDependency(modelConstruct);
@@ -109,12 +103,6 @@ export class RootStack extends Stack {
     });
     new CfnOutput(this, "WebSocket Endpoint Address", {
       value: apiConstruct.wsEndpoint,
-    });
-    new CfnOutput(this, "OIDC Client ID", {
-      value: props.oidcClientId,
-    });
-    new CfnOutput(this, "User Pool ID", {
-      value: props.userPoolId,
     });
   }
 }
@@ -143,10 +131,6 @@ const uiStack = new UIStack(app, `${stackName}-frontend`, {
 const rootStack = new RootStack(app, stackName, {
   config,
   env: devEnv,
-  userPoolId: Fn.importValue(`${stackName}-frontend-user-pool-id`),
-  oidcClientId: Fn.importValue(`${stackName}-frontend-oidc-client-id`),
-  oidcIssuer: Fn.importValue(`${stackName}-frontend-oidc-issuer`),
-  oidcLogoutUrl: Fn.importValue(`${stackName}-frontend-oidc-logout-url`),
   portalBucketName: Fn.importValue(`${stackName}-frontend-portal-bucket-name`),
   portalUrl: Fn.importValue(`${stackName}-frontend-portal-url`),
   suppressTemplateIndentation: true,
@@ -158,15 +142,11 @@ const workspaceStack = new WorkspaceStack(app, `${stackName}-workspace`, {
   sharedConstructOutputs: rootStack.sharedConstruct,
   apiConstructOutputs: rootStack.apiConstruct,
   modelConstructOutputs: rootStack.modelConstruct,
-  userPoolId: Fn.importValue(`${stackName}-frontend-user-pool-id`),
-  oidcClientId: Fn.importValue(`${stackName}-frontend-oidc-client-id`),
-  oidcIssuer: Fn.importValue(`${stackName}-frontend-oidc-issuer`),
-  oidcLogoutUrl: Fn.importValue(`${stackName}-frontend-oidc-logout-url`),
   portalBucketName: Fn.importValue(`${stackName}-frontend-portal-bucket-name`),
   clientPortalBucketName: Fn.importValue(`${stackName}-frontend-client-portal-bucket-name`),
   portalUrl: Fn.importValue(`${stackName}-frontend-portal-url`),
   clientPortalUrl: Fn.importValue(`${stackName}-frontend-client-portal-url`),
-  suppressTemplateIndentation: true,
+  suppressTemplateIndentation: true
 });
 
 // Add dependencies
