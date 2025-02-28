@@ -58,7 +58,12 @@ def invoke_etl_model(
     portal_bucket_name: str,
     mode: str = "ppstructure",
     lang: str = "zh",
+    model_provider: str = "claude",
+    model_id: str = "anthropic/claude-3-5-sonnet-20240620",
+    api_secret_name: str = None,
+    api_url: str = None,
 ):
+    # Create a dictionary with all parameters
     json_data = {
         "s3_bucket": bucket,
         "object_key": key,
@@ -66,6 +71,10 @@ def invoke_etl_model(
         "portal_bucket": portal_bucket_name,
         "mode": mode,
         "lang": lang,
+        "model_provider": model_provider,
+        "model_id": model_id,
+        "api_secret_name": api_secret_name,
+        "api_url": api_url,
     }
 
     file_name = f"data_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex}.json"
@@ -161,35 +170,43 @@ def process_pdf(s3, pdf: bytes, **kwargs):
             doc.metadata["file_path"] = f"s3://{bucket}/{key}"
             doc.metadata["file_type"] = "pdf"
     else:
+        # Extract common parameters for ETL model invocation
+        etl_params = {
+            "s3_client": s3,
+            "smr_client": smr_client,
+            "etl_model_endpoint": etl_model_endpoint,
+            "bucket": bucket,
+            "key": key,
+            "res_bucket": res_bucket,
+            "portal_bucket_name": portal_bucket_name,
+            "mode": "ppstructure",
+            "model_provider": kwargs.get("model_provider"),
+            "model_id": kwargs.get("model_id"),
+            "api_secret_name": kwargs.get("api_secret_name"),
+            "api_url": kwargs.get("api_url"),
+        }
+
         if document_language == "zh":
-            logger.info("Detected language is Chinese, using default PDF loader...")
-            markdown_prefix = invoke_etl_model(
-                s3,
-                smr_client,
-                etl_model_endpoint,
-                bucket,
-                key,
-                res_bucket,
-                portal_bucket_name,
-                mode="ppstructure",
-                lang="zh",
+            logger.info(
+                "Detected language is Chinese, using default PDF loader..."
             )
-            logger.info(f"Markdown file path: s3://{res_bucket}/{markdown_prefix}")
+            # Only specify the language parameter that differs
+            etl_params["lang"] = "zh"
+            markdown_prefix = invoke_etl_model(**etl_params)
+            logger.info(
+                f"Markdown file path: s3://{res_bucket}/{markdown_prefix}"
+            )
             content = load_content_from_s3(s3, res_bucket, markdown_prefix)
         else:
-            logger.info("Detected language is English, using ETL model endpoint...")
-            markdown_prefix = invoke_etl_model(
-                s3,
-                smr_client,
-                etl_model_endpoint,
-                bucket,
-                key,
-                res_bucket,
-                portal_bucket_name,
-                mode="ppstructure",
-                lang="en",
+            logger.info(
+                "Detected language is English, using ETL model endpoint..."
             )
-            logger.info(f"Markdown file path: s3://{res_bucket}/{markdown_prefix}")
+            # Only specify the language parameter that differs
+            etl_params["lang"] = "en"
+            markdown_prefix = invoke_etl_model(**etl_params)
+            logger.info(
+                f"Markdown file path: s3://{res_bucket}/{markdown_prefix}"
+            )
             content = load_content_from_s3(s3, res_bucket, markdown_prefix)
 
         # Remove duplicate sections
