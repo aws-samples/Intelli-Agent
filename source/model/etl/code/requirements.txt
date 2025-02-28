@@ -9,3 +9,4 @@ markdownify
 flask
 gevent
 GPUtil
+requests

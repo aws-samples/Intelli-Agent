@@ -233,7 +233,7 @@ def get_api_key(api_secret_name):
         # Parse the secret JSON
         if "SecretString" in secret_response:
             secret_data = json.loads(secret_response["SecretString"])
-            api_key = secret_data.get("api_key")
+            api_key = secret_data.get("key")
             logger.info(
                 f"Successfully retrieved API key from secret: {api_secret_name}"
             )

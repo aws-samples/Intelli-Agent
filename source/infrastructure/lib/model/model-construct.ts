@@ -187,7 +187,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
 
   private deployKnowledgeBaseEndpoint(props: ModelConstructProps) {
     // Deploy Knowledge Base model
-    let knowledgeBaseModelName = "knowledge-base-model-20250228";
+    let knowledgeBaseModelName = "knowledge-base-model-0228";
     let knowledgeBaseModelEcrRepository = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
     let knowledgeBaseModelEcrImageTag = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
     let knowledgeBaseModelImageUrl = this.modelAccount + ".dkr.ecr." + this.modelRegion + this.modelImageUrlDomain + knowledgeBaseModelEcrRepository + ":" + knowledgeBaseModelEcrImageTag;
