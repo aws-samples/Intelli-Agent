@@ -170,6 +170,7 @@ class S3FileProcessor:
             None
         """
         create_time = str(datetime.now(timezone.utc))
+        # TODO: make it configurable in frontend
         kwargs = {
             "bucket": self.bucket,
             "key": key,
@@ -180,6 +181,10 @@ class S3FileProcessor:
             "create_time": create_time,
             "portal_bucket_name": portal_bucket_name,
             "document_language": document_language,
+            "model_provider": "siliconflow",
+            "model_id": "Qwen/Qwen2-VL-72B-Instruct",
+            "api_secret_name": "siliconflow-api-key",
+            "api_url": "https://api.siliconflow.cn/v1/chat/completions",
         }
 
         input_body = {

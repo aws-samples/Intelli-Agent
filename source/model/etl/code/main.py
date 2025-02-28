@@ -23,6 +23,8 @@ from xycut import recursive_xy_cut
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+s3 = boto3.client("s3")
+
 
 class StructureSystem(object):
     def __init__(self):
@@ -158,11 +160,6 @@ class StructureSystem(object):
         return res_list, time_dict
 
 
-structure_engine = StructureSystem()
-figure_understand = figureUnderstand()
-s3 = boto3.client("s3")
-
-
 def upload_images_to_s3(images, bucket: str, prefix: str, splitting_type: str):
     # round the timestamp to hours to avoid too many folders
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H")
@@ -216,7 +213,76 @@ def remove_symbols(text):
     return cleaned_text
 
 
-def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
+def get_api_key(api_secret_name):
+    """
+    Get the API key from AWS Secrets Manager.
+
+    Args:
+        api_secret_name (str): The name of the secret in AWS Secrets Manager containing the API key.
+
+    Returns:
+        str: The API key.
+    """
+    try:
+        # Create a Secrets Manager client
+        secrets_client = boto3.client("secretsmanager")
+        # Get the secret value
+        secret_response = secrets_client.get_secret_value(
+            SecretId=api_secret_name
+        )
+        # Parse the secret JSON
+        if "SecretString" in secret_response:
+            secret_data = json.loads(secret_response["SecretString"])
+            api_key = secret_data.get("api_key")
+            logger.info(
+                f"Successfully retrieved API key from secret: {api_secret_name}"
+            )
+            return api_key
+    except Exception as e:
+        logger.error(f"Error retrieving secret {api_secret_name}: {str(e)}")
+    return None
+
+
+def validate_llm_request(model_provider, api_key=None, api_url=None):
+    """
+    Validates the LLM invocation request parameters.
+
+    Args:
+        model_provider (str): The model provider, should be one of 'bedrock', 'openai', or 'siliconflow'.
+        api_key (str, optional): The API key for the model provider. Required for 'openai' and 'siliconflow'.
+        api_url (str, optional): The API URL for the model provider. Required for 'openai' and 'siliconflow'.
+
+    Returns:
+        tuple: (is_valid, error_message) where is_valid is a boolean indicating if the request is valid,
+               and error_message is a string containing the error message if not valid, otherwise None.
+    """
+    # Check if model provider is valid
+    valid_providers = ["bedrock", "openai", "siliconflow"]
+    if model_provider not in valid_providers:
+        return (
+            False,
+            f"Invalid model provider: {model_provider}. Must be one of {valid_providers}",
+        )
+
+    # For openai and siliconflow, api_key and api_url are required
+    if model_provider in ["openai", "siliconflow"]:
+        if api_key is None:
+            return False, f"API key is required for {model_provider}"
+
+        if not api_url:
+            return False, f"Valid API URL is required for {model_provider}"
+
+    return True, None
+
+
+def structure_predict(
+    structure_engine,
+    figure_understand,
+    file_path: Path,
+    lang: str,
+    auto_dpi,
+    figure_rec,
+) -> str:
     """
     Extracts structured information from images in the given file path and returns a formatted document.
 
@@ -342,6 +408,7 @@ def process_pdf_pipeline(request_body):
             - portal_bucket (str): The portal S3 bucket name
             - mode (str, optional): The processing mode. Defaults to "ppstructure".
             - lang (str, optional): The language of the PDF. Defaults to "zh".
+            - api_secret_name (str, optional): The name of the secret in AWS Secrets Manager containing the API key.
 
     Returns:
         dict: The result of the pipeline containing the following key:
@@ -355,6 +422,26 @@ def process_pdf_pipeline(request_body):
     lang = request_body.get("lang", "zh")
     auto_dpi = bool(request_body.get("auto_dpi", True))
     figure_rec = bool(request_body.get("figure_recognition", True))
+    model_provider = request_body.get("model_provider", "bedrock")
+    model_id = request_body.get(
+        "model_id", "anthropic.claude-3-sonnet-20240229-v1:0"
+    )
+    api_url = request_body.get("api_url", None)
+    api_secret_name = request_body.get("api_secret_name", None)
+
+    if api_secret_name:
+        api_key = get_api_key(api_secret_name)
+    else:
+        api_key = None
+
+    # Validate LLM request parameters
+    is_valid, error_message = validate_llm_request(
+        model_provider, api_key, api_url
+    )
+    if not is_valid:
+        logger.error(error_message)
+        return {"error": error_message, "status": "failed"}
+
     logging.info("Processing bucket: %s, object_key: %s", bucket, object_key)
     local_path = str(os.path.basename(object_key))
     local_path = f"/tmp/{local_path}"
@@ -362,7 +449,20 @@ def process_pdf_pipeline(request_body):
     logger.info("Downloading %s to %s", object_key, local_path)
     s3.download_file(Bucket=bucket, Key=object_key, Filename=local_path)
 
-    content, images = structure_predict(local_path, lang, auto_dpi, figure_rec)
+    structure_engine = StructureSystem()
+    figure_understand = figureUnderstand(
+        model_provider, model_id, api_url, api_key
+    )
+
+    content, images = structure_predict(
+        structure_engine,
+        figure_understand,
+        local_path,
+        lang,
+        auto_dpi,
+        figure_rec,
+    )
+
     filename = file_path.stem
     name_s3path = upload_images_to_s3(images, portal_bucket, filename, "image")
     for key, s3_path in name_s3path.items():
