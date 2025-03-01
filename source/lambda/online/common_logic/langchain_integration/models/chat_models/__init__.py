@@ -197,7 +197,7 @@ class ReasonModelStreamResult:
         self,
         message_stream: Iterator[BaseMessageChunk],
         think_start_tag="<think>",
-        think_end_tag="</think>",
+        think_end_tag="</think>\n",
         reasoning_content_key="reasoning_content"
     ):
         self.message_stream = message_stream
