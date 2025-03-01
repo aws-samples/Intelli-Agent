@@ -215,7 +215,7 @@ export class ChatbotManagementApi extends Construct {
     }
 
     private initChatbotProvider!: Provider;
-    private createInitChatbotProvider(props) {
+    private createInitChatbotProvider(props: ChatbotManagementApiProps) {
         if (!this.initChatbotProvider) {
           // Create a Lambda function that implements the delay logic
           const chatbotInitFunction = new lambda.Function(this, "ChatbotInitLambda", {
