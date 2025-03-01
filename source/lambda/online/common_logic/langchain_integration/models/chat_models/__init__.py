@@ -204,34 +204,28 @@ class ReasonModelStreamResult:
         self.think_start_tag = think_start_tag
         self.think_end_tag = think_end_tag
         self.reasoning_content_key = reasoning_content_key
-
         self.think_stream = self.create_think_stream(message_stream)
         self.content_stream = self.create_content_stream(message_stream)
-    
+        self.new_stream = None
     def create_think_stream(self,message_stream: Iterator[BaseMessageChunk]):
         think_start_flag = False
         for message in message_stream:
             reasoning_content = message.additional_kwargs.get(
-                self.reasoning_content_key, 
+                self.reasoning_content_key,
                 None
             )
-            
             if reasoning_content is None and think_start_flag:
-                return 
-            
+                return
             if reasoning_content is not None:
                 if not think_start_flag:
                     think_start_flag = True
                 yield reasoning_content
-    
     def create_content_stream(self, message_stream: Iterator[BaseMessageChunk]):
         for message in message_stream:
             yield message.content
-
-
-    def __iter__(self):
+    def generate_stream(self,message_stream: Iterator[BaseMessageChunk]):
         think_start_flag = False
-        for message in self.message_stream:
+        for message in message_stream:
             reasoning_content = message.additional_kwargs.get(self.reasoning_content_key, None)
             if reasoning_content is not None:
                 if not think_start_flag:
@@ -242,6 +236,10 @@ class ReasonModelStreamResult:
             if reasoning_content is None and think_start_flag:
                 think_start_flag = False
                 yield self.think_end_tag
-            
             yield message.content
+    def __iter__(self):
+        if self.new_stream is not None:
+            yield from self.new_stream
+        else:
+            yield from self.generate_stream(self.message_stream)
                 

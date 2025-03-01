@@ -87,7 +87,11 @@ def stream_response(event_body: dict, response: dict):
             ws_connection_id=ws_connection_id
         )
 
-        #TODO: check whether answer has reason chunks
+        #TODO: check whether answer has reason chunks and is instance of Reasonformat
+        # for i, chunk in enumerate(answer.thinking_stream):
+        #     pass
+        # for i, chunk in enumerate(answer.content_stream):
+        #     pass
         for i, chunk in enumerate(answer):
             # Check for stop signal before sending each chunk
             if check_stop_signal(ws_connection_id):
