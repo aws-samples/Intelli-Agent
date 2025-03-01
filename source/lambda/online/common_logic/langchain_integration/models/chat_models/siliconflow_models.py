@@ -1,3 +1,4 @@
+import json
 import os
 import boto3
 from common_logic.common_utils.constant import (
@@ -33,8 +34,11 @@ class DeepSeekR1BaseModel(Model):
         logger.info("deepseek model kwargs")
         logger.info(model_kwargs)
         logger.info(kwargs)
-        api_key = kwargs.get('api_key', None) or os.environ.get(
-            "SILICONFLOW_API_KEY", None)
+        api_key_json = json.loads(kwargs.get('api_key'))
+        for value in api_key_json.values():
+            api_key = value
+            break
+        logger.info(api_key)
         # api_key = kwargs.get('siliconflow_api_key', None) or os.environ.get(
         #     "SILICONFLOW_API_KEY", None)
         return ChatDeepSeekR1(
