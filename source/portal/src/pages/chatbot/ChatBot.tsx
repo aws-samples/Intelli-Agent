@@ -405,6 +405,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       setCurrentAIMessage((prev) => {
         return prev + (message?.message?.content ?? '');
       });
+    } else if (message.message_type === 'REASON') {
+      setCurrentAIMessage((prev) => {
+        return prev.includes('> ') ? prev + (message?.message?.content ?? '') : prev + '> ' + (message?.message?.content ?? '');
+      });
     } else if (message.message_type === 'CONTEXT') {
       // handle context message
       if (showFigures && message.ddb_additional_kwargs?.figure?.length > 0) {

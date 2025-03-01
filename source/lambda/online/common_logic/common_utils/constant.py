@@ -114,6 +114,7 @@ class StreamMessageType(ConstantBase):
     CHUNK = "CHUNK"
     CONTEXT = "CONTEXT"
     MONITOR = "MONITOR"
+    REASON = "REASON"
 
 
 class ChatbotMode(ConstantBase):
