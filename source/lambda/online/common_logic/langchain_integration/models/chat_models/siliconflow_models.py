@@ -46,8 +46,8 @@ class DeepSeekR1BaseModel(Model):
             enable_prefill=cls.enable_prefill,
             api_base="https://api.siliconflow.cn/v1",
             api_key=api_key,
-            is_reasoning_model=cls.is_reasoning_model,
             model=cls.model,
+            is_reasoning_model=cls.is_reasoning_model,
             **model_kwargs
         )
 

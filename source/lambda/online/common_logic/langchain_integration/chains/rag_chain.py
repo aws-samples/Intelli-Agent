@@ -44,6 +44,15 @@ class RagBaseChain(LLMChain):
     intent_type = LLMTaskType.RAG
 
     @classmethod
+    def create_chat_messages(self,system_prompt_template):
+        chat_messages = [
+            SystemMessagePromptTemplate.from_template(system_prompt_template),
+            ("placeholder", "{chat_history}"),
+            HumanMessagePromptTemplate.from_template("{query}")
+        ]
+        return chat_messages
+
+    @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         stream = kwargs.get("stream", False)
         system_prompt_template = get_prompt_template(
@@ -55,11 +64,8 @@ class RagBaseChain(LLMChain):
         system_prompt_template = kwargs.get(
             "system_prompt", system_prompt_template)
 
-        chat_messages = [
-            SystemMessagePromptTemplate.from_template(system_prompt_template),
-            ("placeholder", "{chat_history}"),
-            HumanMessagePromptTemplate.from_template("{query}")
-        ]
+        chat_messages = cls.create_chat_messages(system_prompt_template)
+
         context_chain = RunnablePassthrough.assign(
             context=RunnableLambda(
                 lambda x: get_claude_rag_context(x["contexts"]))
@@ -86,8 +92,20 @@ class RagBaseChain(LLMChain):
                 final_chain = RunnableLambda(lambda x: ReasonModelResult(chain.invoke(x)))
             return final_chain
 
+class DeepSeekR1RagBaseChain(RagBaseChain):
+    @classmethod
+    def create_chat_messages(self,system_prompt_template):
+        chat_messages = [
+            HumanMessagePromptTemplate.from_template(system_prompt_template),
+            ("placeholder", "{chat_history}"),
+            HumanMessagePromptTemplate.from_template("{query}")
+        ]
+        return chat_messages
 
-RagBaseChain.create_for_chains(BEDROCK_MODEL_CONFIGS, LLMTaskType.RAG)
-RagBaseChain.create_for_chains(OPENAI_MODEL_CONFIGS, LLMTaskType.RAG)
-RagBaseChain.create_for_chains(QWEN25_MODEL_CONFIGS, LLMTaskType.RAG)
-RagBaseChain.create_for_chains(SILICONFLOW_DEEPSEEK_MODEL_CONFIGS, LLMTaskType.RAG)
+
+
+RagBaseChain.create_for_chains(BEDROCK_MODEL_CONFIGS,LLMTaskType.RAG)
+RagBaseChain.create_for_chains(OPENAI_MODEL_CONFIGS,LLMTaskType.RAG)
+RagBaseChain.create_for_chains(QWEN25_MODEL_CONFIGS,LLMTaskType.RAG)
+DeepSeekR1RagBaseChain.create_for_chains(SILICONFLOW_DEEPSEEK_MODEL_CONFIGS,LLMTaskType.RAG)
+

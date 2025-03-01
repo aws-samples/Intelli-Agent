@@ -147,8 +147,8 @@ def rag_tool(retriever_config: dict, query=None):
             output.content_stream,
             state
         )
-        output.new_stream = filter_response(
-            output.generate_stream(output.message_stream),
+        output.default_iter_stream = filter_response(
+            output.message_stream,
             state
         )
         # for i in output.think_stream:
