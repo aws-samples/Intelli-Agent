@@ -118,7 +118,7 @@ class Model(ModelMixins, metaclass=ModelMeta):
             (cls,),
             {
                 "model_id": model_id,
-                "model":config.model,
+                "model": config.model,
                 "default_model_kwargs": config.default_model_kwargs,
                 "enable_any_tool_choice": config.enable_any_tool_choice,
                 "enable_prefill": config.enable_prefill,
@@ -152,6 +152,10 @@ def _import_sagemaker_models():
     from . import sagemaker_models
 
 
+def _import_siliconflow_models():
+    from . import siliconflow_models
+
+
 def _load_module(model_provider):
     assert model_provider in MODEL_PROVIDER_LOAD_FN_MAP, (
         model_provider,
@@ -166,6 +170,7 @@ MODEL_PROVIDER_LOAD_FN_MAP = {
     ModelProvider.OPENAI: _import_openai_models,
     ModelProvider.DMAA: _import_dmaa_models,
     ModelProvider.SAGEMAKER: _import_sagemaker_models,
+    ModelProvider.SILICONFLOW: _import_siliconflow_models,
 }
 
 

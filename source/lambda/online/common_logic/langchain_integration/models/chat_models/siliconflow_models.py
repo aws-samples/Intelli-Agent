@@ -1,3 +1,4 @@
+import json
 import os
 import boto3
 from common_logic.common_utils.constant import (
@@ -29,15 +30,22 @@ class DeepSeekR1BaseModel(Model):
     def create_model(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
-        # base_url = kwargs.get("base_url", None) or os.environ.get(
-        #     "OPENAI_BASE_URL", None)
-        api_key = kwargs.get('siliconflow_api_key', None) or os.environ.get(
-            "SILICONFLOW_API_KEY", None)
+        # TODO: 
+        logger.info("deepseek model kwargs")
+        logger.info(model_kwargs)
+        logger.info(kwargs)
+        api_key_json = json.loads(kwargs.get('api_key'))
+        for value in api_key_json.values():
+            api_key = value
+            break
+        logger.info(api_key)
+        # api_key = kwargs.get('siliconflow_api_key', None) or os.environ.get(
+        #     "SILICONFLOW_API_KEY", None)
         return ChatDeepSeekR1(
             enable_any_tool_choice=cls.enable_any_tool_choice,
             enable_prefill=cls.enable_prefill,
             base_url="https://api.siliconflow.cn/v1",
-            api_key=api_key,
+            api_key=f"Bearer {api_key}",
             model=cls.model,
             **model_kwargs
         )
