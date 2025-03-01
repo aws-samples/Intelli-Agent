@@ -39,6 +39,7 @@ class DeepSeekR1BaseModel(Model):
             base_url="https://api.siliconflow.cn/v1",
             api_key=api_key,
             model=cls.model,
+            is_reasoning_model=cls.is_reasoning_model,
             **model_kwargs
         )
 

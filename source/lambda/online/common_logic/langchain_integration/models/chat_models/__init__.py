@@ -202,6 +202,7 @@ class ReasonModelStreamResult:
 
         self.think_stream = self.create_think_stream(message_stream)
         self.content_stream = self.create_content_stream(message_stream)
+        self.default_iter_stream = None
     
     def create_think_stream(self,message_stream: Iterator[BaseMessageChunk]):
         think_start_flag = False
@@ -222,11 +223,10 @@ class ReasonModelStreamResult:
     def create_content_stream(self, message_stream: Iterator[BaseMessageChunk]):
         for message in message_stream:
             yield message.content
-
-
-    def __iter__(self):
+    
+    def generate_stream(self,message_stream: Iterator[BaseMessageChunk]):
         think_start_flag = False
-        for message in self.message_stream:
+        for message in message_stream:
             reasoning_content = message.additional_kwargs.get(self.reasoning_content_key, None)
             if reasoning_content is not None:
                 if not think_start_flag:
@@ -239,4 +239,11 @@ class ReasonModelStreamResult:
                 yield self.think_end_tag
             
             yield message.content
+
+
+    def __iter__(self):
+        if self.default_iter_stream is not None:
+            yield from self.default_iter_stream
+        else:
+            yield from self.generate_stream(self.message_stream)
                 
