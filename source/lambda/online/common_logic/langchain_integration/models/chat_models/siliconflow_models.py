@@ -44,8 +44,9 @@ class DeepSeekR1BaseModel(Model):
         return ChatDeepSeekR1(
             enable_any_tool_choice=cls.enable_any_tool_choice,
             enable_prefill=cls.enable_prefill,
-            base_url="https://api.siliconflow.cn/v1",
-            api_key=f"Bearer {api_key}",
+            api_base="https://api.siliconflow.cn/v1",
+            api_key=api_key,
+            is_reasoning_model=cls.is_reasoning_model,
             model=cls.model,
             **model_kwargs
         )
