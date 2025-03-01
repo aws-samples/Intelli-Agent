@@ -4,7 +4,6 @@ import { Command } from "commander";
 import { prompt } from "enquirer";
 import * as fs from "fs";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
-import { fromIni } from "@aws-sdk/credential-providers";
 import { loadSharedConfigFiles } from "@aws-sdk/shared-ini-file-loader";
 import {
   SystemConfig,
@@ -57,12 +56,8 @@ async function getAwsAccountAndRegion() {
   let AWS_ACCOUNT;
   let AWS_REGION;
 
-  const aws_profile = process.env.AWS_PROFILE || "default";
-
   // Create STS client
-  const stsClient = new STSClient({
-    credentials: fromIni({ profile: aws_profile })
-  });
+  const stsClient = new STSClient({});
 
   try {
     const response = await stsClient.send(new GetCallerIdentityCommand({}));
