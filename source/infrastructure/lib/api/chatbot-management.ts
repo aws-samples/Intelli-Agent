@@ -229,9 +229,9 @@ export class ChatbotManagementApi extends Construct {
             },
             layers: [props.sharedLayer]
         });
-        dynamodb.Table.fromTableName(this, 'ImportedTable',  props.modelTableName).grantWriteData(chatbotInitFunction);
-        dynamodb.Table.fromTableName(this, 'ImportedTable',  props.chatbotTableName).grantWriteData(chatbotInitFunction);
-        dynamodb.Table.fromTableName(this, 'ImportedTable',  props.indexTableName).grantWriteData(chatbotInitFunction);
+        dynamodb.Table.fromTableName(this, 'modelTable',  props.modelTableName).grantWriteData(chatbotInitFunction);
+        dynamodb.Table.fromTableName(this, 'chatbotTable',  props.chatbotTableName).grantWriteData(chatbotInitFunction);
+        dynamodb.Table.fromTableName(this, 'indexTable',  props.indexTableName).grantWriteData(chatbotInitFunction);
 
           // Create the provider that will handle the custom resource
           this.initChatbotProvider = new Provider(this, 'InitChatbotProvider', {
