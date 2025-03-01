@@ -36,7 +36,7 @@ fi
 prepare_etl_model() {
     echo "Preparing ETL Model"
     cd model/etl/code
-    sh model.sh ./Dockerfile $ecr_repository $ecr_image_tag $deploy_region
+    sh model.sh $ecr_repository $ecr_image_tag $deploy_region
     cd - > /dev/null
     pwd
 }
