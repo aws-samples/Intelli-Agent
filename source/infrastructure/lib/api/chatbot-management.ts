@@ -221,7 +221,7 @@ export class ChatbotManagementApi extends Construct {
           const chatbotInitFunction = new lambda.Function(this, "ChatbotInitLambda", {
             runtime: Runtime.PYTHON_3_12,
             code: Code.fromAsset(join(__dirname, "../../../lambda/init_chatbot")),
-            handler: "init.lambda_handler",
+            handler: "main.handler",
             environment: {
                 MODEL_TABLE_NAME: props.modelTableName,
                 CHATBOT_TABLE_NAME: props.chatbotTableName,
