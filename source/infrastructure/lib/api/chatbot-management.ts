@@ -15,10 +15,14 @@ import { Code, Runtime } from "aws-cdk-lib/aws-lambda";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 import { join } from "path";
-import { LambdaFunction } from "../shared/lambda-helper";
 import * as pyLambda from "@aws-cdk/aws-lambda-python-alpha";
 import { IAMHelper } from "../shared/iam-helper";
 import { JsonSchemaType } from "aws-cdk-lib/aws-apigateway";
+import { Provider } from "aws-cdk-lib/custom-resources";
+import { CustomResource } from "aws-cdk-lib";
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import { LambdaFunction } from "../shared/lambda-helper";
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 
 export interface ChatbotManagementApiProps {
     api: apigw.RestApi;
@@ -202,5 +206,38 @@ export class ChatbotManagementApi extends Construct {
                 }
             })
         );
+
+        const provider = this.createInitChatbotProvider(props);
+
+        new CustomResource(this, `InitChatbot${id}`, {
+            serviceToken: provider.serviceToken
+        });
+    }
+
+    private initChatbotProvider!: Provider;
+    private createInitChatbotProvider(props) {
+        if (!this.initChatbotProvider) {
+          // Create a Lambda function that implements the delay logic
+          const chatbotInitFunction = new lambda.Function(this, "ChatbotInitLambda", {
+            runtime: Runtime.PYTHON_3_12,
+            code: Code.fromAsset(join(__dirname, "../../../lambda/init_chatbot")),
+            handler: "init.lambda_handler",
+            environment: {
+                MODEL_TABLE_NAME: props.modelTableName,
+                CHATBOT_TABLE_NAME: props.chatbotTableName,
+                INDEX_TABLE_NAME: props.indexTableName,
+            },
+            layers: [props.sharedLayer]
+        });
+        dynamodb.Table.fromTableName(this, 'ImportedTable',  props.modelTableName).grantWriteData(chatbotInitFunction);
+        dynamodb.Table.fromTableName(this, 'ImportedTable',  props.chatbotTableName).grantWriteData(chatbotInitFunction);
+        dynamodb.Table.fromTableName(this, 'ImportedTable',  props.indexTableName).grantWriteData(chatbotInitFunction);
+
+          // Create the provider that will handle the custom resource
+          this.initChatbotProvider = new Provider(this, 'InitChatbotProvider', {
+            onEventHandler: chatbotInitFunction,
+          });
+        }
+        return this.initChatbotProvider;
     }
 } 
