@@ -29,10 +29,14 @@ class DeepSeekR1BaseModel(Model):
     def create_model(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
-        # base_url = kwargs.get("base_url", None) or os.environ.get(
-        #     "OPENAI_BASE_URL", None)
-        api_key = kwargs.get('siliconflow_api_key', None) or os.environ.get(
+        # TODO: 
+        logger.info("deepseek model kwargs")
+        logger.info(model_kwargs)
+        logger.info(kwargs)
+        api_key = kwargs.get('api_key', None) or os.environ.get(
             "SILICONFLOW_API_KEY", None)
+        # api_key = kwargs.get('siliconflow_api_key', None) or os.environ.get(
+        #     "SILICONFLOW_API_KEY", None)
         return ChatDeepSeekR1(
             enable_any_tool_choice=cls.enable_any_tool_choice,
             enable_prefill=cls.enable_prefill,

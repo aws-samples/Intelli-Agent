@@ -17,7 +17,8 @@ from common_logic.common_utils.constant import (
 from ..models.model_config import (
     BEDROCK_MODEL_CONFIGS,
     OPENAI_MODEL_CONFIGS,
-    QWEN25_MODEL_CONFIGS
+    QWEN25_MODEL_CONFIGS,
+    SILICONFLOW_DEEPSEEK_MODEL_CONFIGS
 )
 from common_logic.common_utils.prompt_utils import get_prompt_template
 from common_logic.common_utils.logger_utils import print_llm_messages
@@ -86,7 +87,7 @@ class RagBaseChain(LLMChain):
             return final_chain
 
 
-RagBaseChain.create_for_chains(BEDROCK_MODEL_CONFIGS,LLMTaskType.RAG)
-RagBaseChain.create_for_chains(OPENAI_MODEL_CONFIGS,LLMTaskType.RAG)
-RagBaseChain.create_for_chains(QWEN25_MODEL_CONFIGS,LLMTaskType.RAG)
-
+RagBaseChain.create_for_chains(BEDROCK_MODEL_CONFIGS, LLMTaskType.RAG)
+RagBaseChain.create_for_chains(OPENAI_MODEL_CONFIGS, LLMTaskType.RAG)
+RagBaseChain.create_for_chains(QWEN25_MODEL_CONFIGS, LLMTaskType.RAG)
+RagBaseChain.create_for_chains(SILICONFLOW_DEEPSEEK_MODEL_CONFIGS, LLMTaskType.RAG)
