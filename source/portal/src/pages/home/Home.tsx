@@ -233,7 +233,7 @@ const Home: React.FC = () => {
       <CommonLayout activeHref="/home">
         <ContentLayout
           header={
-            <div>
+            <div style={{marginTop:25}}>
               <Box variant="p">
                 {t('awsSolutionGuidance')} | {t('mead')}
               </Box>

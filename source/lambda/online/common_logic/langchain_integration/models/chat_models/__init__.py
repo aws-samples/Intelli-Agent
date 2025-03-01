@@ -118,7 +118,7 @@ class Model(ModelMixins, metaclass=ModelMeta):
             (cls,),
             {
                 "model_id": model_id,
-                "model":config.model,
+                "model": config.model,
                 "default_model_kwargs": config.default_model_kwargs,
                 "enable_any_tool_choice": config.enable_any_tool_choice,
                 "enable_prefill": config.enable_prefill,
@@ -152,6 +152,10 @@ def _import_sagemaker_models():
     from . import sagemaker_models
 
 
+def _import_siliconflow_models():
+    from . import siliconflow_models
+
+
 def _load_module(model_provider):
     assert model_provider in MODEL_PROVIDER_LOAD_FN_MAP, (
         model_provider,
@@ -166,6 +170,7 @@ MODEL_PROVIDER_LOAD_FN_MAP = {
     ModelProvider.OPENAI: _import_openai_models,
     ModelProvider.DMAA: _import_dmaa_models,
     ModelProvider.SAGEMAKER: _import_sagemaker_models,
+    ModelProvider.SILICONFLOW: _import_siliconflow_models,
 }
 
 
@@ -199,7 +204,6 @@ class ReasonModelStreamResult:
         self.think_start_tag = think_start_tag
         self.think_end_tag = think_end_tag
         self.reasoning_content_key = reasoning_content_key
-
         self.think_stream = self.create_think_stream(message_stream)
         self.content_stream = self.create_content_stream(message_stream)
         self.default_iter_stream = None
@@ -208,18 +212,15 @@ class ReasonModelStreamResult:
         think_start_flag = False
         for message in message_stream:
             reasoning_content = message.additional_kwargs.get(
-                self.reasoning_content_key, 
+                self.reasoning_content_key,
                 None
             )
-            
             if reasoning_content is None and think_start_flag:
-                return 
-            
+                return
             if reasoning_content is not None:
                 if not think_start_flag:
                     think_start_flag = True
                 yield reasoning_content
-    
     def create_content_stream(self, message_stream: Iterator[BaseMessageChunk]):
         for message in message_stream:
             yield message.content
@@ -237,7 +238,6 @@ class ReasonModelStreamResult:
             if reasoning_content is None and think_start_flag:
                 think_start_flag = False
                 yield self.think_end_tag
-            
             yield message.content
 
 

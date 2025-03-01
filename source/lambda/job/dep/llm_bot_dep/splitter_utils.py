@@ -142,7 +142,8 @@ def find_child(headers: dict, header_id: str):
 
 def parse_string_to_xml_node(xml_string):
     try:
-        xml_node = etree.fromstring(xml_string.replace("&", "&amp;"))
+        parser = etree.XMLParser(recover=True)
+        xml_node = etree.fromstring(xml_string.replace("&", "&amp;"), parser)
         return xml_node
     except etree.XMLSyntaxError as e:
         logger.error(f"Error parsing XML: {e}")
