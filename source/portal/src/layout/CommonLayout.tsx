@@ -110,11 +110,11 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
       text: t('chatbotManagement'),
       href: '/chatbot-management',
     },
-    {
-      type: 'link',
-      text: t('intention'),
-      href: '/intention',
-    },
+    // {
+    //   type: 'link',
+    //   text: t('intention'),
+    //   href: '/intention',
+    // },
   ];
 
   const promptItem = {
