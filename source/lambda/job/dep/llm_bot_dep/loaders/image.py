@@ -6,41 +6,15 @@ from pathlib import Path
 import boto3
 from langchain.docstore.document import Document
 from langchain.document_loaders.base import BaseLoader
-from llm_bot_dep.figure_llm import figureUnderstand, upload_image_to_s3
+from llm_bot_dep.figure_llm import (
+    figureUnderstand,
+    get_api_key,
+    upload_image_to_s3,
+)
 from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
 
 bedrock_client = boto3.client("bedrock-runtime")
 logger = logging.getLogger(__name__)
-
-
-def get_api_key(api_secret_name):
-    """
-    Get the API key from AWS Secrets Manager.
-
-    Args:
-        api_secret_name (str): The name of the secret in AWS Secrets Manager containing the API key.
-
-    Returns:
-        str: The API key.
-    """
-    try:
-        # Create a Secrets Manager client
-        secrets_client = boto3.client("secretsmanager")
-        # Get the secret value
-        secret_response = secrets_client.get_secret_value(
-            SecretId=api_secret_name
-        )
-        # Parse the secret JSON
-        if "SecretString" in secret_response:
-            secret_data = json.loads(secret_response["SecretString"])
-            api_key = secret_data.get("key")
-            logger.info(
-                f"Successfully retrieved API key from secret: {api_secret_name}"
-            )
-            return api_key
-    except Exception as e:
-        logger.error(f"Error retrieving secret {api_secret_name}: {str(e)}")
-    return None
 
 
 class CustomImageLoader(BaseLoader):

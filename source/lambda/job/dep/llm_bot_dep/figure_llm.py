@@ -52,6 +52,36 @@ logger = logging.getLogger(__name__)
 s3_client = boto3.client("s3")
 
 
+def get_api_key(api_secret_name):
+    """
+    Get the API key from AWS Secrets Manager.
+
+    Args:
+        api_secret_name (str): The name of the secret in AWS Secrets Manager containing the API key.
+
+    Returns:
+        str: The API key.
+    """
+    try:
+        # Create a Secrets Manager client
+        secrets_client = boto3.client("secretsmanager")
+        # Get the secret value
+        secret_response = secrets_client.get_secret_value(
+            SecretId=api_secret_name
+        )
+        # Parse the secret JSON
+        if "SecretString" in secret_response:
+            secret_data = json.loads(secret_response["SecretString"])
+            api_key = secret_data.get("key")
+            logger.info(
+                f"Successfully retrieved API key from secret: {api_secret_name}"
+            )
+            return api_key
+    except Exception as e:
+        logger.error(f"Error retrieving secret {api_secret_name}: {str(e)}")
+    return None
+
+
 def load_prompt_file(file_path, is_json=False):
     """Load a prompt file from package resources or file system.
 
@@ -379,6 +409,10 @@ def process_single_image(
     file_name: str,
     idx: int,
     s3_link: str = None,
+    model_provider: str = "bedrock",
+    model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0",
+    api_url: str = None,
+    api_key: str = None,
 ) -> str:
     """Process a single image and return its understanding text.
 
@@ -405,7 +439,12 @@ def process_single_image(
             return None
 
     image_base64 = encode_image_to_base64(img_path)
-    figure_llm = figureUnderstand()
+    figure_llm = figureUnderstand(
+        model_provider=model_provider,
+        model_id=model_id,
+        api_url=api_url,
+        api_key=api_key,
+    )
 
     # Get image understanding
     understanding = figure_llm.figure_understand(
@@ -426,7 +465,7 @@ def process_single_image(
 
 
 def process_markdown_images_with_llm(
-    content: str, bucket_name: str, file_name: str
+    content: str, bucket_name: str, file_name: str, **kwargs
 ) -> str:
     """Process all images in markdown content and upload them to S3.
 
@@ -451,6 +490,15 @@ def process_markdown_images_with_llm(
     result = ""
     # Add mapping to track image paths and their S3 objects
     image_s3_mapping = {}
+    model_provider = kwargs.get("model_provider")
+    model_id = kwargs.get("model_id")
+    api_url = kwargs.get("api_url")
+    api_secret_name = kwargs.get("api_secret_name")
+
+    if api_secret_name:
+        api_key = get_api_key(api_secret_name)
+    else:
+        api_key = None
 
     for idx, match in enumerate(re.finditer(image_pattern, content), 1):
         start, end = match.span()
@@ -472,6 +520,9 @@ def process_markdown_images_with_llm(
                     result += match.group(1)
                     last_end = end
                     continue
+            # Handle local images from docx
+            elif img_path.startswith("/tmp/doc_images/"):
+                local_img_path = img_path
             else:
                 logger.error(f"Image path {img_path} is not a URL")
                 result += match.group(1)
@@ -495,6 +546,10 @@ def process_markdown_images_with_llm(
                 file_name,
                 idx,
                 s3_link,
+                model_provider,
+                model_id,
+                api_url,
+                api_key,
             )
 
             # If this is a new image path, store its S3 object name
