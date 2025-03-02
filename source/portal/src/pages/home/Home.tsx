@@ -5,7 +5,6 @@ import {
   ContentLayout,
   Grid,
   Header,
-  Link,
   SpaceBetween,
 } from '@cloudscape-design/components';
 import React, { useState, useEffect, useContext } from 'react';
