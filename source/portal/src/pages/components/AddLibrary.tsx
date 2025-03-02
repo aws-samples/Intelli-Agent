@@ -281,8 +281,8 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
                   multiple={false}
                   showFileLastModified
                   showFileSize
-                  accept=".pdf,.csv,.doc,.docx,.html,.json,.txt,.md,.png,.jpg,.jpeg,.webp,.xlsx,.xls"
-                  constraintText={`${t('supportFiles')} pdf, csv, docx, html, json, txt, md, png, jpg, jpeg, webp, xlsx, xls.`}
+                  accept=".pdf,.csv,.doc,.docx,.html,.json,.txt,.md,.xlsx,.xls"
+                  constraintText={`${t('supportFiles')} pdf, csv, docx, html, json, txt, md, xlsx, xls.`}
                 />
                 <div className="mt-5">
                   <Link
