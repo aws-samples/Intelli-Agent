@@ -25,7 +25,8 @@ from langchain_core.pydantic_v1 import Extra, root_validator
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-session = boto3.session.Session()
+aws_region = os.getenv("AWS_REGION", "cn-northwest-1")
+session = boto3.session.Session(region_name=aws_region)
 secret_manager_client = session.client(service_name="secretsmanager")
 
 
