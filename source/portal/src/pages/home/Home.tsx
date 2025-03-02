@@ -46,11 +46,11 @@ const Home: React.FC = () => {
       content: t('tour.chatbot'),
       disableBeacon: true,
     },
-    {
-      target: 'a[href="/intention"]',
-      content: t('tour.intention'),
-      disableBeacon: true,
-    },
+    // {
+    //   target: 'a[href="/intention"]',
+    //   content: t('tour.intention'),
+    //   disableBeacon: true,
+    // },
   ];
 
   const kbStep = {
@@ -281,7 +281,7 @@ const Home: React.FC = () => {
         className="fix-mid-screen common-header"
       >
         {/* <SpaceBet direction='horizontal' size='m'> */}
-          <Grid gridDefinition={[{ colspan: 3 }, { colspan: 3 },{colspan: 3},{colspan: 3}]}>
+          {/* <Grid gridDefinition={[{ colspan: 3 }, { colspan: 3 },{colspan: 3},{colspan: 3}]}>
               <div>
                 <Box variant="h4" >
                   {t('modelCnt')}
@@ -302,7 +302,7 @@ const Home: React.FC = () => {
                 </Box>
                 <Link variant='awsui-value-large' className="no-link">18</Link>
               </div>
-            </Grid>
+            </Grid> */}
             
             {/* </SpaceBet ween> */}
        
