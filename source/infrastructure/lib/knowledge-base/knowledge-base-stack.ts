@@ -200,6 +200,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     glueRole.addToPolicy(this.iamHelper.glueStatement);
     glueRole.addToPolicy(this.dynamodbStatement);
     glueRole.addToPolicy(this.iamHelper.dynamodbStatement);
+    glueRole.addToPolicy(this.iamHelper.secretsManagerStatement);
 
     const glueJobDefaultArguments: { [key: string]: string } = {
       "--AOS_ENDPOINT": this.aosDomainEndpoint,
