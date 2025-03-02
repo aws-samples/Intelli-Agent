@@ -277,9 +277,9 @@ const Home: React.FC = () => {
             >
               <SpaceBetween direction="vertical" size="l">
                 
-                <Container
+                {/* <Container
         className="fix-mid-screen common-header"
-      >
+      > */}
         {/* <SpaceBet direction='horizontal' size='m'> */}
           {/* <Grid gridDefinition={[{ colspan: 3 }, { colspan: 3 },{colspan: 3},{colspan: 3}]}>
               <div>
@@ -306,7 +306,7 @@ const Home: React.FC = () => {
             
             {/* </SpaceBet ween> */}
        
-      </Container>
+      {/* </Container> */}
       <Container header={<Header variant="h2">{t('architecture')}</Header>}>
                 <div className="home-banner">
                   <img alt="banner" src={BANNER} width="100%" />
