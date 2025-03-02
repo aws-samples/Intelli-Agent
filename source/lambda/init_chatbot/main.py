@@ -19,7 +19,7 @@ def handler(event, context):
         # Item={**item_key, **body}
         model_table.put_item(Item={
             "groupName": "Admin",
-            "modelId": "Admin-embedding",
+            "modelId": "admin-embedding",
             "createTime": time_str,
             "modelType": "embedding_and_rerank",
             "parameter": {
@@ -37,26 +37,26 @@ def handler(event, context):
         })
         chat_bot_table.put_item(Item={
         "groupName": "Admin",
-        "chatbotId": "Admin",
+        "chatbotId": "admin",
         "chatbotDescription": "Answer question based on search result",
         "createTime": time_str,
         "indexIds": {
             "intention": {
                 "count": 1,
                 "value": {
-                    "Admin-intention-default": "Admin-intention-default"
+                    "admin-intention-default": "admin-intention-default"
                 }
             },
             "qd": {
                 "count": 1,
                 "value": {
-                    "Admin-qd-default": "Admin-qd-default"
+                    "admin-qd-default": "admin-qd-default"
                 }
             },
             "qq": {
                 "count": 1,
                 "value": {
-                    "Admin-qq-default": "Admin-qq-default"
+                    "admin-qq-default": "admin-qq-default"
                 }
             }
         },
@@ -65,42 +65,42 @@ def handler(event, context):
         })
         index_table.put_item(Item={
             "groupName": "Admin",
-            "indexId": "Admin-intention-default",
+            "indexId": "admin-intention-default",
             "createTime": time_str,
             "description": "Answer question based on search result",
             "indexType": "intention",
             "kbType": "aos",
             "modelIds": {
-                 "embedding": "Admin-embedding"
+                 "embedding": "admin-embedding"
             }, 
             "status": "ACTIVE",
-         "tag": "Admin-intention-default"
+         "tag": "admin-intention-default"
         })
         index_table.put_item(Item={
             "groupName": "Admin",
-            "indexId": "Admin-qd-default",
+            "indexId": "admin-qd-default",
             "createTime": time_str,
             "description": "Answer question based on search result",
             "indexType": "qd",
             "kbType": "aos",
             "modelIds": {
-                 "embedding": "Admin-embedding"
+                 "embedding": "admin-embedding"
             }, 
             "status": "ACTIVE",
-           "tag": "Admin-qd-default"
+           "tag": "admin-qd-default"
         })
         index_table.put_item(Item={
             "groupName": "Admin",
-            "indexId": "Admin-qq-default",
+            "indexId": "admin-qq-default",
             "createTime": time_str,
             "description": "Answer question based on search result",
             "indexType": "qq",
             "kbType": "aos",
             "modelIds": {
-                 "embedding": "Admin-embedding"
+                 "embedding": "admin-embedding"
             }, 
             "status": "ACTIVE",
-            "tag": "Admin-qq-default"
+            "tag": "admin-qq-default"
         })
 
 
