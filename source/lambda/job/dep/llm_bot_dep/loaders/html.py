@@ -63,7 +63,9 @@ class CustomHtmlLoader(BaseLoader):
         return s.strip()
 
     # def load(self, file_content: str) -> List[Document]:
-    def load(self, file_content: str, bucket_name: str, file_name: str):
+    def load(
+        self, file_content: str, bucket_name: str, file_name: str, **kwargs
+    ):
         html_content = self.clean_html(file_content)
         # Set escape_underscores and escape_asterisks to False to avoid converting
         # underscores and asterisks to HTML entities, especially avoid converting
@@ -76,7 +78,7 @@ class CustomHtmlLoader(BaseLoader):
             escape_asterisks=False,
         )
         file_content = process_markdown_images_with_llm(
-            file_content, bucket_name, file_name
+            file_content, bucket_name, file_name, **kwargs
         )
         doc = Document(
             page_content=file_content,
@@ -92,7 +94,7 @@ def process_html(html_str: str, **kwargs):
     portal_bucket_name = kwargs["portal_bucket_name"]
     file_name = Path(key).stem
     loader = CustomHtmlLoader(aws_path=f"s3://{bucket_name}/{key}")
-    doc = loader.load(html_str, portal_bucket_name, file_name)
+    doc = loader.load(html_str, portal_bucket_name, file_name, **kwargs)
     splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
     doc_list = splitter.split_text(doc)
 

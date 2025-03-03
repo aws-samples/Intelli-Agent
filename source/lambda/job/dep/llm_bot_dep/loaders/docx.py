@@ -58,7 +58,9 @@ class CustomDocLoader(BaseLoader):
                 for paragraph in section.footer.paragraphs:
                     paragraph.clear()
 
-    def load(self, bucket_name: str, file_name: str) -> List[Document]:
+    def load(
+        self, bucket_name: str, file_name: str, **kwargs
+    ) -> List[Document]:
         """Load from file path."""
         metadata = {"file_path": self.aws_path, "file_type": "docx"}
 
@@ -87,10 +89,13 @@ class CustomDocLoader(BaseLoader):
         pyDoc.save(self.file_path)
 
         with open(self.file_path, "rb") as docx_file:
-            result = mammoth.convert_to_html(docx_file, convert_image=mammoth.images.img_element(_convert_image))
+            result = mammoth.convert_to_html(
+                docx_file,
+                convert_image=mammoth.images.img_element(_convert_image),
+            )
             html_content = result.value
             loader = CustomHtmlLoader(aws_path=self.aws_path)
-            doc = loader.load(html_content, bucket_name, file_name)
+            doc = loader.load(html_content, bucket_name, file_name, **kwargs)
             doc.metadata = metadata
 
         return doc
@@ -108,8 +113,10 @@ def process_doc(s3, **kwargs):
 
     s3.download_file(bucket_name, key, local_path)
 
-    loader = CustomDocLoader(file_path=local_path, aws_path=f"s3://{bucket_name}/{key}")
-    doc = loader.load(portal_bucket_name, file_name)
+    loader = CustomDocLoader(
+        file_path=local_path, aws_path=f"s3://{bucket_name}/{key}"
+    )
+    doc = loader.load(portal_bucket_name, file_name, **kwargs)
     splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
     doc_list = splitter.split_text(doc)
 
