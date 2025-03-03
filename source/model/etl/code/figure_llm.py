@@ -1,9 +1,13 @@
 import base64
 import io
 import json
+import logging
 import os
+import re
 
+import boto3
 import openai
+from botocore.exceptions import ClientError
 
 # Add logger configuration
 logger = logging.getLogger(__name__)
