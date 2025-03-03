@@ -7,12 +7,16 @@ from imaug import create_operators, transform
 import numpy as np
 import os
 import onnxruntime as ort
+from model_config import TABLE_CONFIG
 
-sess_options = ort.SessionOptions()
+def get_session_options():
+    sess_options = ort.SessionOptions()
+    config = TABLE_CONFIG['model']['session_options']
+    sess_options.intra_op_num_threads = config['intra_op_num_threads']
+    sess_options.execution_mode = getattr(ort.ExecutionMode, config['execution_mode'])
+    sess_options.graph_optimization_level = getattr(ort.GraphOptimizationLevel, config['optimization_level'])
+    return sess_options
 
-sess_options.intra_op_num_threads = 8
-sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
-sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
 def sorted_boxes(dt_boxes):
     """
     Sort text boxes in order from top to bottom, left to right
@@ -33,23 +37,23 @@ def sorted_boxes(dt_boxes):
             _boxes[i] = _boxes[i + 1]
             _boxes[i + 1] = tmp
     return _boxes
+
 class TableStructurer(object):
     def __init__(self):
-        self.use_onnx = True #args.use_onnx
-        pre_process_list = [{'ResizeTableImage': {'max_len': 488}}, {'NormalizeImage': {'std': [0.229, 0.224, 0.225], 'mean': [0.485, 0.456, 0.406], 'scale': '1./255.', 'order': 'hwc'}}, {'PaddingTableImage': {'size': [488, 488]}}, {'ToCHWImage': None}, {'KeepKeys': {'keep_keys': ['image', 'shape']}}]
-
-        postprocess_params = {
-                'name': 'TableLabelDecode',
-                "character_dict_path": os.environ['MODEL_PATH'] + 'table_structure_dict_ch.txt',
-                'merge_no_span_structure': True
-        }
-        self.preprocess_op = create_operators(pre_process_list)
+        self.use_onnx = True
+        self.preprocess_op = create_operators(TABLE_CONFIG['preprocess'])
+        
+        postprocess_params = dict(TABLE_CONFIG['postprocess'])
+        postprocess_params['character_dict_path'] = os.path.join(os.environ['MODEL_PATH'], postprocess_params.pop('dict_path'))
         self.postprocess_op = build_post_process(postprocess_params)
         
-        sess = ort.InferenceSession(os.environ['MODEL_PATH'] + 'table_sim.onnx', providers=['CPUExecutionProvider']) #, sess_options=sess_options, providers=[("CUDAExecutionProvider", {"cudnn_conv_algo_search": "DEFAULT"})]
+        sess = ort.InferenceSession(
+            os.path.join(os.environ['MODEL_PATH'], TABLE_CONFIG['model']['name']), 
+            providers=['CPUExecutionProvider'],
+            sess_options=get_session_options()
+        )
         _ = sess.run(None, {'x': np.zeros((1, 3, 488, 488), dtype='float32')})
         self.predictor, self.input_tensor, self.output_tensors, self.config = sess, sess.get_inputs()[0], None, None
-
 
     def __call__(self, img):
         starttime = time.time()
@@ -78,6 +82,7 @@ class TableStructurer(object):
         ] + structure_str_list + ['</table>', '</body>', '</html>']
         elapse = time.time() - starttime
         return (structure_str_list, bbox_list), elapse
+
 def expand(pix, det_box, shape):
     x0, y0, x1, y1 = det_box
     h, w, c = shape
@@ -95,9 +100,8 @@ class TableSystem(object):
     def __init__(self, text_detector=None, text_recognizer=None):
         self.text_detector = text_detector
         self.text_recognizer = text_recognizer
-
         self.table_structurer = TableStructurer()
-        self.match = TableMatch(filter_ocr_result=True)
+        self.match = TableMatch(**TABLE_CONFIG['table_match'])
 
     def __call__(self, img, return_ocr_result_in_table=False, lang='ch'):
         result = dict()
