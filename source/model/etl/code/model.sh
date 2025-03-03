@@ -63,7 +63,7 @@ echo "Building the docker image"
 
 # Get the login command from ECR and execute it directly, check the aws-cn for different partition
 if [ "$(aws sts get-caller-identity --query Arn --output text | cut -d':' -f2)" = "aws-cn" ]; then
-    aws ecr get-login-password --region cn-north-1 | docker login --username AWS --password-stdin 727897471807.dkr.ecr.cn-north-1.amazonaws.com.cn
+    aws ecr get-login-password --region cn-northwest-1 | docker login --username AWS --password-stdin 048912060910.dkr.ecr.cn-northwest-1.amazonaws.com.cn
 else
     aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 763104351884.dkr.ecr.us-east-1.amazonaws.com
 fi
