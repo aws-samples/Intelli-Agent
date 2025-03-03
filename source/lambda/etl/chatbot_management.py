@@ -6,14 +6,8 @@ from datetime import datetime, timezone
 import boto3
 from boto3.dynamodb.conditions import Attr
 from botocore.paginate import TokenEncoder
-from constant import IndexType, EmbeddingModelType
-from utils.ddb_utils import (
-    initiate_chatbot,
-    initiate_index,
-    initiate_model
-)
-from constant import ModelProvider
-
+from constant import EmbeddingModelType, IndexType, ModelProvider
+from utils.ddb_utils import initiate_chatbot, initiate_index, initiate_model
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -54,7 +48,8 @@ def create_chatbot(event, group_name):
     request_body = json.loads(event["body"])
     chatbot_id = request_body.get("chatbotId", group_name.lower())
     model_provider = request_body.get(
-        "modelProvider", ModelProvider.BEDROCK.value)
+        "modelProvider", ModelProvider.BEDROCK.value
+    )
     base_url = request_body.get("baseUrl", "")
     api_key_arn = request_body.get("apiKeyArn", "")
     chatbot_description = request_body.get(
@@ -73,12 +68,26 @@ def create_chatbot(event, group_name):
         model_provider,
         base_url,
         api_key_arn,
-        create_time
+        create_time,
     )
-    index = request_body.get("index", {"qq": {"admin-qq-default": "Answer question based on search result"}, "qd": {
-                             "admin-qd-default": "Answer question based on search result"}, "intention": {"admin-intention-default": "Answer question based on search result"}})
+    index = request_body.get(
+        "index",
+        {
+            "qq": {
+                "admin-qq-default": "Answer question based on search result"
+            },
+            "qd": {
+                "admin-qd-default": "Answer question based on search result"
+            },
+            "intention": {
+                "admin-intention-default": "Answer question based on search result"
+            },
+        },
+    )
     for index_type in index:
-        index_ids = list(index[index_type].keys())
+        index_ids = [
+            index_id.lower() for index_id in list(index[index_type].keys())
+        ]
         initiate_chatbot(
             chatbot_table,
             group_name,
@@ -98,7 +107,7 @@ def create_chatbot(event, group_name):
                 index_type,
                 tag,
                 index.get(index_type, {}).get(index_id),
-                create_time
+                create_time,
             )
     return {
         "chatbotId": chatbot_id,
@@ -150,14 +159,16 @@ def __list_chatbot(event, group_name):
                     "modelId": f"{chatbot_id}-embedding",
                 }
             ).get("Item")
-            item_json["ModelName"] = chatbot_model_item.get("parameter", {}).get(
-                "ModelEndpoint", ""
-            )
+            item_json["ModelName"] = chatbot_model_item.get(
+                "parameter", {}
+            ).get("ModelEndpoint", "")
             item_json["ModelId"] = chatbot_model_item.get("modelId", "")
-            item_json["LastModifiedTime"] = item.get(
-                "updateTime", {"S": ""})["S"]
+            item_json["LastModifiedTime"] = item.get("updateTime", {"S": ""})[
+                "S"
+            ]
             item_json["ModelProvider"] = chatbot_model_item["parameter"].get(
-                "ModelProvider", "")
+                "ModelProvider", ""
+            )
             page_json.append(item_json)
         page_json.sort(key=lambda x: x["LastModifiedTime"], reverse=True)
         output["Items"] = page_json
@@ -174,7 +185,9 @@ def __list_chatbot(event, group_name):
 
 
 def merge_index(chatbot_index_ids, key):
-    return ",".join(list(chatbot_index_ids.get(key, {}).get("value", {}).values()))
+    return ",".join(
+        list(chatbot_index_ids.get(key, {}).get("value", {}).values())
+    )
 
 
 def __get_chatbot(event, group_name):
@@ -184,14 +197,15 @@ def __get_chatbot(event, group_name):
             Key={"groupName": group_name, "chatbotId": chatbot_id}
         ).get("Item")
         model_item = model_table.get_item(
-            Key={"groupName": group_name, "modelId": f'{chatbot_id}-embedding'}
+            Key={"groupName": group_name, "modelId": f"{chatbot_id}-embedding"}
         ).get("Item")
     else:
         chatbot_item = None
         model_item = None
 
-    update_time = datetime.fromisoformat(chatbot_item.get(
-        "updateTime", "")).strftime("%Y/%m/%d %H:%M:%S")
+    update_time = datetime.fromisoformat(
+        chatbot_item.get("updateTime", "")
+    ).strftime("%Y/%m/%d %H:%M:%S")
     if chatbot_item and model_item:
         chatbot_index_ids = chatbot_item.get("indexIds", {})
         model = model_item.get("parameter", {})
@@ -201,19 +215,21 @@ def __get_chatbot(event, group_name):
         base_url = model.get("BaseUrl", "")
         chatbot_index = []
         for key, value in chatbot_index_ids.items():
-            v = value.get('value', {})
+            v = value.get("value", {})
             # name = list(v.keys())[0]
             for index in list(v.keys()):
                 index_detail = index_table.get_item(
                     Key={"groupName": group_name, "indexId": index}
                 ).get("Item")
 
-                chatbot_index.append({
-                    "name": index,
-                    "type": key,
-                    "description": index_detail.get("description", ""),
-                    "tag": v.get(index)
-                })
+                chatbot_index.append(
+                    {
+                        "name": index,
+                        "type": key,
+                        "description": index_detail.get("description", ""),
+                        "tag": v.get(index),
+                    }
+                )
         response = {
             "groupName": group_name,
             "chatbotId": chatbot_id,
@@ -222,7 +238,7 @@ def __get_chatbot(event, group_name):
                 "model_endpoint": model_endpoint,
                 "model_name": model_name,
                 "model_provider": model_provider,
-                "base_url": base_url
+                "base_url": base_url,
             },
             "index": chatbot_index,
         }
@@ -303,27 +319,16 @@ def __validate_index(event, group_name):
     input_body = json.loads(event["body"])
     model = input_body.get("model")
     index = input_body.get("index")
-    response = index_table.scan(
-        FilterExpression=Attr('indexId').eq(index)
-    )
-    items = response.get('Items')
+    response = index_table.scan(FilterExpression=Attr("indexId").eq(index))
+    items = response.get("Items")
     if items:
         for item in items:
-            if item['groupName'] != group_name:
-                return {
-                    "result": False,
-                    "reason": 1
-                }
+            if item["groupName"] != group_name:
+                return {"result": False, "reason": 1}
             else:
                 if item.get("modelIds", {}).get("embedding", "") != model:
-                    return {
-                        "result": False,
-                        "reason": 2
-                    }
-    return {
-        "result": True,
-        "reason": None
-    }
+                    return {"result": False, "reason": 2}
+    return {"result": True, "reason": None}
 
 
 def __edit_chatbot(event, group_name):
@@ -342,9 +347,13 @@ def __edit_chatbot(event, group_name):
     #       indexList: tmpIndexList.map(({status,...rest})=> rest),
     #     }
     # 1.删除index表旧的index
-    index_dict = chatbot_table.get_item(
-        Key={"groupName": group_name, "chatbotId": chatbot_id}
-    ).get("Item").get("indexIds", {})
+    index_dict = (
+        chatbot_table.get_item(
+            Key={"groupName": group_name, "chatbotId": chatbot_id}
+        )
+        .get("Item")
+        .get("indexIds", {})
+    )
     for key in index_dict:
         value = index_dict.get(key, {}).get("value", {})
         for k in value:
@@ -359,7 +368,9 @@ def __edit_chatbot(event, group_name):
     # 2.更新chatbot表
     # indexList
     for index_type in index:
-        index_ids = list(index[index_type].keys())
+        index_ids = [
+            index_id.lower() for index_id in list(index[index_type].keys())
+        ]
         initiate_chatbot(
             chatbot_table,
             group_name,
@@ -379,7 +390,7 @@ def __edit_chatbot(event, group_name):
                 index_type,
                 tag,
                 index.get(index_type, {}).get(index_id),
-                update_time
+                update_time,
             )
 
     # 3.更新index表
@@ -409,19 +420,21 @@ def __list_index(event, group_name):
     chatbot_index_ids = chatbot_item.get("indexIds", {})
     index_list = []
     for key, value in chatbot_index_ids.items():
-        v = value.get('value', {})
+        v = value.get("value", {})
         # name = list(v.keys())[0]
         for index in list(v.keys()):
             index_detail = index_table.get_item(
                 Key={"groupName": group_name, "indexId": index}
             ).get("Item")
 
-            index_list.append({
-                "name": index,
-                "type": key,
-                "description": index_detail.get("description", ""),
-                "tag": v.get(index)
-            })
+            index_list.append(
+                {
+                    "name": index,
+                    "type": key,
+                    "description": index_detail.get("description", ""),
+                    "tag": v.get(index),
+                }
+            )
     output = {}
     # # Use query after adding a filter
     # paginator = dynamodb_client.get_paginator("query")
@@ -504,39 +517,31 @@ def __validate_chatbot(event, group_name):
             Key={"groupName": group_name, "chatbotId": chatbot_id}
         ).get("Item")
         if chatbot_item:
-            return {
-                "result": False,
-                "item": "chatbotName",
-                "reason": 0
-            }
+            return {"result": False, "item": "chatbotName", "reason": 0}
     index_set = set()
     for index_type in index:
         index_set |= set(list(index[index_type].split(",")))
 
     response = index_table.scan(
-        FilterExpression=Attr('indexId').is_in(list(index_set))
+        FilterExpression=Attr("indexId").is_in(list(index_set))
     )
-    items = response.get('Items')
+    items = response.get("Items")
     if items:
         for item in items:
-            if item['groupName'] != group_name:
+            if item["groupName"] != group_name:
                 return {
                     "result": False,
-                    "item": __find_invalid_index(index, item['indexId']),
-                    "reason": 1
+                    "item": __find_invalid_index(index, item["indexId"]),
+                    "reason": 1,
                 }
             else:
                 if item.get("modelIds", {}).get("embedding", "") != model:
                     return {
                         "result": False,
-                        "item": __find_invalid_index(index, item['indexId']),
-                        "reason": 2
+                        "item": __find_invalid_index(index, item["indexId"]),
+                        "reason": 2,
                     }
-    return {
-        "result": True,
-        "item": None,
-        "reason": None
-    }
+    return {"result": True, "item": None, "reason": None}
 
 
 def __find_invalid_index(index, index_id):
