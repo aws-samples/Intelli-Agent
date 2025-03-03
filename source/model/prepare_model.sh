@@ -57,7 +57,46 @@ while IFS= read -r line; do
     fi
 done < "$OBJECT_LIST_FILE"
 
+# Update S3 url
+cd mfg-kb-do-not-delete/bce-embedding-base_deploy_code
+tar xzvf bce_embedding_model.tar.gz
+cd bce_embedding_model
+rm -rf requirements.txt
+cp ../../../../requirement-cn.py requirements.txt
+if [ "$os_type" == "Darwin" ]; then
+  sed -i "" "s|option.s3url = s3://intelli-agent-models-817734611975-us-west-2|option.s3url = s3://$s3_bucket_name|g" serving.properties
+else
+  sed -i "s|option.s3url = s3://intelli-agent-models-817734611975-us-west-2|option.s3url = s3://$s3_bucket_name|g" serving.properties
+fi
+
+if [ -f bce_embedding_model.tar.gz ]; then
+  rm bce_embedding_model.tar.gz
+fi
+tar czvf bce_embedding_model.tar.gz *
+cp bce_embedding_model.tar.gz ../
 cd ..
+rm -rf bce_embedding_model
+
+cd ../bge-reranker-large_deploy_code
+tar xzvf bge_reranker_model.tar.gz
+cd bge_reranker_model
+rm -rf requirements.txt
+cp ../../../../requirement-cn.py requirements.txt
+if [ "$os_type" == "Darwin" ]; then
+  sed -i "" "s|option.s3url = s3://intelli-agent-models-817734611975-us-west-2|option.s3url = s3://$s3_bucket_name|g" serving.properties
+else
+  sed -i "s|option.s3url = s3://intelli-agent-models-817734611975-us-west-2|option.s3url = s3://$s3_bucket_name|g" serving.properties
+fi
+
+if [ -f bge_reranker_model.tar.gz ]; then
+  rm bge_reranker_model.tar.gz
+fi
+tar czvf bge_reranker_model.tar.gz *
+cp bce_embedding_model.tar.gz ../
+cd ..
+rm -rf bge_reranker_model
+cd ../../..
+
 aws s3 sync model_temp/mfg-kb-do-not-delete s3://$s3_bucket_name
 
 echo "Successfully prepared model for Intelli-Agent."
