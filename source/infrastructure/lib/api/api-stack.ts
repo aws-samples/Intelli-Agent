@@ -138,7 +138,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
             };
           };
         `),
-        timeout: Duration.seconds(10),
+        timeout: Duration.seconds(20),
       });
 
       // Create the provider that will handle the custom resource
