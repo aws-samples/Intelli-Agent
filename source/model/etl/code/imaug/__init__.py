@@ -4,6 +4,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 from .operators import *
 from .table_ops import *
+from .preprocess import preprocess
+
+__all__ = ["preprocess"]
+
 def transform(data, ops=None):
     """ transform """
     if ops is None:

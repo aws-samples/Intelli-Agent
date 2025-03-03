@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ocr import TextSystem
 from table import TableSystem
@@ -182,6 +183,14 @@ def remove_symbols(text):
     return cleaned_text
 
 
+def process_figure(figure_data, doc, figure_idx):
+    k, v = figure_data
+    image, region_text = v[0], v[1] if v[1] is not None else ''
+    start_pos = doc.index(k)
+    context = doc[max(start_pos-200, 0): min(start_pos+200, len(doc))]
+    return k, figure_understand(image, context, k, s3_link=f'{figure_idx:05d}.jpg')
+
+
 def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
     """
     Extracts structured information from images in the given file path and returns a formatted document.
@@ -193,8 +202,6 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
         str: The formatted document containing the extracted information.
     """
 
-    # img_list, flag_gif, flag_pdf are returned from check_and_read
-    #img_list, _, _ = check_and_read(file_path)
 
     all_res = []
     for index, img in enumerate(check_and_read(file_path)):
@@ -260,15 +267,37 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
         doc += "\n\n"
     doc = re.sub("\n{2,}", "\n\n", doc.strip())
     images = {}
-    for figure_idx, (k,v) in enumerate(figure.items()):
-        images[f'{figure_idx:05d}.jpg'] = v[0]
-        region_text = v[1] if not v[1] is None else ''
-        if figure_rec:
-            start_pos = doc.index(k)
-            context = doc[max(start_pos-200, 0): min(start_pos+200, len(doc))]
-            doc = doc.replace(k, figure_understand(v[0], context, k, s3_link=f'{figure_idx:05d}.jpg'))
-        else:
+    start_time = time.time()
+    if figure_rec:
+        # Process figures concurrently using ThreadPoolExecutor
+        replacements = {}
+        max_workers = int(os.environ.get('FIGURE_UNDERSTANDING_MAX_WORKERS', 4))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_figure = {
+                executor.submit(process_figure, (k,v), doc, figure_idx): (figure_idx, k, v)
+                for figure_idx, (k,v) in enumerate(figure.items())
+            }
+            
+            for future in as_completed(future_to_figure):
+                figure_idx = future_to_figure[future][0]
+                images[f'{figure_idx:05d}.jpg'] = future_to_figure[future][2][0]
+                try:
+                    k, replacement = future.result()
+                    replacements[k] = replacement
+                except Exception as e:
+                    logger.error(f"Error processing figure {figure_idx}: {str(e)}")
+                    
+        # Apply all replacements after concurrent processing
+        for k, replacement in replacements.items():
+            doc = doc.replace(k, replacement)
+    else:
+        for figure_idx, (k,v) in enumerate(figure.items()):
+            images[f'{figure_idx:05d}.jpg'] = v[0]
+            region_text = v[1] if not v[1] is None else ''
             doc = doc.replace(k, f"\n<figure>\n<link>{figure_idx:05d}.jpg</link>\n<type>ocr</type>\n<desp>\n{region_text}\n</desp>\n</figure>\n")
+
+    end_time = time.time()
+    logger.info(f"Figure processing time: {end_time - start_time:.2f} seconds")
     doc = re.sub("\n{2,}", "\n\n", doc.strip())
     return doc, images
 
