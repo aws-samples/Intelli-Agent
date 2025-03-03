@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import boto3
 from botocore.exceptions import ClientError
-from common_logic.common_utils.constant import EntryType, ParamType, Threshold
+from common_logic.common_utils.constant import EntryType, ParamType, Threshold, WSConnectionSignal
 from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
 from common_logic.common_utils.lambda_invoke_utils import (
     chatbot_lambda_call_wrapper,
@@ -13,7 +13,7 @@ from common_logic.common_utils.lambda_invoke_utils import (
     send_trace
 )
 from common_logic.common_utils.logger_utils import get_logger
-from common_logic.common_utils.websocket_utils import load_ws_client
+from common_logic.common_utils.websocket_utils import set_stop_signal, load_ws_client, clear_stop_signal
 from lambda_main.main_utils.online_entries import get_entry
 from common_logic.common_utils.response_utils import process_response
 
@@ -358,11 +358,18 @@ def default_event_handler(event_body: dict, context: dict, entry_executor):
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body: dict, context: dict):
     logger.info(f"Raw event_body: {event_body}")
+    if "message_type" in event_body and WSConnectionSignal.STOP == event_body["message_type"]:
+        ws_connection_id = context["ws_connection_id"]
+        logger.info("Received stop signal for connection %s", ws_connection_id)
+        set_stop_signal(ws_connection_id)
+        stop_message = f"Stop signal has been set for WebSocket connection {ws_connection_id}"
+        return {"message": stop_message}
+
     # set GROUP_NAME for dmaa model initialize
     os.environ['GROUP_NAME'] = event_body.get(
         "chatbot_config", {}).get("group_name", "Admin")
     param_type = event_body.get("param_type", ParamType.NEST).lower()
-    if(param_type == ParamType.FLAT):
+    if (param_type == ParamType.FLAT):
         __convert_flat_param_to_dict(event_body)
     entry_type = event_body.get("entry_type", EntryType.COMMON).lower()
     try:
@@ -385,9 +392,11 @@ def lambda_handler(event_body: dict, context: dict):
         load_ws_client(websocket_url)
         send_trace(error_trace, enable_trace=enable_trace)
         process_response(event_body, error_response)
+        clear_stop_signal(context["ws_connection_id"])
         logger.error(f"{traceback.format_exc()}\nAn error occurred: {str(e)}")
         return {"error": str(e)}
-    
+
+
 def __convert_flat_param_to_dict(event_body: dict):
     event_body["chatbot_config"] = event_body.get("chatbot_config", {})
     event_body["chatbot_config"]["max_rounds_in_memory"] = event_body.get("chatbot_max_rounds_in_memory", "")
@@ -410,3 +419,24 @@ def __convert_flat_param_to_dict(event_body: dict):
     event_body["chatbot_config"]["private_knowledge_config"]["score"] = event_body.get("private_knowledge_score", Threshold.ALL_KNOWLEDGE_IN_AGENT_THRESHOLD)
     event_body["chatbot_config"]["agent_config"] = event_body["chatbot_config"].get("agent_config", {})
     event_body["chatbot_config"]["agent_config"]["only_use_rag_tool"] = event_body.get("only_use_rag_tool", True)
+
+
+# def handle_websocket_message(event: Dict[str, Any]) -> None:
+#     try:
+#         connection_id = event["requestContext"]["connectionId"]
+#         body = json.loads(event.get("body", "{}"))
+#         message_type = body.get("message_type")
+
+#         if message_type == "STOP":
+#             logger.info(f"Received stop signal for connection {connection_id}")
+#             stop_signal_manager.set_stop_signal(connection_id)
+#             return {
+#                 "statusCode": 200,
+#                 "body": json.dumps({"message": "Stop signal received"})
+#             }
+#     except Exception as e:
+#         logger.error(f"Error handling WebSocket message: {str(e)}")
+#         return {
+#             "statusCode": 500,
+#             "body": json.dumps({"error": "Internal server error"})
+#         }

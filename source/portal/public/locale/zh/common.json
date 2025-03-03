@@ -191,6 +191,7 @@
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
       "send": "发送",
+      "stop": "停止",
       "modelSettings": "模型设置",
       "cancel": "取消",
       "confirm": "确认",

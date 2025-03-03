@@ -67,7 +67,7 @@ export class UserConstruct extends Construct implements UserConstructOutputs {
       userVerification: {
         emailStyle: VerificationEmailStyle.LINK,
       },
-      advancedSecurityMode: AdvancedSecurityMode.ENFORCED,
+      // advancedSecurityMode: AdvancedSecurityMode.ENFORCED,
       passwordPolicy: {
         minLength: 8,
         requireUppercase: true,
