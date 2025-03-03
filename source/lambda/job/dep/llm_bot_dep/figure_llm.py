@@ -1,4 +1,5 @@
 import base64
+import importlib.resources
 import io
 import json
 import logging
