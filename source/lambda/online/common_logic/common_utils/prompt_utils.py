@@ -15,6 +15,13 @@ ddb_prompt_table = dynamodb_resource.Table(ddb_prompt_table_name)
 
 # export models to front
 EXPORT_MODEL_IDS = [
+    LLMModelType.DEEPSEEK_R1_DISTILL_LLAMA_8B,
+    LLMModelType.DEEPSEEK_R1_DISTILL_LLAMA_70B,
+    LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_1d5B,
+    LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_7B,
+    LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_14B,
+    LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_32B,
+    LLMModelType.DEEPSEEK_R1,
     LLMModelType.CLAUDE_3_HAIKU,
     LLMModelType.CLAUDE_3_SONNET,
     LLMModelType.CLAUDE_3_5_HAIKU,
@@ -43,8 +50,7 @@ EXPORT_MODEL_IDS = [
     LLMModelType.GPT3D5TURBO0125,
     LLMModelType.GPT4O20240806,
     LLMModelType.GPT4OMINI20240718,
-    LLMModelType.GPT4TURBO20240409,
-
+    LLMModelType.GPT4TURBO20240409
 ]
 
 EXPORT_SCENES = [
@@ -254,6 +260,7 @@ register_prompt_templates(
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_7B,
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_14B,
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_32B,
+        LLMModelType.DEEPSEEK_R1,
         LLMModelType.QWEN2INSTRUCT7B,
         LLMModelType.GLM_4_9B_CHAT
     ],
@@ -362,6 +369,7 @@ register_prompt_templates(
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_7B,
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_14B,
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_32B,
+        LLMModelType.DEEPSEEK_R1,
         LLMModelType.NOVA_LITE,
         LLMModelType.NOVA_MICRO,
         LLMModelType.CLAUDE_3_SONNET_US,
@@ -411,6 +419,7 @@ register_prompt_templates(
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_7B,
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_14B,
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_32B,
+        LLMModelType.DEEPSEEK_R1,
         LLMModelType.NOVA_LITE,
         LLMModelType.NOVA_MICRO,
         LLMModelType.CLAUDE_3_SONNET_US,
@@ -461,6 +470,7 @@ register_prompt_templates(
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_7B,
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_14B,
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_32B,
+        LLMModelType.DEEPSEEK_R1,
         LLMModelType.NOVA_LITE,
         LLMModelType.NOVA_MICRO,
         LLMModelType.CLAUDE_3_SONNET_US,
@@ -604,6 +614,7 @@ register_prompt_templates(
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_7B,
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_14B,
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_32B,
+        LLMModelType.DEEPSEEK_R1,
         LLMModelType.NOVA_LITE,
         LLMModelType.NOVA_MICRO,
         LLMModelType.CLAUDE_3_SONNET_US,
@@ -701,6 +712,7 @@ register_prompt_templates(
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_7B,
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_14B,
         LLMModelType.DEEPSEEK_R1_DISTILL_QWEN_32B,
+        LLMModelType.DEEPSEEK_R1,
         LLMModelType.GPT3D5TURBO0125,
         LLMModelType.GPT4O20240806,
         LLMModelType.GPT4OMINI20240718,
