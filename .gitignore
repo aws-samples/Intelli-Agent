@@ -90,3 +90,4 @@ source/infrastructure/bin/*.js
 source/infrastructure/bin/config.json
 source/infrastructure/lib/**/*.js
 *.d.ts
+source/model/model_temp

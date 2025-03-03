@@ -1,7 +1,6 @@
 import { Aws, StackProps, RemovalPolicy } from 'aws-cdk-lib';
 import {
   AccountRecovery,
-  AdvancedSecurityMode,
   CfnUserPoolGroup,
   CfnUserPoolUser,
   CfnUserPoolUserToGroupAttachment,
