@@ -61,7 +61,7 @@ done < "$OBJECT_LIST_FILE"
 cd mfg-kb-do-not-delete/bce-embedding-base_deploy_code
 tar xzvf bce_embedding_model.tar.gz
 rm -rf requirements.txt
-cp ../../../requirement-cn.py requirements.txt
+cp ../../../requirements_cn.txt requirements.txt
 if [ "$os_type" == "Darwin" ]; then
   sed -i "" "s|option.s3url = s3://intelli-agent-models-817734611975-us-west-2|option.s3url = s3://$s3_bucket_name|g" serving.properties
 else
@@ -79,7 +79,7 @@ rm -rf model.py
 cd ../bge-reranker-large_deploy_code
 tar xzvf bge_reranker_model.tar.gz
 rm -rf requirements.txt
-cp ../../../requirement-cn.py requirements.txt
+cp ../../../requirements_cn.txt requirements.txt
 if [ "$os_type" == "Darwin" ]; then
   sed -i "" "s|option.s3url = s3://intelli-agent-models-817734611975-us-west-2|option.s3url = s3://$s3_bucket_name|g" serving.properties
 else
