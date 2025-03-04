@@ -346,7 +346,8 @@ export const LOGIN_TYPE = {
   OIDC: 'oidc',
 };
 
-export const TOKEN = "token"
+// export const TOKEN = "oidc"
+export const OIDC_PREFIX = "oidc."
 export const USER = "user"
 export const API_URL = "api_url"
 export const APP_URL = "app_url"

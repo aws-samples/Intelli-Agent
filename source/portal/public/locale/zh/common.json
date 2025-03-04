@@ -1,5 +1,4 @@
 {
-  "translation": {
     "assetName": "AI智能客服",
     "name": "基于制造业多模态知识库构建的智能客服系统",
     "welcome": "欢迎使用 Multi-modal Enterprise Knowledge Base in Manufacturing",
@@ -304,5 +303,5 @@
     "apiModelNameDesc": "输入 API 使用的模型名称",
     "apiKeyArn": "API 密钥 ARN",
     "apiKeyArnDesc": "输入存储在 AWS Secrets Manager 中用于 Bedrock/OpenAI 的 API 密钥的 ARN"
-  }
+
 }

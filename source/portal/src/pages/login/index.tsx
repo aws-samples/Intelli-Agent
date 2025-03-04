@@ -1,7 +1,6 @@
 import { Button, Checkbox, Grid, Link, SpaceBetween, Spinner, Tabs } from '@cloudscape-design/components';
 import { Hub } from "aws-amplify/utils";
 import { fetchUserAttributes, fetchAuthSession } from "aws-amplify/auth";
-
 import { FC, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import yaml from 'yaml';
@@ -10,10 +9,9 @@ import SNS from './component/sns';
 import User from './component/user';
 import './style.scss';
 import { AxiosError } from 'axios';
-// import apiClient from 'request/client';
-// import { APP_URL, EN_LANG, LOGIN_TYPE, OIDC_STORAGE, ROUTES, TOKEN, USER, ZH_LANG, ZH_LANGUAGE_LIST } from 'common/constants';
 import { useTranslation } from 'react-i18next';
-import { EN_LANG, LOGIN_TYPE, OIDC_STORAGE, ROUTES, TOKEN, USER, ZH_LANG, ZH_LANGUAGE_LIST } from 'src/utils/const';
+import { EN_LANG, LOGIN_TYPE, OIDC_PREFIX, OIDC_STORAGE, ROUTES, USER, ZH_LANG, ZH_LANGUAGE_LIST } from 'src/utils/const';
+import useAxiosAuthRequest from 'src/hooks/useAxiosAuthRequest';
 
 
 const Login: FC = () => {
@@ -23,6 +21,7 @@ const Login: FC = () => {
   const [password, setPassword] = useState(null as any);
   const [keep, setKeep] = useState(false);
   const navigate = useNavigate();
+  const fetchData = useAxiosAuthRequest();
   const [error, setError] = useState("" as string);
   const [config, setConfig]=useState(null as any);
   const [selectedProvider, setSelectedProvider] = useState(null as any);
@@ -51,7 +50,7 @@ const Login: FC = () => {
         }
         const fetchSessionDetails = async ()=>{
           const currentSession = await fetchAuthSession();
-          localStorage.setItem(TOKEN, JSON.stringify({ access_token: currentSession.tokens?.accessToken.toString(), id_token: currentSession.tokens?.idToken?.toString() }));
+          localStorage.setItem(`${OIDC_PREFIX}midway`, JSON.stringify({ access_token: currentSession.tokens?.accessToken.toString(), id_token: currentSession.tokens?.idToken?.toString() }));
           localStorage.setItem(OIDC_STORAGE, "midway");
           navigate(ROUTES.Home);
         }
@@ -273,13 +272,17 @@ const Login: FC = () => {
   const oidcLogin = async(currentProvider: any)=>{
     let response: any
     try{
-      // response = await apiClient.post('/auth/login', {
-      //   redirect_uri: currentProvider.redirectUri,
-      //   client_id: currentProvider.clientId,
-      //   provider: currentProvider.label.toLowerCase(),
-      //   username,
-      //   password
-      // })
+      response = await fetchData({
+        url: '/auth/login',
+        method: 'post',
+        data: {
+          redirect_uri: currentProvider.redirectUri,
+          client_id: currentProvider.clientId,
+          provider: currentProvider.label.toLowerCase(),
+          username,
+          password
+        }
+      });
     } catch (error){
       if(error instanceof AxiosError) {
         let detail = error.response?.data.detail
@@ -298,7 +301,7 @@ const Login: FC = () => {
       client_id: currentProvider.clientId,
       redirect_uri: currentProvider.redirectUri
     }))
-    console.log(response.data.body.access_token || response.data.body.AuthenticationResult)
+    console.log(response.body.access_token || response.body.AuthenticationResult)
 
     // userInfo = await axios.get(
     //   `${currentProvider.redirectUri}/oidc/me`,
@@ -307,7 +310,7 @@ const Login: FC = () => {
     //       'Authorization': `Bearer ${response.data.body.access_token}`
     //     }
     //   });
-    localStorage.setItem(`oidc.${currentProvider.label}.${currentProvider.clientId}`, JSON.stringify(response.data.body));
+    localStorage.setItem(`oidc.${currentProvider.label}.${currentProvider.clientId}`, JSON.stringify(response.body));
     // localStorage.setItem(USER, userInfo.data.email||userInfo.data.name ||userInfo.data?.userId);
     navigate(ROUTES.Home)
     if(isLoading){

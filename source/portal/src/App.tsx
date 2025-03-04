@@ -34,8 +34,9 @@ import './index.scss';
 // import { BrowserRouter } from 'react-router-dom';
 import NoAccess from './pages/no-access';
 import AutoLogout from './secure/auto-logout';
-import { ROUTES, TOKEN } from './utils/const';
+import { OIDC_PREFIX, ROUTES } from './utils/const';
 import ConfigProvider from './context/config-provider';
+import { hasPrefixKeyInLocalStorage } from './utils/utils';
 // import LayoutHeader from 'common/layout-header';
 const AppBody = () => {
   return (
@@ -51,9 +52,9 @@ const AppBody = () => {
 };
 
 const App: React.FC = () => {
-  const token = localStorage.getItem(TOKEN)
+  const hasToken = hasPrefixKeyInLocalStorage(OIDC_PREFIX)
   // TOKEN is not exsist
-  if((token === '' || token === null) && ![ROUTES.Login, ROUTES.ChangePWD, ROUTES.FindPWD, ROUTES.Register].includes(window.location.pathname)){
+  if(!hasToken && ![ROUTES.Login, ROUTES.ChangePWD, ROUTES.FindPWD, ROUTES.Register].includes(window.location.pathname)){
     window.location.href=ROUTES.Login;
     return null;
   }

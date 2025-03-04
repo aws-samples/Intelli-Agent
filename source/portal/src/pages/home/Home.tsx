@@ -33,35 +33,35 @@ const Home: React.FC = () => {
       disableBeacon: true,
     },
     {
-      target: `a[href=${ROUTES.Chat}]`,
+      target: `a[href="${ROUTES.Chat}"]`,
       content: t('tour.chat'),
       disableBeacon: true,
     },
     {
-      target: `a[href=${ROUTES.Session}]`,
+      target: `a[href="${ROUTES.Session}"]`,
       content: t('tour.session'),
       disableBeacon: true,
     },
     {
-      target: `a[href=${ROUTES.Chatbot}]`,
+      target: `a[href="${ROUTES.Chatbot}"]`,
       content: t('tour.chatbot'),
       disableBeacon: true,
     },
     {
-      target: `a[href=${ROUTES.Intention}]`,
+      target: `a[href="${ROUTES.Intention}"]`,
       content: t('tour.intention'),
       disableBeacon: true,
     },
   ];
 
   const kbStep = {
-    target: `a[href=${ROUTES.Library}]`,
+    target: `a[href="${ROUTES.Library}"]`,
     content: t('tour.kb'),
     disableBeacon: true,
   };
 
   const promptsStep = {
-    target: `a[href=${ROUTES.Prompt}]`,
+    target: `a[href="${ROUTES.Prompt}"]`,
     content: t('tour.prompt'),
     disableBeacon: true,
   };
@@ -236,7 +236,7 @@ const Home: React.FC = () => {
           header={
             <div>
               <Box variant="p">
-                {t('awsSolutionGuidance')} | {t('mead')}
+                {t('common:awsSolutionGuidance')} | {t('mead')}
               </Box>
               <Header
                 variant="h1"
@@ -250,7 +250,7 @@ const Home: React.FC = () => {
                         navigate(ROUTES.Chat);
                       }}
                     >
-                      {t('button.startToChat')}
+                      {t('common:button.startToChat')}
                     </Button>
                     <Button
                       iconName="refresh"
@@ -263,7 +263,7 @@ const Home: React.FC = () => {
                 }
                 description={t('projectDescription')}
               >
-                <Box variant="h1">{t('solutionName')}</Box>
+                <Box variant="h1">{t('common:solutionName')}</Box>
                 {/* <Box fontSize="heading-l">{t('subTitle')}</Box> */}
               </Header>
             </div>

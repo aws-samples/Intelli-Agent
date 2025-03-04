@@ -16,6 +16,7 @@
   }
 
   .banner {
+    font-family: 'Open Sans';
     display: flex;
     justify-content: center;
     align-items: center;
@@ -24,6 +25,7 @@
     vertical-align: middle;
     font-size: 30px;
     font-weight: 800;
+    width: 100%;
   }
   
   .sub-title {

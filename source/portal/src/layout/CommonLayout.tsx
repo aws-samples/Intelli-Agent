@@ -6,6 +6,7 @@ import {
   SideNavigation,
   Spinner,
 } from '@cloudscape-design/components';
+import { jwtDecode } from "jwt-decode";
 
 import TopNavigation from '@cloudscape-design/components/top-navigation';
 import { useTranslation } from 'react-i18next';
@@ -25,8 +26,10 @@ import {
   MAX_TOKEN,
   TEMPERATURE,
   ROUTES,
+  OIDC_STORAGE,
+  OIDC_PREFIX,
 } from 'src/utils/const';
-import { useAuth } from 'react-oidc-context';
+// import { useAuth } from 'react-oidc-context';
 import ConfigContext from 'src/context/config-context';
 import { useLocation, useNavigate } from 'react-router-dom';
 import CustomBreadCrumb, { BreadCrumbType } from './CustomBreadCrumb';
@@ -43,6 +46,7 @@ const STORAGE_KEYS = [
   ADITIONAL_SETTINGS,
 ];
 import './layout.scss'
+import { logout } from 'src/request/authing';
 
 interface CommonLayoutProps {
   activeHref: string;
@@ -59,7 +63,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
   isLoading,
 }) => {
   const { t, i18n } = useTranslation();
-  const auth = useAuth();
+  // const auth = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [fullLogoutUrl, setFullLogoutUrl] = useState('');
   const config = useContext(ConfigContext);
@@ -75,18 +79,44 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
     });
   };
 
-  useEffect(() => {
-    setDisplayName(
-      auth.user?.profile?.email ||
-        auth.user?.profile?.name ||
-        auth.user?.profile?.preferred_username ||
-        auth.user?.profile?.nickname ||
-        auth.user?.profile?.sub ||
-        '',
-    );
-  }, [auth]);
+  // useEffect(() => {
+  //   setDisplayName(
+  //     auth.user?.profile?.email ||
+  //       auth.user?.profile?.name ||
+  //       auth.user?.profile?.preferred_username ||
+  //       auth.user?.profile?.nickname ||
+  //       auth.user?.profile?.sub ||
+  //       '',
+  //   );
+  // }, [auth]);
+  // useEffect(() => {
+  //   const displayName = "Anonymous User"
+  //   const oidc = localStorage.getItem(TOKEN)
+  //   if (oidc) {
+  //       const oidcRes = JSON.parse(oidc)
+  //       const authToken = localStorage.getItem(`${TOKEN_PREFIX}${oidcRes.provider}.${oidcRes.client_id}`)
+  //       if(oidcRes.provider === 'Authing' && authToken){
+  //         console.log(jwtDecode(JSON.parse(authToken).id_token))
+  //       }
+  //   }
+
+  //   setDisplayName(displayName);
+  // }, []);
 
   useEffect(() => {
+    let idToken = ""
+    let displayName = "Anonymous User"
+    const oidc = localStorage.getItem(OIDC_STORAGE)
+    if (oidc) {
+      const oidcRes = JSON.parse(oidc)
+      const authToken = localStorage.getItem(`${OIDC_PREFIX}${oidcRes.provider}.${oidcRes.client_id}`)
+      if(oidcRes.provider === 'Authing' && authToken){
+        idToken = JSON.parse(authToken).id_token
+        const idTokenRes: any = jwtDecode(idToken)
+        displayName = idTokenRes?.email || idTokenRes?.nickname || idTokenRes?.name || displayName
+      }
+    }
+
     if (ZH_LANGUAGE_LIST.includes(i18n.language)) {
       changeLanguage(DEFAULT_ZH_LANG);
     }
@@ -94,13 +124,14 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
       const redirectUrl = config?.oidcRedirectUrl.replace('/signin', '');
       const queryParams = new URLSearchParams({
         client_id: config.oidcClientId,
-        id_token_hint: auth.user?.id_token ?? '',
+        id_token_hint: idToken,
         logout_uri: redirectUrl,
         redirect_uri: redirectUrl,
         post_logout_redirect_uri: redirectUrl,
       });
       const logoutUrl = new URL(config?.oidcLogoutUrl);
       logoutUrl.search = queryParams.toString();
+      setDisplayName(displayName);
       setFullLogoutUrl(decodeURIComponent(logoutUrl.toString()));
     }
   }, []);
@@ -172,11 +203,13 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
             onItemClick: (item) => {
               if (item.detail.id === 'signout') {
                 if (fullLogoutUrl) {
-                  auth.removeUser();
+                  // auth.removeUser();
+
                   clearStorage();
+                  logout();
                   window.location.href = fullLogoutUrl;
                 }
-                auth.removeUser();
+                // auth.removeUser();
               }
             },
             items: [{ id: 'signout', text: t('signOut') }],

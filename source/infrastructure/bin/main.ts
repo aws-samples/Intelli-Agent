@@ -146,9 +146,16 @@ const workspaceStack = new WorkspaceStack(app, `${stackName}-workspace`, {
   clientPortalBucketName: Fn.importValue(`${stackName}-frontend-client-portal-bucket-name`),
   portalUrl: Fn.importValue(`${stackName}-frontend-portal-url`),
   clientPortalUrl: Fn.importValue(`${stackName}-frontend-client-portal-url`),
-  suppressTemplateIndentation: true
+  suppressTemplateIndentation: true,
+  userPoolId: Fn.importValue(`${stackName}-frontend-user-pool-id`),
+  oidcClientId: Fn.importValue(`${stackName}-frontend-oidc-client-id`),
+  oidcIssuer: Fn.importValue(`${stackName}-frontend-oidc-issuer`),
+  oidcLogoutUrl: Fn.importValue(`${stackName}-frontend-oidc-logout-url`),
+  oidcRegion: Fn.importValue(`${stackName}-frontend-oidc-region`),
+  oidcDomain: Fn.importValue(`${stackName}-frontend-oidc-domain`)
+  // oidcScopes: config.auth.oidcScopes,
+  // oidcResponseType: config.auth.oidcResponseType
 });
-
 // Add dependencies
 rootStack.addDependency(uiStack);
 workspaceStack.addDependency(rootStack);

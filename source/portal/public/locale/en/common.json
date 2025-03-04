@@ -1,5 +1,4 @@
 {
-  "translation": {
     "assetName": "AI Customer Service",
     "name": "Multi-modal Enterprise Knowledge Base in Manufacturing",
     "welcome": "Welcome to Multi-modal Enterprise Knowledge Base in Manufacturing",
@@ -311,5 +310,4 @@
     "apiModelNameDesc": "Enter the model name for the API",
     "apiKeyArn": "API Key ARN",
     "apiKeyArnDesc": "Enter the ARN of the secret in AWS Secrets Manager that stores the API key for Bedrock/OpenAI"
-  }
 }

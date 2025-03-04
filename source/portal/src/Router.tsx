@@ -22,6 +22,7 @@ import Login from './pages/login';
 import FindPWD from './pages/find-pwd';
 import Register from './pages/register';
 import ChangePWD from './pages/change-pwd';
+import { useTransition } from 'react';
 
 const SignedInRouter = () => {
   return (
@@ -52,6 +53,7 @@ const SignedInRouter = () => {
 
 const AppRouter = () => {
   const auth = useAuth();
+  useTransition()
   if (auth?.isLoading) {
     return (
       <div className="page-loading">

@@ -42,16 +42,9 @@ export class UserConstruct extends Construct implements UserConstructOutputs {
   constructor(scope: Construct, id: string, props: UserProps) {
     super(scope, id);
 
-    const userPoolName = props.userPoolName || `${Constants.SOLUTION_NAME}_UserPool`
-    const domainPrefix = props.domainPrefix || `${Constants.SOLUTION_NAME.toLowerCase()}-${Aws.ACCOUNT_ID}`
-    // const isChinaRegion = props.deployRegion.startsWith('cn-');
-
-    // TODO: In ths future we will change the condition from config
-    // if (isChinaRegion) {
-    //   this.setupCustomOidcResources();
-    // } else {
-      this.setupCognitoResources(props, userPoolName, domainPrefix);
-    // }
+    const userPoolName = props.userPoolName || `${Constants.SOLUTION_NAME}_UserPool`;
+    const domainPrefix = props.domainPrefix || `${Constants.SOLUTION_NAME.toLowerCase()}-${Aws.ACCOUNT_ID}`;
+    this.setupCognitoResources(props, userPoolName, domainPrefix);
   }
 
   private setupCognitoResources(props: UserProps, userPoolName: string, domainPrefix: string) {
