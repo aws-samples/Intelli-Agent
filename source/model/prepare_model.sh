@@ -75,6 +75,9 @@ tar czvf bce_embedding_model.tar.gz *
 rm -rf requirements.txt
 rm -rf serving.properties
 rm -rf model.py
+rm -rf ../bce-embedding-and-bge-reranker_deploy_code/*
+cp bce_embedding_model.tar.gz ../bce-embedding-and-bge-reranker_deploy_code/
+
 
 cd ../bge-reranker-large_deploy_code
 tar xzvf bge_reranker_model.tar.gz
@@ -93,7 +96,9 @@ tar czvf bge_reranker_model.tar.gz *
 rm -rf requirements.txt
 rm -rf serving.properties
 rm -rf model.py
+cp bge_reranker_model.tar.gz ../bce-embedding-and-bge-reranker_deploy_code/
 cd ../../..
+
 
 aws s3 sync model_temp/mfg-kb-do-not-delete s3://$s3_bucket_name
 
