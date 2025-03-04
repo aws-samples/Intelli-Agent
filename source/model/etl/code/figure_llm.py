@@ -12,12 +12,34 @@ from botocore.exceptions import ClientError
 # Add logger configuration
 logger = logging.getLogger(__name__)
 
+BEDROCK_CROSS_REGION_SUPPORTED_REGIONS = [
+    "us-east-1",
+    "us-west-2",
+    "eu-central-1",
+    "eu-west-1",
+    "eu-west-3",
+]
 
 class figureUnderstand:
     def __init__(self, model_provider="bedrock", api_secret_name=None):
         self.model_provider = model_provider
         if model_provider == "bedrock":
+            session = boto3.session.Session()
+            bedrock_region = session.region_name
+
+            # Validate region support
+            if bedrock_region not in BEDROCK_CROSS_REGION_SUPPORTED_REGIONS:
+                raise ValueError(
+                    f"Bedrock is not supported in region {bedrock_region}"
+                )
+
+            model_prefix = bedrock_region.split("-")[0] + "."
+
+            # Initialize Bedrock client and model ID
             self.bedrock_runtime = boto3.client(service_name="bedrock-runtime")
+            self.model_id = (
+                model_prefix + "anthropic.claude-3-5-sonnet-20241022-v2:0"
+            )
         elif model_provider == "openai":
             self.openai_api_key = self._get_api_key(api_secret_name)
             if not self.openai_api_key:
@@ -25,10 +47,14 @@ class figureUnderstand:
                     "Failed to retrieve OpenAI API key from Secrets Manager"
                 )
             openai.api_key = self.openai_api_key
+            
             # Set OpenAI base URL from environment variable if provided
             base_url = os.environ.get("OPENAI_API_BASE")
             if base_url:
                 openai.base_url = base_url
+            
+            # Set model ID from environment variable or use default
+            self.model_id = os.environ.get("OPENAI_MODEL_ID", "gpt-4o-2024-08-06")
         else:
             raise ValueError(
                 "Unsupported model provider. Choose 'bedrock' or 'openai'"
@@ -97,7 +123,6 @@ class figureUnderstand:
             },
             {"role": "assistant", "content": prefix},
         ]
-        model_id = "anthropic.claude-3-5-sonnet-20241022-v2:0"
         body = json.dumps(
             {
                 "anthropic_version": "bedrock-2023-05-31",
@@ -107,7 +132,7 @@ class figureUnderstand:
             }
         )
         response = self.bedrock_runtime.invoke_model(
-            body=body, modelId=model_id
+            body=body, modelId=self.model_id
         )
         response_body = json.loads(response.get("body").read())
         result = prefix + response_body["content"][0]["text"] + stop
@@ -133,7 +158,7 @@ class figureUnderstand:
         ]
 
         response = openai.chat.completions.create(
-            model="gpt-4-vision-preview",
+            model=self.model_id,
             messages=messages,
             max_tokens=4096,
             stop=[stop] if stop else None,
