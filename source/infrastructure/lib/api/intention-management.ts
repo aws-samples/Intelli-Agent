@@ -12,7 +12,7 @@
  *********************************************************************************************************************/
 
 import { Duration } from "aws-cdk-lib";
-import { Runtime } from "aws-cdk-lib/aws-lambda";
+import { Code, Runtime } from "aws-cdk-lib/aws-lambda";
 import { JsonSchemaType } from "aws-cdk-lib/aws-apigateway";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
@@ -22,6 +22,7 @@ import * as pyLambda from "@aws-cdk/aws-lambda-python-alpha";
 import { IAMHelper } from "../shared/iam-helper";
 import { Vpc, SecurityGroup } from 'aws-cdk-lib/aws-ec2';
 import { SystemConfig } from "../shared/types";
+import { LambdaFunction } from "../shared/lambda-helper";
 
 
 export interface IntentionApiProps {
@@ -81,13 +82,19 @@ export class IntentionApi extends Construct {
     this.genMethodOption = props.genMethodOption;
     this.genRequestModel = props.genRequestModel;
 
-    const intentionLambda = new PythonFunction(scope, "IntentionLambda", {
+    const intentionLambda = new LambdaFunction(scope, "IntentionLambda", {
       runtime: Runtime.PYTHON_3_12,
-      entry: join(__dirname, "../../../lambda/intention"),
-      index: "intention.py",
-      memorySize: 1024,
+      code: Code.fromCustomCommand(
+        "/tmp/intention_lambda_function_codes",
+        ['bash', '-c', [
+          "mkdir -p /tmp/intention_lambda_function_codes",
+          `cp -r ${join(__dirname, "../../../lambda/intention/*")} /tmp/intention_lambda_function_codes`,
+          `cp ${join(__dirname, "../../../lambda/job/dep/llm_bot_dep/sm_utils.py")} /tmp/intention_lambda_function_codes/`,
+        ].join(' && ')
+        ]
+      ),
       handler: "lambda_handler",
-      timeout: Duration.minutes(15),
+      // timeout: Duration.minutes(15),
       vpc: this.vpc,
       securityGroups: this.securityGroups,
       environment: {
@@ -104,16 +111,17 @@ export class IntentionApi extends Construct {
       },
       layers: [this.sharedLayer],
     });
-    intentionLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
-    intentionLambda.addToRolePolicy(this.iamHelper.logStatement);
-    intentionLambda.addToRolePolicy(this.iamHelper.secretStatement);
-    intentionLambda.addToRolePolicy(this.iamHelper.esStatement);
-    intentionLambda.addToRolePolicy(this.iamHelper.s3Statement);
-    intentionLambda.addToRolePolicy(this.iamHelper.bedrockStatement);
-    intentionLambda.addToRolePolicy(this.iamHelper.endpointStatement);
+    const intentionLambdaFunction = intentionLambda.function;
+    intentionLambdaFunction.addToRolePolicy(this.iamHelper.dynamodbStatement);
+    intentionLambdaFunction.addToRolePolicy(this.iamHelper.logStatement);
+    intentionLambdaFunction.addToRolePolicy(this.iamHelper.secretStatement);
+    intentionLambdaFunction.addToRolePolicy(this.iamHelper.esStatement);
+    intentionLambdaFunction.addToRolePolicy(this.iamHelper.s3Statement);
+    intentionLambdaFunction.addToRolePolicy(this.iamHelper.bedrockStatement);
+    intentionLambdaFunction.addToRolePolicy(this.iamHelper.endpointStatement);
 
     // API Gateway Lambda Integration to manage intention
-    const lambdaIntentionIntegration = new apigw.LambdaIntegration(intentionLambda, {
+    const lambdaIntentionIntegration = new apigw.LambdaIntegration(intentionLambdaFunction, {
       proxy: true,
     });
     const apiResourceIntentionManagement = this.api.root.addResource("intention");
