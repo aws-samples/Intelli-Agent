@@ -132,7 +132,7 @@ class figureUnderstand:
             },
             {"role": "assistant", "content": prefix},
         ]
-        model_id = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+        model_id = "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
         body = json.dumps(
             {
                 "anthropic_version": "bedrock-2023-05-31",
