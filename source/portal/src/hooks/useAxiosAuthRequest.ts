@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { User } from 'oidc-client-ts';
 import { useContext } from 'react';
 import ConfigContext from 'src/context/config-context';
 import { alertMsg } from 'src/utils/utils';
