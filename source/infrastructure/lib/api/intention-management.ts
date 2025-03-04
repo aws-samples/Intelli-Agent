@@ -11,13 +11,11 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Duration } from "aws-cdk-lib";
 import { Code, Runtime } from "aws-cdk-lib/aws-lambda";
 import { JsonSchemaType } from "aws-cdk-lib/aws-apigateway";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 import { join } from "path";
-import { PythonFunction } from "@aws-cdk/aws-lambda-python-alpha";
 import * as pyLambda from "@aws-cdk/aws-lambda-python-alpha";
 import { IAMHelper } from "../shared/iam-helper";
 import { Vpc, SecurityGroup } from 'aws-cdk-lib/aws-ec2';
