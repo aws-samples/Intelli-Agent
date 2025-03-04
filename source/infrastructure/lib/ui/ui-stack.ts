@@ -84,11 +84,11 @@ export class UIStack extends Stack implements UIStackOutputs {
       exportName: `${id}-oidc-logout-url`
     });
     new CfnOutput(this, 'OidcRegion', {
-      value: userConstruct.userPoolId,
+      value: userConstruct.oidcRegion ,
       exportName: `${id}-oidc-region`
     });
     new CfnOutput(this, 'OidcDomain', {
-      value: userConstruct.userPoolId,
+      value: userConstruct.oidcDomain,
       exportName: `${id}-oidc-domain`
     });
     }
