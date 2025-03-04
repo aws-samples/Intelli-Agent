@@ -9,17 +9,14 @@ from PIL import Image, ImageDraw
 import cv2
 from imaug import create_operators, transform
 from postprocess import build_post_process
-import GPUtil
-if len(GPUtil.getGPUs()):
-    provider = [("CUDAExecutionProvider", {"cudnn_conv_algo_search": "HEURISTIC"}), "CPUExecutionProvider"]
-    rec_batch_num = 6
-else:
-    provider = ["CPUExecutionProvider"]
-    rec_batch_num = 1
+from gpu_config import get_provider_config
+from model_config import MODEL_CONFIGS
+
+provider, rec_batch_num, _ = get_provider_config()
 
 class TextClassifier():
     def __init__(self):
-        self.weights_path = os.environ['MODEL_PATH'] + 'classifier.onnx'
+        self.weights_path = os.path.join(os.environ['MODEL_PATH'], 'classifier.onnx')
 
         self.cls_image_shape = [3, 48, 192]
         self.cls_batch_num = 30
@@ -43,7 +40,6 @@ class TextClassifier():
         else:
             resized_w = int(math.ceil(imgH * ratio))
         resized_image = np.array(Image.fromarray(img).resize((resized_w, imgH)))
-        #resized_image = cv2.resize(img, (resized_w, imgH))
         resized_image = resized_image.astype('float32')
         if self.cls_image_shape[0] == 1:
             resized_image = resized_image / 255
@@ -95,15 +91,8 @@ class TextClassifier():
 
 class TextDetector():
     def __init__(self, lang):
-        
-        if lang=='ch':
-            modelName = 'det_cn.onnx'
-        elif lang=='en':
-            modelName = 'det_en.onnx'
-        else:
-            modelName = 'det_cn.onnx'
-            
-        self.weights_path = os.environ['MODEL_PATH'] + modelName
+        model_config = MODEL_CONFIGS[lang]
+        self.weights_path = os.path.join(os.environ['MODEL_PATH'], model_config['det'])
 
         self.det_algorithm = 'DB'
         self.use_zero_copy_run = False
@@ -209,30 +198,15 @@ class TextDetector():
 
 class TextRecognizer():
     def __init__(self, lang='ch'):
-        if lang=='ch':
-            modelName = 'rec_ch.onnx'
-            postprocess_params = {
-                'name': 'CTCLabelDecode',
-                "character_type": 'ch',
-                "character_dict_path": os.environ['MODEL_PATH'] + 'ppocr_keys_v1.txt',
-                "use_space_char": True
-            }
-        elif lang=='en':
-            modelName = 'rec_en.onnx'
-            postprocess_params = {
-                'name': 'CTCLabelDecode',
-                "character_dict_path": os.environ['MODEL_PATH'] + 'en_dict.txt',
-                "use_space_char": True
-            }
-        else:
-            modelName = 'rec_multi_large.onnx'
-            postprocess_params = {
-                'name': 'CTCLabelDecode',
-                "character_type": 'ch',
-                "character_dict_path": os.environ['MODEL_PATH'] + 'keys_en_chs_cht_vi_ja_ko.txt',
-                "use_space_char": True
-            }
-        self.weights_path = os.environ['MODEL_PATH'] + modelName
+        model_config = MODEL_CONFIGS[lang]
+        self.weights_path = os.path.join(os.environ['MODEL_PATH'], model_config['rec'])
+
+        postprocess_params = {
+            'name': 'CTCLabelDecode',
+            "character_type": model_config['character_type'],
+            "character_dict_path": os.path.join(os.environ['MODEL_PATH'], model_config['dict_path']),
+            "use_space_char": model_config['use_space_char']
+        }
 
         self.limited_max_width = 1280
         self.limited_min_width = 16
@@ -243,7 +217,6 @@ class TextRecognizer():
         self.use_zero_copy_run = False
 
         self.postprocess_op = build_post_process(postprocess_params)
-
         self.ort_session = onnxruntime.InferenceSession(self.weights_path, providers=provider)
 
     def resize_norm_img(self, img, max_wh_ratio):
