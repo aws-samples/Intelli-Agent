@@ -3,7 +3,7 @@ import { useContext } from 'react';
 import ConfigContext from 'src/context/config-context';
 import { alertMsg } from 'src/utils/utils';
 
-const useAxiosAuthRequest = (lng: string) => {
+const useAxiosAuthRequest = () => {
   const config = useContext(ConfigContext);
   // const user = getUser(config?.oidcIssuer, config?.oidcClientId);
   // const token = user?.id_token;
@@ -27,8 +27,7 @@ const useAxiosAuthRequest = (lng: string) => {
         data: data,
         params: params,
         headers: {
-          ...headers,
-          'x-authing-lang': lng
+          ...headers
           // 'x-api-key': config?.apiKey,
           // 'author': user?.profile.email || 'anonumous user'
         },

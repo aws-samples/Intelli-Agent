@@ -38,7 +38,7 @@ const Login: FC = () => {
   const navigate = useNavigate();
   // const { i18n } = useTranslation();
   const { t, i18n } = useTranslation();
-  const fetchData = useAxiosAuthRequest(i18n.language === 'zh'? "zh-CN" : "en-US");
+  const fetchData = useAxiosAuthRequest();
   const [error, setError] = useState('' as string);
   const [config, setConfig] = useState(null as any);
   const [selectedProvider, setSelectedProvider] = useState(null as any);
@@ -254,7 +254,7 @@ const Login: FC = () => {
     let res = '';
     try {
       const response = await fetchData({
-        url: '/auth/login',
+        url: 'auth/login',
         method: 'post',
         data: {
           redirect_uri: currentProvider.redirectUri,
@@ -262,6 +262,7 @@ const Login: FC = () => {
           provider,
           username,
           password,
+          lang: i18n.language === 'zh'? "zh-CN" : "en-US"
         },
       });
       localStorage.setItem(
@@ -394,6 +395,8 @@ const Login: FC = () => {
               <div
                 style={{
                   marginTop: 30,
+                  fontFamily:'Open Sans',
+                  fontSize: 14,
                   textAlign: 'right',
                   color: 'red',
                   fontWeight: 800,

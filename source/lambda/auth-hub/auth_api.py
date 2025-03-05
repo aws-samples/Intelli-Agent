@@ -18,15 +18,22 @@ logger = logging.getLogger(__name__)
 token_list = []
 authApp = FastAPI()
 
-with open("config.yaml", "r") as file:
+with open("config.yaml", "r", encoding="utf-8") as file:
     config = yaml.safe_load(file)
 
 class LoginRequest(BaseModel):
+    # 用户名
     username: str
+    # 密码
     password: str
+    # 提供者
     provider: str
+    # 客户端ID
     client_id: str = ''
+    # 重定向URI
     redirect_uri: str = ''
+    # 语言
+    lang: str = 'en-US'
 
 class RefreshRequest(BaseModel):
     provider: str
@@ -98,7 +105,7 @@ async def verify_token_main(request: RefreshRequest):
 
 handler = Mangum(authApp)
 
-def __custom_oidc_login(request):
+def __custom_oidc_login(request: LoginRequest):
     client_config = __get_client_config(request.provider, request.client_id)
     payload = {
         "client_id": client_config["client_id"],
@@ -109,8 +116,8 @@ def __custom_oidc_login(request):
     }
 
     authing_login_url = f"{request.redirect_uri}/oidc/token"
-    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    response = requests.post(authing_login_url, data=payload, headers=headers)
+    headers = {'Content-Type': 'application/x-www-form-urlencoded','x-authing-lang': request.lang}
+    response = requests.post(authing_login_url, data=payload, headers=headers, timeout=100)
     if response.status_code == 200:
         return __gen_response_with_status_code(response.status_code, response.json())
     else:
