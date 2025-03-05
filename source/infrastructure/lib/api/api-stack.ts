@@ -234,11 +234,16 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
       },
       deploy: false
     });
-
+    // Add delay after initial setup
+    const initialDelay = this.addDeploymentDelay('Initial');
+    
+    const authDelay = this.addDeploymentDelay('Auth');
+    authDelay.node.addDependency(initialDelay);
     new AuthHub(this, 'AuthHub', {
       solutionName: Constants.SOLUTION_NAME,
       apiGateway: this.api
     })
+
 
     this.customAuthorizerLambda = new LambdaFunction(this, "CustomAuthorizerLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/authorizer")),
@@ -252,13 +257,15 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
       statements: [props.sharedConstructOutputs.iamHelper.logStatement],
     });
 
+    this.customAuthorizerLambda.node.addDependency(authDelay);
+    
+
     this.auth = new apigw.RequestAuthorizer(this, 'ApiAuthorizer', {
       handler: this.customAuthorizerLambda.function,
       identitySources: [apigw.IdentitySource.header('Authorization')],
     });
 
-    // Add delay after initial setup
-    const initialDelay = this.addDeploymentDelay('Initial');
+   
 
     // Create all API resources and their methods
     if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
