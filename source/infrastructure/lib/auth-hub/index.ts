@@ -65,7 +65,7 @@ export interface AuthHubProps {
 
         const authFunction = new Function(this, `${solutionName}AuthFunction`, {
           runtime: Runtime.PYTHON_3_12,
-          code: Code.fromAsset(path.join(__dirname, "../../../lambda/auth-hub"),),
+          code: Code.fromAsset(path.join(__dirname, "../../../lambda/auth-hub")),
           handler: 'auth_api.handler',
           memorySize: 4096,
           timeout: Duration.seconds(10),
@@ -81,7 +81,7 @@ export interface AuthHubProps {
 
         const authAuthorizerFunction = new Function(this, `${solutionName}AuthAuthorizerFunction`, {
           runtime: Runtime.PYTHON_3_12,
-          code: Code.fromAsset('../../../lambda/auth-hub'),
+          code: Code.fromAsset(path.join(__dirname, "../../../lambda/auth-hub")),
           handler: 'authorizer.handler'
         });
 
