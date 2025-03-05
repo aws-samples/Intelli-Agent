@@ -10,7 +10,8 @@ from common_logic.common_utils.constant import (
     Threshold,
     ModelProvider,
     EmbeddingModelType,
-    KBType
+    KBType,
+    RerankModelType
 )
 
 from common_logic.common_utils.logger_utils import get_logger
@@ -55,27 +56,38 @@ class QueryProcessConfig(ForbidBaseModel):
         default_factory=QueryRewriteConfig)
 
 
-class EmbeddingModelConfig(AllowBaseModel):
+
+##### model config ##############
+class ModelConfig(AllowBaseModel):
     provider: ModelProvider
-    model_id: EmbeddingModelType
+    model_id: Union[EmbeddingModelType,LLMModelType,RerankModelType]
     base_url: Union[str, None] = None
     api_key_arn: Union[str, None] = None
     api_key: Union[str, None] = None
-    dimension: Union[int, None] = None
     target_model: Union[str, None] = None
     model_endpoint: Union[str, None] = None
-
-    # endpoint_kwargs: Union[dict,None] = None
+    model_kwargs: Union[dict, None] = None
 
     def model_post_init(self, __context: Any) -> None:
         if self.api_key_arn and not self.api_key:
             self.api_key = get_secret_value(self.api_key_arn)
 
+class EmbeddingModelConfig(ModelConfig):
+    dimension: Union[int, None] = None
 
+
+class RerankConfig(ModelConfig):
+    pass
+
+
+
+####### retriever config  ###########
+    
 class RetrieverConfigBase(AllowBaseModel):
     index_type: str
     kb_type: KBType = KBType.AOS
     embedding_config: Union[EmbeddingModelConfig, None] = None
+    rerank_config: Union[RerankConfig, None] = None
 
 
 class IntentionRetrieverConfig(RetrieverConfigBase):
@@ -104,9 +116,7 @@ class IntentionConfig(ForbidBaseModel):
     all_knowledge_in_agent_threshold: float = Threshold.ALL_KNOWLEDGE_IN_AGENT_THRESHOLD
 
 
-class RerankConfig(AllowBaseModel):
-    endpoint_name: str = None
-    target_model: str = None
+
 
 
 class QQMatchConfig(ForbidBaseModel):

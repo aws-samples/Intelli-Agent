@@ -220,50 +220,50 @@ def get_doc(file_path, index_name):
     return "\n".join(chunk_text_list)
 
 
-# def get_child_context(chunk_id, index_name, window_size):
-#     next_content_list = []
-#     previous_content_list = []
-#     previous_pos = 0
-#     next_pos = 0
-#     chunk_id_prefix = "-".join(chunk_id.split("-")[:-1])
-#     section_id = int(chunk_id.split("-")[-1])
-#     previous_section_id = section_id
-#     next_section_id = section_id
-#     while previous_pos < window_size:
-#         previous_section_id -= 1
-#         if previous_section_id < 1:
-#             break
-#         previous_chunk_id = f"{chunk_id_prefix}-{previous_section_id}"
-#         opensearch_query_response = aos_client.search(
-#             index_name=index_name,
-#             query_type="basic",
-#             query_term=previous_chunk_id,
-#             field="metadata.chunk_id",
-#             size=1,
-#         )
-#         if len(opensearch_query_response["hits"]["hits"]) > 0:
-#             r = opensearch_query_response["hits"]["hits"][0]
-#             previous_content_list.insert(0, r["_source"]["text"])
-#             previous_pos += 1
-#         else:
-#             break
-#     while next_pos < window_size:
-#         next_section_id += 1
-#         next_chunk_id = f"{chunk_id_prefix}-{next_section_id}"
-#         opensearch_query_response = aos_client.search(
-#             index_name=index_name,
-#             query_type="basic",
-#             query_term=next_chunk_id,
-#             field="metadata.chunk_id",
-#             size=1,
-#         )
-#         if len(opensearch_query_response["hits"]["hits"]) > 0:
-#             r = opensearch_query_response["hits"]["hits"][0]
-#             next_content_list.insert(0, r["_source"]["text"])
-#             next_pos += 1
-#         else:
-#             break
-#     return [previous_content_list, next_content_list]
+def get_child_context(chunk_id, index_name, window_size):
+    next_content_list = []
+    previous_content_list = []
+    previous_pos = 0
+    next_pos = 0
+    chunk_id_prefix = "-".join(chunk_id.split("-")[:-1])
+    section_id = int(chunk_id.split("-")[-1])
+    previous_section_id = section_id
+    next_section_id = section_id
+    while previous_pos < window_size:
+        previous_section_id -= 1
+        if previous_section_id < 1:
+            break
+        previous_chunk_id = f"{chunk_id_prefix}-{previous_section_id}"
+        opensearch_query_response = aos_client.search(
+            index_name=index_name,
+            query_type="basic",
+            query_term=previous_chunk_id,
+            field="metadata.chunk_id",
+            size=1,
+        )
+        if len(opensearch_query_response["hits"]["hits"]) > 0:
+            r = opensearch_query_response["hits"]["hits"][0]
+            previous_content_list.insert(0, r["_source"]["text"])
+            previous_pos += 1
+        else:
+            break
+    while next_pos < window_size:
+        next_section_id += 1
+        next_chunk_id = f"{chunk_id_prefix}-{next_section_id}"
+        opensearch_query_response = aos_client.search(
+            index_name=index_name,
+            query_type="basic",
+            query_term=next_chunk_id,
+            field="metadata.chunk_id",
+            size=1,
+        )
+        if len(opensearch_query_response["hits"]["hits"]) > 0:
+            r = opensearch_query_response["hits"]["hits"][0]
+            next_content_list.insert(0, r["_source"]["text"])
+            next_pos += 1
+        else:
+            break
+    return [previous_content_list, next_content_list]
 
 
 def get_sibling_context(chunk_id, index_name, window_size):
@@ -379,38 +379,38 @@ def get_context(aos_hit, index_name, window_size):
     return [previous_content_list, next_content_list]
 
 
-# def get_parent_content(previous_chunk_id, next_chunk_id, index_name):
-#     previous_content_list = []
-#     while previous_chunk_id.startswith("$"):
-#         opensearch_query_response = aos_client.search(
-#             index_name=index_name,
-#             query_type="basic",
-#             query_term=previous_chunk_id,
-#             field="metadata.chunk_id",
-#             size=10,
-#         )
-#         if len(opensearch_query_response["hits"]["hits"]) > 0:
-#             r = opensearch_query_response["hits"]["hits"][0]
-#             previous_chunk_id = r["_source"]["metadata"]["chunk_id"]
-#             previous_content_list.append(r["_source"]["text"])
-#         else:
-#             break
-#     next_content_list = []
-#     while next_chunk_id.startswith("$"):
-#         opensearch_query_response = aos_client.search(
-#             index_name=index_name,
-#             query_type="basic",
-#             query_term=next_chunk_id,
-#             field="metadata.chunk_id",
-#             size=10,
-#         )
-#         if len(opensearch_query_response["hits"]["hits"]) > 0:
-#             r = opensearch_query_response["hits"]["hits"][0]
-#             next_chunk_id = r["_source"]["metadata"]["chunk_id"]
-#             next_content_list.append(r["_source"]["text"])
-#         else:
-#             break
-#     return [previous_content_list, next_content_list]
+def get_parent_content(previous_chunk_id, next_chunk_id, index_name):
+    previous_content_list = []
+    while previous_chunk_id.startswith("$"):
+        opensearch_query_response = aos_client.search(
+            index_name=index_name,
+            query_type="basic",
+            query_term=previous_chunk_id,
+            field="metadata.chunk_id",
+            size=10,
+        )
+        if len(opensearch_query_response["hits"]["hits"]) > 0:
+            r = opensearch_query_response["hits"]["hits"][0]
+            previous_chunk_id = r["_source"]["metadata"]["chunk_id"]
+            previous_content_list.append(r["_source"]["text"])
+        else:
+            break
+    next_content_list = []
+    while next_chunk_id.startswith("$"):
+        opensearch_query_response = aos_client.search(
+            index_name=index_name,
+            query_type="basic",
+            query_term=next_chunk_id,
+            field="metadata.chunk_id",
+            size=10,
+        )
+        if len(opensearch_query_response["hits"]["hits"]) > 0:
+            r = opensearch_query_response["hits"]["hits"][0]
+            next_chunk_id = r["_source"]["metadata"]["chunk_id"]
+            next_content_list.append(r["_source"]["text"])
+        else:
+            break
+    return [previous_content_list, next_content_list]
 
 
 def organize_faq_results(
@@ -473,8 +473,6 @@ def organize_faq_results(
             continue
         results.append(result)
     return results
-
-
 
 
 class QueryQuestionRetriever(BaseRetriever):

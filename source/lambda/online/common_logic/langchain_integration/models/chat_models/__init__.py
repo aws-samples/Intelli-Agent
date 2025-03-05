@@ -59,6 +59,10 @@ class ChatModelBase(ModeMixins, ModelBase):
         return model_class
 
 
+ChatModel = ChatModelBase
+
+
+
 def _import_bedrock_models():
     from . import bedrock_models
 

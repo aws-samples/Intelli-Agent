@@ -1,7 +1,7 @@
 from typing import Union
 from .. import ModelBase 
 
-from common_logic.common_utils.constant import LLMModelType, ModelProvider
+from common_logic.common_utils.constant import ModelProvider
 
 from ..model_config import EmbeddingModelConfig
 
@@ -28,6 +28,9 @@ class EmbeddingModelBase(ModelBase):
             },
         )
         return model_class
+
+
+EmbeddingModel = EmbeddingModelBase
 
 
 def _import_bedrock_embeddings():

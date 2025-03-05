@@ -28,6 +28,8 @@ class RerankModelBase(ModelBase):
         return model_class
 
 
+RerankModel = RerankModelBase
+
 def _import_bedrock_rerank():
     from . import bedrock_rerank
 
