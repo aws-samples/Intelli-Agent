@@ -182,10 +182,10 @@
     "referenceDocuments": "参考文档",
     "selectADocumentToPreview": "选择一个文档以预览其内容",
     "architecture": "架构",
-    "modelCnt":"接入模型",
-    "docCnt":"文档",
-    "botCnt":"机器人",
-    "sessionCnt":"会话数",
+    "modelCnt": "接入模型",
+    "docCnt": "文档",
+    "botCnt": "机器人",
+    "sessionCnt": "会话数",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
@@ -218,7 +218,6 @@
     "validation": {
       "requireModel": "请选择或输入一个模型",
       "requireApiKeyArn": "请输入一个API密钥的ARN",
-      "requireApiEndpoint": "请输入一个API端点",
       "requireChatbotName": "请输入机器人名称",
       "repeatChatbotName": "该名称已经被使用，请更换新的名称",
       "repeatIndex": "该索引名称已经被其他用户使用",
@@ -238,7 +237,11 @@
       "indexValid": "索引已经被其他模型使用，请变更索引名称",
       "repeatedIndex": "索引名称和现有索引重复，请更换名称",
       "requireApiEndpoint": "请输入API端点",
-      "requireApiModelName": "请输入API模型名称"
+      "requireApiModelName": "请输入API模型名称",
+      "noStartWithUnderscoreOrDash": "名称不能以下划线或破折号开头",
+      "uppercaseNotAllowed": "名称不能包含大写字母",
+      "invalidCharacters": "名称包含无效字符",
+      "onlyStandardEnglishAllowed": "名称只能包含英文小写字母、数字、下划线、破折号和句点"
     },
     "tour": {
       "home": "使用默认参数部署此解决方案将在亚马逊网络服务（Amazon Web Services）中构建此环境。",
@@ -303,5 +306,4 @@
     "apiModelNameDesc": "输入 API 使用的模型名称",
     "apiKeyArn": "API 密钥 ARN",
     "apiKeyArnDesc": "输入存储在 AWS Secrets Manager 中用于 Bedrock/OpenAI 的 API 密钥的 ARN"
-
 }
