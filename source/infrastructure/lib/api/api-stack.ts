@@ -226,8 +226,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
           "Authorization",
           "X-Api-Key",
           "Author",
-          "X-Amz-Security-Token",
-          "X-Authing-Lang"
+          "X-Amz-Security-Token"
         ],
         allowMethods: apigw.Cors.ALL_METHODS,
         allowCredentials: true,
