@@ -32,7 +32,7 @@ S3_FETCH_WAIT_TIME = 5
 ETL_INFERENCE_PREFIX = "etl_pdf_inference/"
 
 # Maximum pages per chunk for PDF splitting
-PDF_CHUNK_SIZE = 100
+PDF_CHUNK_SIZE = 50
 # Maximum retries for failed chunks
 MAX_CHUNK_RETRIES = 3
 
@@ -247,11 +247,12 @@ class SageMakerPdfLoader:
         )
 
         # Invoke the endpoint asynchronously
+        # Set RequestTTLSeconds to 5 hours to avoid timeout
         response = self.sagemaker_runtime_client.invoke_endpoint_async(
             EndpointName=self.etl_endpoint_name,
             ContentType="application/json",
             InputLocation=f"s3://{self.result_bucket_name}/{request_s3_path}",
-            RequestTTLSeconds=3600,
+            RequestTTLSeconds=3600 * 5,
             InvocationTimeoutSeconds=3600,
         )
 
