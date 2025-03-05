@@ -94,9 +94,6 @@ export class UIStack extends Stack implements UIStackOutputs {
     }
     this.mainPortalConstruct = mainPortalConstruct;
     this.clientPortalConstruct = clientPortalConstruct;
-    
-
-    
 
     new CfnOutput(this, 'PortalBucketName', {
       value: mainPortalConstruct.portalBucket.bucketName,
