@@ -26,11 +26,6 @@ import {
 } from 'src/utils/const';
 import useAxiosAuthRequest from 'src/hooks/useAxiosAuthRequest';
 import ConfigContext from 'src/context/config-context';
-import {
-  CognitoIdentityProviderClient,
-  InitiateAuthCommand,
-  NotAuthorizedException,
-} from '@aws-sdk/client-cognito-identity-provider';
 import { Amplify } from 'aws-amplify';
 import { signIn } from 'aws-amplify/auth';
 
