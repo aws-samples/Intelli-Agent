@@ -53,33 +53,6 @@ const Login: FC = () => {
   const oidcOptions: any[] = [];
   const builtInConfig = useContext(ConfigContext);
 
-  // useEffect(() => {
-  //   const listener = (data: any) => {
-  //     const { payload } = data;
-  //     if (payload.event === "signInWithRedirect") {
-  //       console.log("signInWithRedirect:", payload.data);
-  //     } else if (payload.event === "signedIn") {
-  //       console.log("User signed in successfully:", payload.data);
-  //       const fetchUserDetails = async ()=>{
-  //         const currentUser = await fetchUserAttributes();
-  //         console.log('Current user:', currentUser);
-  //         localStorage.setItem(USER, currentUser.email||currentUser.username||currentUser.name||"anonymous user");
-  //       }
-  //       const fetchSessionDetails = async ()=>{
-  //         const currentSession = await fetchAuthSession();
-  //         localStorage.setItem(`${OIDC_PREFIX}midway`, JSON.stringify({ access_token: currentSession.tokens?.accessToken.toString(), id_token: currentSession.tokens?.idToken?.toString() }));
-  //         localStorage.setItem(OIDC_STORAGE, "midway");
-  //         navigate(ROUTES.Home);
-  //       }
-  //       fetchUserDetails();
-  //       fetchSessionDetails()
-  //     } else if(payload.event === "signInWithRedirect_failure"){
-  //       console.log("signInWithRedirect_failure:", payload.data);
-  //     }
-  //   };
-  //   Hub.listen("auth", listener);
-  // }, []);
-
   useEffect(() => {
     if (ZH_LANGUAGE_LIST.includes(i18n.language)) {
       setLang(ZH_LANG);
@@ -258,61 +231,6 @@ const Login: FC = () => {
     oidcLogin(currentProvider);
   };
 
-  // const ssoLogin =async (ssoType: string) => {
-  //   setIsloading(true)
-  //   switch(ssoType){
-  //     case "midway":
-  //       await midway()
-  //       break;
-  //     default:
-  //       break;
-  //   }
-  // }
-
-  // const midway = async () =>{
-  //   const midwayConfig = config?.login.sso.midway;
-  //   const app_url = localStorage.getItem(APP_URL)
-  //   let signInProd: null | string = null
-  //   let signOutProd: null | string = null
-  //   if(app_url){
-  //     signInProd = `https://${app_url}/login`;
-  //     signOutProd = `https://${app_url}`
-  //   }
-  //   try {
-  //   Amplify.configure({
-  //     Auth: {
-  //       Cognito: {
-  //         userPoolId: midwayConfig?.user_pool_id,
-  //         userPoolClientId: midwayConfig?.user_pool_client_id,
-  //         identityPoolId: "",
-  //         allowGuestAccess: true,
-  //         loginWith: {
-  //           oauth: {
-  //             domain: midwayConfig?.auth.domain,
-  //             scopes: ['aws.cognito.signin.user.admin', 'email', 'openid', 'profile'],
-  //             redirectSignIn: [midwayConfig?.auth.redirect_signin_local, signInProd],
-  //             redirectSignOut: [midwayConfig?.auth.redirect_signout_local, signOutProd],
-  //             responseType: "code",
-  //           }
-  //           }
-  //         }
-  //       }
-  //     }
-  //   )
-  //   await signInWithRedirect({
-  //       provider:{
-  //         custom: midwayConfig?.provider
-  //       }
-  //       })
-  //   } catch (error){
-  //     if ((error as { name: string }).name === 'UserAlreadyAuthenticatedException') {
-  //       console.warn('User already signed in. Fetching user info...');
-  //       await processForUserAlreadySignin(navigate)
-  //     } else {
-  //       console.error('Error during sign in:', error);
-  //     }
-  //   }
-  // }
   const loginWithCognito = async () => {
     let res = '';
     try {
@@ -327,12 +245,7 @@ const Login: FC = () => {
       const user = await signIn({ username, password });
       console.log(`user is ${user}`);
     } catch (error: any) {
-      // if (error.name == 'NotAuthorizedException') {
       res = error.message;
-      // } else {
-      //   setError(t('auth:unknownError').toString());
-      // }
-      // return false
     }
     return res;
   };
@@ -361,6 +274,8 @@ const Login: FC = () => {
         if (typeof detail === 'string') detail = JSON.parse(detail);
         if (detail) {
           res = detail.error_description;
+        } else {
+          res = t('auth:unknownError').toString();
         }
       } else {
         res = t('auth:unknownError').toString();
@@ -498,21 +413,3 @@ const Login: FC = () => {
 };
 
 export default Login;
-
-// const processForUserAlreadySignin = async(navigate: any) => {
-//   try {
-//     const currentSession = await fetchAuthSession();
-//     const currentUser = await fetchUserAttributes();
-//     localStorage.setItem(OIDC_STORAGE, "midway");
-//     localStorage.setItem(USER, currentUser.email?.split('@')[0] || currentUser.username || currentUser.name || "");
-//     localStorage.setItem(TOKEN, JSON.stringify({ access_token: currentSession.tokens?.accessToken.toString(), id_token: currentSession.tokens?.idToken?.toString() }));
-//     navigate(ROUTES.Home);
-//   } catch (error) {
-//     if ((error as { name: string }).name === 'NotAuthorizedException') {
-//       await signOut({ global: true });
-//       return null;
-//     } else {
-//       console.error('Failed to fetch current user:', error);
-//     }
-//   }
-// }

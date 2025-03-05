@@ -88,12 +88,13 @@ export interface AuthHubProps {
         const authAuthorizer = new RequestAuthorizer(this, `${solutionName}AuthAuthorizer`, {
           handler: authAuthorizerFunction,
           identitySources: [
-            IdentitySource.header('x-authing-lang'),
+            IdentitySource.header('X-Authing-Lang')
           ],
         });
         const authIntegration = new LambdaIntegration(authFunction)
         const authResource = apiGateway.root.addResource('auth')
         const loginResource = authResource.addResource('login')
+        // loginResource.addMethod('OPTIONS', authIntegration, {authorizer: authAuthorizer});
         loginResource.addMethod('POST', authIntegration, {authorizer: authAuthorizer});
         const tokenResource = authResource.addResource('token')
         const verifyResource = tokenResource.addResource('verify');
