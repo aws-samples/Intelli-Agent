@@ -34,9 +34,9 @@ const useAxiosAuthRequest = () => {
       });
       return response.data;
     } catch (error) {
-      if (error instanceof Error) {
-        alertMsg(error.message);
-      }
+      // if (error instanceof Error) {
+      //   alertMsg(error.message);
+      // }
       throw error;
     }
   };

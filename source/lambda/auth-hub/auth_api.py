@@ -118,17 +118,17 @@ def __custom_oidc_login(request: LoginRequest):
     authing_login_url = f"{request.redirect_uri}/oidc/token"
     headers = {'Content-Type': 'application/x-www-form-urlencoded','x-authing-lang': request.lang}
     response = requests.post(authing_login_url, data=payload, headers=headers, timeout=100)
-    if response.status_code == 200:
-        return __gen_response_with_status_code(response.status_code, response.json())
-    else:
-        raise HTTPException(status_code=response.status_code, detail=response.text)
+    # if response.status_code == 200:
+    return __gen_response_with_status_code(response.status_code, response.body.json())
+    # else:
+        # raise HTTPException(status_code=response.status_code, detail=response.text)
 
 def __gen_response_with_status_code(code: int, body):
     return {
             'statusCode': code,
             'headers': {
                'Content-Type': 'application/json',
-               'Access-Control-Allow-Headers': 'Content-Type',
+               'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
                'Access-Control-Allow-Origin': '*',
                'Access-Control-Allow-Methods': '*'
             },
