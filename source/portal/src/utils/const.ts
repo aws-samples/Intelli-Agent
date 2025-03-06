@@ -191,6 +191,21 @@ export const OPENAI_API_MODEL_LIST = [
   }, 
 ];
 
+export const SILICON_FLOW_API_MODEL_LIST = [
+  {
+    label: 'SiliconFlow',
+    options: [
+      { label: 'DeepSeek-R1-Distill-Llama-8B', value: 'DeepSeek-R1-Distill-Llama-8B' },
+      { label: 'DeepSeek-R1-Distill-Llama-70B', value: 'DeepSeek-R1-Distill-Llama-70B' },
+      { label: 'DeepSeek-R1-Distill-Qwen-1.5B', value: 'DeepSeek-R1-Distill-Qwen-1.5B' },
+      { label: 'DeepSeek-R1-Distill-Qwen-7B', value: 'DeepSeek-R1-Distill-Qwen-7B' },
+      { label: 'DeepSeek-R1-Distill-Qwen-14B', value: 'DeepSeek-R1-Distill-Qwen-14B' },
+      { label: 'DeepSeek-R1-Distill-Qwen-32B', value: 'DeepSeek-R1-Distill-Qwen-32B' },
+      { label: 'DeepSeek-R1', value: 'DeepSeek-R1' },
+    ],
+  }, 
+];
+
 export const CUSTOM_DEPLOYMENT_MODEL_LIST = [
   {
     label: 'CUSTOM',
@@ -237,9 +252,13 @@ export const LLM_BOT_CHATBOT_LIST: SelectProps.Option[] = [
 
 export const MODEL_TYPE_LIST: SelectProps.Option[] = [
   {
-    label: 'Bedrock',
-    value: 'Bedrock',
+    label: 'Silicon Flow',
+    value: 'siliconflow',
   },
+  // {
+  //   label: 'Bedrock',
+  //   value: 'Bedrock',
+  // },
   {
     label: 'Bedrock API',
     value: 'Bedrock API',
@@ -248,10 +267,10 @@ export const MODEL_TYPE_LIST: SelectProps.Option[] = [
     label: 'OpenAI API',
     value: 'OpenAI API',
   },
-  {
-    label: 'Custom Deployment',
-    value: 'dmaa',
-  },
+  // {
+  //   label: 'Custom Deployment',
+  //   value: 'dmaa',
+  // },
 ];
 
 export const RETAIL_GOODS_LIST: SelectProps.Option[] = [

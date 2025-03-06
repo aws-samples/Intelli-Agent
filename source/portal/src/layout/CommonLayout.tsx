@@ -127,7 +127,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
       type: 'link',
       text: t('intention'),
       href: ROUTES.Intention,
-    },
+    }
   ];
 
   const promptItem = {

@@ -1,11 +1,16 @@
 import base64
+import json
 import logging
 from pathlib import Path
 
 import boto3
 from langchain.docstore.document import Document
 from langchain.document_loaders.base import BaseLoader
-from llm_bot_dep.figure_llm import figureUnderstand, upload_image_to_s3
+from llm_bot_dep.figure_llm import (
+    figureUnderstand,
+    get_api_key,
+    upload_image_to_s3,
+)
 from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
 
 bedrock_client = boto3.client("bedrock-runtime")
@@ -26,7 +31,7 @@ class CustomImageLoader(BaseLoader):
         self.aws_path = aws_path
         self.file_type = file_type
 
-    def load(self, bucket_name: str, file_name: str) -> Document:
+    def load(self, bucket_name: str, file_name: str, **kwargs) -> Document:
         """Load directly from S3."""
         # Parse bucket and key from aws_path
         # aws_path format: s3://bucket-name/path/to/key
@@ -39,15 +44,35 @@ class CustomImageLoader(BaseLoader):
         response = self.s3_client.get_object(Bucket=s3_bucket, Key=s3_key)
         image_bytes = response["Body"].read()
         encoded_image = base64.b64encode(image_bytes).decode("utf-8")
+        model_provider = kwargs.get("model_provider")
+        model_id = kwargs.get("model_id")
+        api_secret_name = kwargs.get("api_secret_name")
+        api_url = kwargs.get("api_url")
+
+        if api_secret_name:
+            api_key = get_api_key(api_secret_name)
+        else:
+            api_key = None
 
         # Initialize figureUnderstand and process image
-        figure_llm = figureUnderstand()
+        figure_llm = figureUnderstand(
+            model_provider=model_provider,
+            model_id=model_id,
+            api_url=api_url,
+            api_key=api_key,
+        )
         # Using empty context and generic tag since we're processing standalone images
-        understanding = figure_llm.figure_understand(img=encoded_image, context="", tag="[IMAGE]", s3_link="0.jpg")
+        understanding = figure_llm.figure_understand(
+            img=encoded_image, context="", tag="[IMAGE]", s3_link="0.jpg"
+        )
 
         # Upload image directly using image_bytes
-        object_key = upload_image_to_s3(image_bytes, bucket_name, file_name, "image", 0, is_bytes=True)
-        understanding = understanding.replace("<link>0.jpg</link>", f"<link>{object_key}</link>")
+        object_key = upload_image_to_s3(
+            image_bytes, bucket_name, file_name, "image", 0, is_bytes=True
+        )
+        understanding = understanding.replace(
+            "<link>0.jpg</link>", f"<link>{object_key}</link>"
+        )
         logger.info("Generated understanding: %s", understanding)
         metadata = {"file_path": self.aws_path, "file_type": self.file_type}
 
@@ -60,8 +85,12 @@ def process_image(s3, **kwargs):
     portal_bucket_name = kwargs["portal_bucket_name"]
     file_type = kwargs["image_file_type"]
     file_name = Path(key).stem
-    loader = CustomImageLoader(s3_client=s3, aws_path=f"s3://{bucket_name}/{key}", file_type=file_type)
-    doc = loader.load(portal_bucket_name, file_name)
+    loader = CustomImageLoader(
+        s3_client=s3,
+        aws_path=f"s3://{bucket_name}/{key}",
+        file_type=file_type,
+    )
+    doc = loader.load(portal_bucket_name, file_name, **kwargs)
     splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
     doc_list = splitter.split_text(doc)
 

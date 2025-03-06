@@ -1,10 +1,14 @@
 import axios from 'axios';
+<<<<<<< HEAD
 // import { User } from 'oidc-client-ts';
+=======
+>>>>>>> abd872d66b80cae074cbce116847b164721f430b
 import { useContext } from 'react';
 import ConfigContext, { Config } from 'src/context/config-context';
 import { OIDC_PROVIDER, OIDC_STORAGE } from 'src/utils/const';
 import { alertMsg } from 'src/utils/utils';
 
+<<<<<<< HEAD
 // function getUser(authority?: string, clientId?: string) {
 //   const oidcStorage = localStorage.getItem(
 //     `oidc.user:${authority}:${clientId}`,
@@ -37,6 +41,14 @@ const useAxiosRequest = () => {
   // const user = getUser(config?.oidcIssuer, config?.oidcClientId);
   // const token = user?.id_token;
   const token = getToken(config?.oidcProvider, config?.oidcClientId);;
+=======
+const useAxiosRequest = () => {
+  const config = useContext(ConfigContext);
+
+  // Mock user and token
+  const mockToken = 'mock-token';
+
+>>>>>>> abd872d66b80cae074cbce116847b164721f430b
   const sendRequest = async ({
     url = '',
     method = 'get',
@@ -60,9 +72,6 @@ const useAxiosRequest = () => {
           ...headers,
           'Authorization': `Bearer ${token}`,
           'Oidc-Info': genHeaderOidcInfo(config)
-
-          // 'x-api-key': config?.apiKey,
-          // 'author': user?.profile.email || 'anonumous user'
         },
       });
       return response.data;

@@ -1,5 +1,6 @@
 import datetime
 import io
+import io
 import json
 import logging
 import os
@@ -13,8 +14,15 @@ import boto3
 import cv2
 import numpy as np
 from figure_llm import figureUnderstand
+import boto3
+import cv2
+import numpy as np
+from figure_llm import figureUnderstand
 from layout import LayoutPredictor
 from markdownify import markdownify as md
+from ocr import TextSystem
+from PIL import Image
+from table import TableSystem
 from ocr import TextSystem
 from PIL import Image
 from table import TableSystem
@@ -28,12 +36,19 @@ logger = logging.getLogger(__name__)
 class StructureSystem(object):
     def __init__(self):
         self.mode = "structure"
+        self.mode = "structure"
         self.recovery = True
         drop_score = 0
         # init model
         self.layout_predictor = LayoutPredictor()
         self.text_system = TextSystem()
         self.table_system = TableSystem(
+            self.text_system.text_detector, self.text_system.text_recognizer
+        )
+
+    def __call__(
+        self, img, return_ocr_result_in_table=False, lang="ch", auto_dpi=False
+    ):
             self.text_system.text_detector, self.text_system.text_recognizer
         )
 
@@ -49,7 +64,17 @@ class StructureSystem(object):
             "rec": 0,
             "kie": 0,
             "all": 0,
+            "image_orientation": 0,
+            "layout": 0,
+            "table": 0,
+            "table_match": 0,
+            "det": 0,
+            "rec": 0,
+            "kie": 0,
+            "all": 0,
         }
+        if lang == "zh":
+            lang = "ch"
         if lang == "zh":
             lang = "ch"
         start = time.time()
@@ -60,7 +85,18 @@ class StructureSystem(object):
         if auto_dpi:
             final_s = 0
             height_limit = 18 if lang == "ch" else 15
+            height_limit = 18 if lang == "ch" else 15
             for scale_base in [1, 0.66, 0.33]:
+                img_cur_scale = cv2.resize(
+                    img, (None, None), fx=scale_base, fy=scale_base
+                )
+                temp_result = self.text_system.text_detector[lang](
+                    img_cur_scale, scale=1
+                )
+                height_list = [
+                    max(text_line[:, 1]) - min(text_line[:, 1])
+                    for text_line in temp_result
+                ]
                 img_cur_scale = cv2.resize(
                     img, (None, None), fx=scale_base, fy=scale_base
                 )
@@ -74,14 +110,22 @@ class StructureSystem(object):
                 height_list.sort()
                 if len(height_list) == 0:
                     min_text_line_h = 2 * height_limit
+                    min_text_line_h = 2 * height_limit
                 else:
+                    min_text_line_h = height_list[int(len(height_list) * 0.05)]
+                min_s = (height_limit / min_text_line_h) * scale_base
+                if min_s > final_s:
                     min_text_line_h = height_list[int(len(height_list) * 0.05)]
                 min_s = (height_limit / min_text_line_h) * scale_base
                 if min_s > final_s:
                     final_s = min_s
         time_dict["layout"] += elapse
+        time_dict["layout"] += elapse
         res_list = []
         for region in layout_res:
+            res = ""
+            if region["bbox"] is not None:
+                x1, y1, x2, y2 = region["bbox"]
             res = ""
             if region["bbox"] is not None:
                 x1, y1, x2, y2 = region["bbox"]
@@ -92,7 +136,14 @@ class StructureSystem(object):
                 x1, y1, x2, y2 = 0, 0, w, h
                 roi_img = img
             if region["label"] == "table":
+            if region["label"] == "table":
                 res, table_time_dict = self.table_system(
+                    roi_img, return_ocr_result_in_table, lang
+                )
+                time_dict["table"] += table_time_dict["table"]
+                time_dict["table_match"] += table_time_dict["match"]
+                time_dict["det"] += table_time_dict["det"]
+                time_dict["rec"] += table_time_dict["rec"]
                     roi_img, return_ocr_result_in_table, lang
                 )
                 time_dict["table"] += table_time_dict["table"]
@@ -108,7 +159,15 @@ class StructureSystem(object):
                     y1 - top : min(y2 + (y2 - y1), wht_im.shape[0]),
                     x1 - left : min(x2 + (x2 - x1), wht_im.shape[1]),
                 ]
+                top = min(y2 - y1, y1)
+                left = min(x2 - x1, x1)
+                cur_wht_im = wht_im[
+                    y1 - top : min(y2 + (y2 - y1), wht_im.shape[0]),
+                    x1 - left : min(x2 + (x2 - x1), wht_im.shape[1]),
+                ]
                 filter_boxes, filter_rec_res = self.text_system(
+                    cur_wht_im, lang, final_s
+                )
                     cur_wht_im, lang, final_s
                 )
 
@@ -130,12 +189,27 @@ class StructureSystem(object):
                     "</underline>",
                     "<i>",
                     "</i>",
+                    "<strike>",
+                    "<strike>",
+                    "<sup>",
+                    "</sub>",
+                    "<b>",
+                    "</b>",
+                    "<sub>",
+                    "</sup>",
+                    "<overline>",
+                    "</overline>",
+                    "<underline>",
+                    "</underline>",
+                    "<i>",
+                    "</i>",
                 ]
                 res = []
                 for box, rec_res in zip(filter_boxes, filter_rec_res):
                     rec_str, rec_conf = rec_res
                     for token in style_token:
                         if token in rec_str:
+                            rec_str = rec_str.replace(token, "")
                             rec_str = rec_str.replace(token, "")
                     if not self.recovery:
                         box += [x1 + left, y1 + top]
@@ -154,7 +228,24 @@ class StructureSystem(object):
                     "res": res,
                 }
             )
+                        box += [x1 + left, y1 + top]
+                    res.append(
+                        {
+                            "text": rec_str,
+                            "confidence": float(rec_conf),
+                            "text_region": box.tolist(),
+                        }
+                    )
+            res_list.append(
+                {
+                    "type": region["label"].lower(),
+                    "bbox": [x1, y1, x2, y2],
+                    "img": roi_img,
+                    "res": res,
+                }
+            )
         end = time.time()
+        time_dict["all"] = end - start
         time_dict["all"] = end - start
         return res_list, time_dict
 
@@ -170,9 +261,11 @@ def upload_images_to_s3(images, bucket: str, prefix: str, splitting_type: str):
     # make the logger file name unique
     name_s3path = {}
     for key, image in images.items():
+    for key, image in images.items():
         object_key = f"{prefix}/{splitting_type}/{timestamp}/{key.replace('.jpg', '-'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')+'.jpg')}"
         try:
             buffer = io.BytesIO()
+            image.save(buffer, format="JPEG")
             image.save(buffer, format="JPEG")
             buffer.seek(0)
             res = s3.put_object(
@@ -181,8 +274,15 @@ def upload_images_to_s3(images, bucket: str, prefix: str, splitting_type: str):
                 Body=buffer,
                 ContentType="image/jpeg",
             )
+            res = s3.put_object(
+                Bucket=bucket,
+                Key=object_key,
+                Body=buffer,
+                ContentType="image/jpeg",
+            )
         except Exception as e:
             continue
+        name_s3path[key] = f"{object_key}"
         name_s3path[key] = f"{object_key}"
     return name_s3path
 
@@ -247,6 +347,9 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
             recursive_xy_cut(
                 np.asarray(boxes).astype(int), np.arange(len(boxes)), res
             )
+            recursive_xy_cut(
+                np.asarray(boxes).astype(int), np.arange(len(boxes)), res
+            )
             result_sorted = [result[idx] for idx in res]
             all_res += result_sorted
     doc = ""
@@ -263,10 +366,23 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
                     Image.fromarray(region["img"][:, :, ::-1]),
                     None,
                 ]
+                doc += "<{{figure_" + str(len(figure)) + "}}>\n"
+                figure["<{{figure_" + str(len(figure)) + "}}>"] = [
+                    Image.fromarray(region["img"][:, :, ::-1]),
+                    None,
+                ]
             else:
+                doc += "<{{figure_" + str(len(figure)) + "}}>\n"
                 doc += "<{{figure_" + str(len(figure)) + "}}>\n"
                 for _, line in enumerate(region["res"]):
                     region_text += line["text"] + " "
+                if remove_symbols(region_text) != remove_symbols(
+                    prev_region_text
+                ):
+                    figure["<{{figure_" + str(len(figure)) + "}}>"] = [
+                        Image.fromarray(region["img"][:, :, ::-1]),
+                        region_text,
+                    ]
                 if remove_symbols(region_text) != remove_symbols(
                     prev_region_text
                 ):
@@ -281,11 +397,20 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
                         None,
                     ]
 
+                    figure["<{{figure_" + str(len(figure)) + "}}>"] = [
+                        Image.fromarray(region["img"][:, :, ::-1]),
+                        None,
+                    ]
+
         elif region["type"].lower() == "title":
             region_text = ""
             for i, line in enumerate(region["res"]):
                 region_text += line["text"] + ""
+            region_text = ""
+            for i, line in enumerate(region["res"]):
+                region_text += line["text"] + ""
             if remove_symbols(region_text) != remove_symbols(prev_region_text):
+                doc += "## " + region_text + "\n\n"
                 doc += "## " + region_text + "\n\n"
                 prev_region_text = region_text
         elif region["type"].lower() == "table":
@@ -359,6 +484,7 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
     return doc, images
 
 
+
 def process_pdf_pipeline(request_body):
     """
     Process PDF pipeline.
@@ -371,6 +497,7 @@ def process_pdf_pipeline(request_body):
             - portal_bucket (str): The portal S3 bucket name
             - mode (str, optional): The processing mode. Defaults to "ppstructure".
             - lang (str, optional): The language of the PDF. Defaults to "zh".
+            - api_secret_name (str, optional): The name of the secret in AWS Secrets Manager containing the API key.
 
     Returns:
         dict: The result of the pipeline containing the following key:
@@ -384,6 +511,26 @@ def process_pdf_pipeline(request_body):
     lang = request_body.get("lang", "zh")
     auto_dpi = bool(request_body.get("auto_dpi", True))
     figure_rec = bool(request_body.get("figure_recognition", True))
+    model_provider = request_body.get("model_provider", "bedrock")
+    model_id = request_body.get(
+        "model_id", "anthropic.claude-3-sonnet-20240229-v1:0"
+    )
+    api_url = request_body.get("api_url", None)
+    api_secret_name = request_body.get("api_secret_name", None)
+
+    if api_secret_name:
+        api_key = get_api_key(api_secret_name)
+    else:
+        api_key = None
+
+    # Validate LLM request parameters
+    is_valid, error_message = validate_llm_request(
+        model_provider, api_key, api_url
+    )
+    if not is_valid:
+        logger.error(error_message)
+        return {"error": error_message, "status": "failed"}
+
     logging.info("Processing bucket: %s, object_key: %s", bucket, object_key)
     local_path = str(os.path.basename(object_key))
     local_path = f"/tmp/{local_path}"
@@ -391,16 +538,34 @@ def process_pdf_pipeline(request_body):
     logger.info("Downloading %s to %s", object_key, local_path)
     s3.download_file(Bucket=bucket, Key=object_key, Filename=local_path)
 
-    content, images = structure_predict(local_path, lang, auto_dpi, figure_rec)
+    structure_engine = StructureSystem()
+    figure_understand = figureUnderstand(
+        model_provider, model_id, api_url, api_key
+    )
+
+    content, images = structure_predict(
+        structure_engine,
+        figure_understand,
+        local_path,
+        lang,
+        auto_dpi,
+        figure_rec,
+    )
+
     filename = file_path.stem
     name_s3path = upload_images_to_s3(images, portal_bucket, filename, "image")
+    name_s3path = upload_images_to_s3(images, portal_bucket, filename, "image")
     for key, s3_path in name_s3path.items():
+        content = content.replace(
+            f"<link>{key}</link>", f"<link>{s3_path}</link>"
+        )
         content = content.replace(
             f"<link>{key}</link>", f"<link>{s3_path}</link>"
         )
     destination_s3_path = upload_chunk_to_s3(
         content, destination_bucket, filename, "before-splitting"
     )
+
 
     result = {"destination_prefix": destination_s3_path}
 

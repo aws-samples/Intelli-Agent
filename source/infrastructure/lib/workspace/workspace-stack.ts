@@ -143,9 +143,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
       code: Code.fromAsset(join(__dirname, "../../../lambda/authorizer")),
       handler: "custom_authorizer.lambda_handler",
       environment: {
-        // USER_POOL_ID: props.userPoolId,
         REGION: Aws.REGION,
-        // APP_CLIENT_ID: props.oidcClientId,
       },
       layers: [apiLambdaAuthorizerLayer],
       statements: [props.sharedConstructOutputs.iamHelper.logStatement],
@@ -215,16 +213,16 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
         workspaceWebsocket: this.wsEndpoint,
         apiUrl: props.apiConstructOutputs.api.url,
         workspaceApiUrl: workspaceApi.url,
-        oidcIssuer: props.oidcIssuer,
-        oidcClientId: props.oidcClientId,
-        oidcLogoutUrl: props.oidcLogoutUrl,
-        oidcRedirectUrl: `https://${props.portalUrl}/signin`,
         kbEnabled: props.config.knowledgeBase.enabled.toString(),
         kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
         embeddingEndpoint: embeddingEndpoint,
         oidcDomain: props.oidcDomain,
         oidcPoolId: props.userPoolId,
-        oidcRegion: props.oidcRegion
+        oidcRegion: props.oidcRegion,
+        oidcIssuer: props.oidcIssuer,
+        oidcClientId: props.oidcClientId,
+        oidcLogoutUrl: props.oidcLogoutUrl,
+        oidcRedirectUrl: `https://${props.portalUrl}/signin`,
       },
     });
 
@@ -238,16 +236,16 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
         workspaceWebsocket: this.wsEndpoint,
         apiUrl: props.apiConstructOutputs.api.url,
         workspaceApiUrl: workspaceApi.url,
-        oidcIssuer: props.oidcIssuer,
-        oidcClientId: props.oidcClientId,
-        oidcLogoutUrl: props.oidcLogoutUrl,
-        oidcRedirectUrl: `https://${props.clientPortalUrl}/signin`,
         kbEnabled: props.config.knowledgeBase.enabled.toString(),
         kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
         embeddingEndpoint: embeddingEndpoint,
         oidcDomain: props.oidcDomain,
         oidcPoolId: props.userPoolId,
-        oidcRegion: props.oidcRegion
+        oidcRegion: props.oidcRegion,
+        oidcIssuer: props.oidcIssuer,
+        oidcClientId: props.oidcClientId,
+        oidcLogoutUrl: props.oidcLogoutUrl,
+        oidcRedirectUrl: `https://${props.clientPortalUrl}/signin`,
       },
     });
 

@@ -132,10 +132,11 @@ const ChatbotManagement: React.FC = () => {
   const localApiEndpoint = localStorage.getItem(API_ENDPOINT);
   const localApiKeyArn = localStorage.getItem(API_KEY_ARN);
   const modelTypeList = [
-    {
-      label: 'Bedrock',
-      value: 'Bedrock',
-    },
+    // {
+    //   label: 'Bedrock',
+    //   value: 'Bedrock',
+    // },
+    { label: 'SageMaker', value: 'SageMaker' },
     {
       label: 'Bedrock API',
       value: 'Bedrock API',
@@ -145,7 +146,7 @@ const ChatbotManagement: React.FC = () => {
       value: 'OpenAI API',
     },
     // Add SageMaker if embeddingEndpoint is valid
-    ...(config?.embeddingEndpoint?.startsWith('bce') ? [{ label: 'SageMaker', value: 'SageMaker' }] : []),
+    // ...(config?.embeddingEndpoint?.startsWith('bce') ? [{ label: 'SageMaker', value: 'SageMaker' }] : []),
   ];
 
   const [modelType, setModelType] = useState<SelectProps.Option>(

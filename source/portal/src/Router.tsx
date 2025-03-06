@@ -77,18 +77,6 @@ const AppRouter = () => {
   }
   return (
     <SignedInRouter />
-    // <>
-    // <div className="login-container">
-    //   <div className="text-center">
-    //     <Box variant="h2">{t('welcome')}</Box>
-    //     <div className="mt-10">
-    //       <Button variant="primary" onClick={() => void auth.signinRedirect()}>
-    //         {t('button.login')}
-    //       </Button>
-    //     </div>
-    //   </div>
-    // </div>
-    // </>
   );
 };
 

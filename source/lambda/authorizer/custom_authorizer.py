@@ -7,9 +7,7 @@ from urllib.request import urlopen
 import jwt
 
 # Replace with your Cognito User Pool info
-# USER_POOL_ID = os.environ["USER_POOL_ID"]
 REGION = os.environ["REGION"]
-# APP_CLIENT_ID = os.environ["APP_CLIENT_ID"]
 verify_exp = os.getenv("mode") != "dev"
 
 logger = logging.getLogger()
@@ -59,24 +57,17 @@ def lambda_handler(event, context):
             # REST API
             if event["headers"].get("authorization"):
                 # Browser will change the Authorization header to lowercase
-                token = (
-                    event["headers"]["authorization"]
-                    .replace("Bearer", "")
-                    .strip()
-                )
+                token = event["headers"]["authorization"].replace("Bearer", "").strip()
             else:
                 # Postman
-                token = (
-                    event["headers"]["Authorization"]
-                    .replace("Bearer", "")
-                    .strip()
-                )
+                token = event["headers"]["Authorization"].replace("Bearer", "").strip()
         else:
             # WebSocket API
             token = event["queryStringParameters"]["idToken"]
 
         headers = jwt.get_unverified_header(token)
         kid = headers["kid"]
+
 
         oidc_info = event["headers"].get("Oidc-Info")
         if oidc_info.provider == "authing":
@@ -100,11 +91,8 @@ def lambda_handler(event, context):
             raise Exception(
                 "Custom Authorizer Error: Public key not found in jwks.json"
             )
-
-        # Construct the public key
-        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(
-            json.dumps(keys[key_index])
-        )
+        # # Construct the public key
+        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(keys[key_index]))
 
         # Verify the signature of the JWT token
         claims = jwt.decode(
@@ -118,6 +106,14 @@ def lambda_handler(event, context):
         # reformat claims to align with cognito output
         claims["cognito:groups"] = ",".join(claims["cognito:groups"])
         logger.info(claims)
+        # # Verify the signature of the JWT token
+        # claims = jwt.decode(
+        #     token, public_key, algorithms=["RS256"], audience=APP_CLIENT_ID,
+        #     issuer=issuer, options={"verify_exp": verify_exp}
+        # )
+        # # reformat claims to align with cognito output
+        # claims["cognito:groups"] = ",".join(claims["cognito:groups"])
+        # logger.info(claims)
 
         response = generateAllow("me", "*", claims)
         logger.info("Authorized")

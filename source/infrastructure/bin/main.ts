@@ -153,8 +153,6 @@ const workspaceStack = new WorkspaceStack(app, `${stackName}-workspace`, {
   oidcLogoutUrl: Fn.importValue(`${stackName}-frontend-oidc-logout-url`),
   oidcRegion: Fn.importValue(`${stackName}-frontend-oidc-region`),
   oidcDomain: Fn.importValue(`${stackName}-frontend-oidc-domain`)
-  // oidcScopes: config.auth.oidcScopes,
-  // oidcResponseType: config.auth.oidcResponseType
 });
 // Add dependencies
 rootStack.addDependency(uiStack);

@@ -25,7 +25,8 @@ from ..models import ChatModel
 from ..models.model_config import (
     BEDROCK_MODEL_CONFIGS,
     OPENAI_MODEL_CONFIGS,
-    QWEN25_MODEL_CONFIGS
+    QWEN25_MODEL_CONFIGS,
+    SILICONFLOW_DEEPSEEK_MODEL_CONFIGS
 )
 
 
@@ -146,9 +147,12 @@ class ToolCallingBaseChain(LLMChain):
         return chain
 
 
-ToolCallingBaseChain.create_for_chains(BEDROCK_MODEL_CONFIGS,LLMTaskType.TOOL_CALLING_API)
-ToolCallingBaseChain.create_for_chains(OPENAI_MODEL_CONFIGS,LLMTaskType.TOOL_CALLING_API)
-ToolCallingBaseChain.create_for_chains(QWEN25_MODEL_CONFIGS,LLMTaskType.TOOL_CALLING_API)
+ToolCallingBaseChain.create_for_chains(BEDROCK_MODEL_CONFIGS, LLMTaskType.TOOL_CALLING_API)
+ToolCallingBaseChain.create_for_chains(OPENAI_MODEL_CONFIGS, LLMTaskType.TOOL_CALLING_API)
+ToolCallingBaseChain.create_for_chains(QWEN25_MODEL_CONFIGS, LLMTaskType.TOOL_CALLING_API)
+ToolCallingBaseChain.create_for_chains(SILICONFLOW_DEEPSEEK_MODEL_CONFIGS, LLMTaskType.TOOL_CALLING_API)
+
+
 # class ChatGPT35ToolCallingChain(ToolCallingBaseChain):
 #     model_id = LLMModelType.GPT3D5TURBO0125
 
