@@ -40,3 +40,4 @@ echo "TypeScript $(tsc --version)"
 
 echo "Create service linked role for Amazon Opensearch Service"
 # aws iam create-service-linked-role --aws-service-name es.amazonaws.com 2> /dev/null
+aws iam create-service-linked-role --aws-service-name opensearchservice.amazonaws.com
