@@ -3,6 +3,9 @@ import ChatBot from './pages/chatbot/ChatBot';
 import Library from './pages/library/Library';
 import LibraryDetail from './pages/library/LibraryDetail';
 import CommonAlert from './comps/alert';
+import { useAuth } from 'react-oidc-context';
+import { Box, Button, Spinner } from '@cloudscape-design/components';
+import ReSignIn from './comps/ReSignIn';
 import { useTranslation } from 'react-i18next';
 import SessionHistory from './pages/history/SessionHistory';
 import SessionDetail from './pages/history/SessionDetail';
@@ -41,9 +44,41 @@ const SignedInRouter = () => {
 };
 
 const AppRouter = () => {
-  useTranslation();
+  const auth = useAuth();
+  const { t } = useTranslation();
+  if (auth.isLoading) {
+    return (
+      <div className="page-loading">
+        <Spinner />
+      </div>
+    );
+  }
 
-  return <SignedInRouter />;
+  if (auth.error) {
+    return (
+      <>
+        <ReSignIn />
+        <SignedInRouter />
+      </>
+    );
+  }
+
+  // auth.isAuthenticated = true
+  if (auth.isAuthenticated) {
+    return <SignedInRouter />;
+  }
+  return (
+    <div className="login-container">
+      <div className="text-center">
+        <Box variant="h2">{t('welcome')}</Box>
+        <div className="mt-10">
+          <Button variant="primary" onClick={() => void auth.signinRedirect()}>
+            {t('button.login')}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default AppRouter;
