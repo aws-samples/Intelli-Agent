@@ -27,7 +27,9 @@ import {
 import useAxiosAuthRequest from 'src/hooks/useAxiosAuthRequest';
 import ConfigContext from 'src/context/config-context';
 import { Amplify } from 'aws-amplify';
-import { signIn } from 'aws-amplify/auth';
+import { signIn, fetchAuthSession } from '@aws-amplify/auth';
+
+
 
 const Login: FC = () => {
   const [activeTabId, setActiveTabId] = useState(LOGIN_TYPE.OIDC);
@@ -223,7 +225,7 @@ const Login: FC = () => {
       return;
     }
     if (password == null || password === '') {
-      setError(t('auth:error.username').toString());
+      setError(t('auth:error.password').toString());
       setVersion(ver + 1);
       setLogging(false);
       return;
@@ -231,7 +233,16 @@ const Login: FC = () => {
     oidcLogin(currentProvider);
   };
 
-  const loginWithCognito = async () => {
+  function removeKeysWithPrefix(prefix: string) {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) {
+        localStorage.removeItem(key);
+      }
+    }
+  }
+
+  const loginWithCognito = async (currentProvider: any) => {
     let res = '';
     try {
       Amplify.configure({
@@ -239,13 +250,36 @@ const Login: FC = () => {
           Cognito: {
             userPoolId: builtInConfig?.oidcPoolId || '',
             userPoolClientId: builtInConfig?.oidcClientId || '',
+            
           },
         },
       });
-      const user = await signIn({ username, password });
+      const user = await signIn({ 
+        username, 
+        password
+      });
       console.log(`user is ${user}`);
+      const session = await fetchAuthSession();
+      localStorage.setItem(
+        `oidc.${currentProvider.label}.${currentProvider.clientId}`,
+        JSON.stringify({
+          accessToken: session.tokens?.accessToken.toString(),
+          idToken: session.tokens?.idToken?.toString(),
+          username: session.tokens?.signInDetails?.loginId
+        }),
+      );
+      removeKeysWithPrefix("CognitoIdentityServiceProvider")
+      // localStorage.removeItem("CognitoIdentityServiceProvider.aded2oqehr9748gg29ds24ic5.LastAuthUser")
+      console.log(session)
     } catch (error: any) {
-      res = error.message;
+      if(error.name === 'NotAuthorizedException') {
+      res = t('auth:incorrectPWD');
+    } else if(error.name === 'UserNotFoundException') {
+      res = t('auth:userNotExists');
+    } else {
+      res = t('auth:unknownError');
+    }
+
     }
     return res;
   };
@@ -265,8 +299,12 @@ const Login: FC = () => {
           lang: i18n.language === 'zh'? "zh-CN" : "en-US"
         },
       });
+      if(response.statusCode !== 200) {
+        res = response.body.error_description
+        return res;
+      }
       localStorage.setItem(
-        `oidc.${currentProvider.label}.${currentProvider.clientId}`,
+        `oidc.${currentProvider.value}.${currentProvider.clientId}`,
         JSON.stringify(response.body),
       );
     } catch (error) {
@@ -289,9 +327,9 @@ const Login: FC = () => {
   // let userInfo: any= {}
   const oidcLogin = async (currentProvider: any) => {
     let returnMsg = '';
-    const provider = currentProvider.label.toLowerCase();
+    const provider = currentProvider.value;
     if (provider === 'cognito') {
-      returnMsg = await loginWithCognito();
+      returnMsg = await loginWithCognito(currentProvider);
     } else {
       returnMsg = await loginWithAuthing(currentProvider, provider);
     }
@@ -304,7 +342,7 @@ const Login: FC = () => {
     localStorage.setItem(
       OIDC_STORAGE,
       JSON.stringify({
-        provider: currentProvider.label,
+        provider: currentProvider.value,
         client_id: currentProvider.clientId,
         redirect_uri: currentProvider.redirectUri,
       }),

@@ -197,7 +197,7 @@ const Home: React.FC = () => {
         showSkipButton={true}
         callback={handleJoyrideCallback}
         run={runTour}
-        scrollToFirstStep={true}
+        scrollToFirstStep={false}
         disableOverlayClose={true}
         hideBackButton={false}
         spotlightClicks={false}

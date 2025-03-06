@@ -11,7 +11,7 @@
  *  and limitations under the License.
  */
 
-import { LambdaIntegration } from 'aws-cdk-lib/aws-apigateway';
+import { LambdaIntegration, RequestAuthorizer } from 'aws-cdk-lib/aws-apigateway';
 import { Function, Code, Runtime, LayerVersion, Alias } from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 import * as apigw from "aws-cdk-lib/aws-apigateway";
@@ -92,7 +92,7 @@ export interface AuthHubProps {
         const authIntegration = new LambdaIntegration(authFunction)
         const authResource = apiGateway.root.addResource('auth')
         const loginResource = authResource.addResource('login')
-        loginResource.addMethod('POST', authIntegration);
+        loginResource.addMethod('POST', authIntegration, {authorizer: authAuthorizer});
         const tokenResource = authResource.addResource('token')
         const verifyResource = tokenResource.addResource('verify');
         verifyResource.addMethod('GET', authIntegration);

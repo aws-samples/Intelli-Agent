@@ -28,6 +28,7 @@ import {
   ROUTES,
   OIDC_STORAGE,
   OIDC_PREFIX,
+  OIDC_PROVIDER,
 } from 'src/utils/const';
 // import { useAuth } from 'react-oidc-context';
 import ConfigContext from 'src/context/config-context';
@@ -79,42 +80,22 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
     });
   };
 
-  // useEffect(() => {
-  //   setDisplayName(
-  //     auth.user?.profile?.email ||
-  //       auth.user?.profile?.name ||
-  //       auth.user?.profile?.preferred_username ||
-  //       auth.user?.profile?.nickname ||
-  //       auth.user?.profile?.sub ||
-  //       '',
-  //   );
-  // }, [auth]);
-  // useEffect(() => {
-  //   const displayName = "Anonymous User"
-  //   const oidc = localStorage.getItem(TOKEN)
-  //   if (oidc) {
-  //       const oidcRes = JSON.parse(oidc)
-  //       const authToken = localStorage.getItem(`${TOKEN_PREFIX}${oidcRes.provider}.${oidcRes.client_id}`)
-  //       if(oidcRes.provider === 'Authing' && authToken){
-  //         console.log(jwtDecode(JSON.parse(authToken).id_token))
-  //       }
-  //   }
-
-  //   setDisplayName(displayName);
-  // }, []);
-
   useEffect(() => {
     let idToken = ""
-    let displayName = "Anonymous User"
+    let displayName = "Guest"
     const oidc = localStorage.getItem(OIDC_STORAGE)
     if (oidc) {
       const oidcRes = JSON.parse(oidc)
       const authToken = localStorage.getItem(`${OIDC_PREFIX}${oidcRes.provider}.${oidcRes.client_id}`)
-      if(oidcRes.provider === 'Authing' && authToken){
-        idToken = JSON.parse(authToken).id_token
+      if (authToken){
+        const token = JSON.parse(authToken)
+      if(oidcRes.provider === OIDC_PROVIDER.AUTHING){
+        idToken = token.id_token
         const idTokenRes: any = jwtDecode(idToken)
-        displayName = idTokenRes?.email || idTokenRes?.nickname || idTokenRes?.name || displayName
-      }
+        displayName = idTokenRes?.name || idTokenRes?.email || idTokenRes?.nickname || displayName
+      } else {
+        displayName = token.username
+      }}
     }
 
     if (ZH_LANGUAGE_LIST.includes(i18n.language)) {
@@ -204,7 +185,6 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
               if (item.detail.id === 'signout') {
                 if (fullLogoutUrl) {
                   // auth.removeUser();
-
                   clearStorage();
                   logout();
                   window.location.href = fullLogoutUrl;

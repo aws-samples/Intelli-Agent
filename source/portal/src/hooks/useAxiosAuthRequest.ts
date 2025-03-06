@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { useContext } from 'react';
 import ConfigContext from 'src/context/config-context';
-import { alertMsg } from 'src/utils/utils';
 
 const useAxiosAuthRequest = () => {
   const config = useContext(ConfigContext);

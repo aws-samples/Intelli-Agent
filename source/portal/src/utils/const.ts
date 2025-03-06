@@ -346,6 +346,11 @@ export const LOGIN_TYPE = {
   OIDC: 'oidc',
 };
 
+export const OIDC_PROVIDER = {
+  AUTHING: 'authing',
+  COGNITO: 'cognito'
+};
+
 // export const TOKEN = "oidc"
 export const OIDC_PREFIX = "oidc."
 export const USER = "user"
