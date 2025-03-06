@@ -79,20 +79,20 @@ export interface AuthHubProps {
             provisionedConcurrentExecutions: 2,
         });
 
-        const authAuthorizerFunction = new Function(this, `${solutionName}AuthAuthorizerFunction`, {
-          runtime: Runtime.PYTHON_3_12,
-          code: Code.fromAsset(path.join(__dirname, "../../../lambda/auth-hub")),
-          handler: 'authorizer.handler'
-        });
+        // const authAuthorizerFunction = new Function(this, `${solutionName}AuthAuthorizerFunction`, {
+        //   runtime: Runtime.PYTHON_3_12,
+        //   code: Code.fromAsset(path.join(__dirname, "../../../lambda/auth-hub")),
+        //   handler: 'authorizer.handler'
+        // });
 
-        const authAuthorizer = new RequestAuthorizer(this, `${solutionName}AuthAuthorizer`, {
-          handler: authAuthorizerFunction,
-          identitySources: ["Content-Type"],
-        });
+        // const authAuthorizer = new RequestAuthorizer(this, `${solutionName}AuthAuthorizer`, {
+        //   handler: authAuthorizerFunction,
+        //   identitySources: [apigw.IdentitySource.header('Context-Type')],
+        // });
         const authIntegration = new LambdaIntegration(authFunction)
         const authResource = apiGateway.root.addResource('auth')
         const loginResource = authResource.addResource('login')
-        loginResource.addMethod('POST', authIntegration, {authorizer: authAuthorizer});
+        loginResource.addMethod('POST', authIntegration);
         const tokenResource = authResource.addResource('token')
         const verifyResource = tokenResource.addResource('verify');
         verifyResource.addMethod('GET', authIntegration);
