@@ -1,9 +1,9 @@
 import os
 import boto3
-from ....constant import (
+from shared.constant import (
     ModelProvider
 )
-from ....utils.logger_utils import get_logger
+from shared.utils.logger_utils import get_logger
 from . import ChatModelBase
 from langchain_openai import ChatOpenAI as _ChatOpenAI
 from ..model_config import OPENAI_MODEL_CONFIGS

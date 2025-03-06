@@ -163,19 +163,12 @@ class OpenSearceBase:
         if not self.is_aoss:
             self.client.indices.refresh(index=self.index_name)
         return return_ids 
-    
-    def search(self,query:str,**kwargs):
-        pass  
 
-    def asearch(self,query:str,**kwargs):
-        pass  
-
-
-    def _search(self,query_dict:dict):
+    def search(self,query_dict:dict):
         res = self.client.search(index=self.index_name, body=query_dict)
         return res
     
-    async def _asearch(self,query_dict:dict):
+    async def asearch(self,query_dict:dict):
         return await self.async_client.search(index=self.index_name, body=query_dict)
       
 
@@ -424,6 +417,7 @@ class OpenSearchHybridSearch(OpenSearceBase):
     k1: float = 1.2
     b: float = 0.75
     analyzer_type="standard"
+    source_field="file_path"
     text_field: str = "text"
     vector_field: str = "vector"
     embedding_dimension: int

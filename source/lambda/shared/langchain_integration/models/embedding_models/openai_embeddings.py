@@ -1,7 +1,7 @@
 from langchain_openai.embeddings import OpenAIEmbeddings as _OpenAIEmbeddings
 import os
 from . import EmbeddingModel
-from ....constant import (
+from shared.constant import (
     ModelProvider
 )
 

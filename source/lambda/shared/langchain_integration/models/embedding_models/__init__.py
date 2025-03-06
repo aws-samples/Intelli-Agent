@@ -1,7 +1,7 @@
 from typing import Union
 from .. import ModelBase 
 
-from ....constant import ModelProvider
+from shared.constant import ModelProvider
 
 from ..model_config import EmbeddingModelConfig
 

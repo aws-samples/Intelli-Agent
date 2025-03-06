@@ -3,8 +3,8 @@ import os
 from typing import Dict, List
 
 import boto3
-from ....constant import ModelProvider
-from ....utils.logger_utils import get_logger
+from shared.constant import ModelProvider
+from shared.utils.logger_utils import get_logger
 from langchain_community.embeddings import SagemakerEndpointEmbeddings
 from langchain_community.embeddings.sagemaker_endpoint import (
     EmbeddingsContentHandler,

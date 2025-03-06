@@ -1,10 +1,10 @@
 import os
 import boto3
 from langchain_aws.embeddings import BedrockEmbeddings as _BedrockEmbeddings
-from ....constant import (
+from shared.constant import (
     ModelProvider
 )
-from ....utils.logger_utils import (
+from shared.utils.logger_utils import (
     get_logger
 )
 from . import EmbeddingModel

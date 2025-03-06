@@ -7,16 +7,16 @@ import boto3
 from botocore.exceptions import ClientError
 from shared.constant import EntryType, ParamType, Threshold
 from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
-from common_logic.common_utils.lambda_invoke_utils import (
+from shared.utils.lambda_invoke_utils import (
     chatbot_lambda_call_wrapper,
     is_running_local,
     send_trace
 )
-from common_logic.common_utils.logger_utils import get_logger
-from source.lambda.shared.utils.websocket_utils import load_ws_client
+from shared.utils.logger_utils import get_logger
+from shared.utils.websocket_utils import load_ws_client
 from lambda_main.main_utils.online_entries import get_entry
 from common_logic.common_utils.response_utils import process_response
-
+from shared.utils.secret_utils import get_secret_value
 
 logger = get_logger("main")
 
@@ -42,29 +42,6 @@ connect_domain_id = os.environ.get("CONNECT_DOMAIN_ID", "")
 connect_user_arn = os.environ.get("CONNECT_USER_ARN", "")
 kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"]
 kb_type = os.environ["KNOWLEDGE_BASE_TYPE"]
-
-
-def get_secret_value(secret_arn: str):
-    """Get secret value from secret manager
-
-    Args:
-        secret_arn (str): secret arn
-
-    Returns:
-        str: secret value
-    """
-    try:
-        get_secret_value_response = secret_manager_client.get_secret_value(
-            SecretId=secret_arn
-        )
-    except ClientError as e:
-        raise Exception("Fail to retrieve the secret value: {}".format(e))
-    else:
-        if "SecretString" in get_secret_value_response:
-            secret = get_secret_value_response["SecretString"]
-            return secret
-        else:
-            raise Exception("Fail to retrieve the secret value")
 
 
 def create_ddb_history_obj(session_id: str, user_id: str, client_type: str, group_name: str, chatbot_id: str) -> DynamoDBChatMessageHistory:

@@ -1,12 +1,12 @@
 import os
 import boto3
 from langchain_openai.embeddings import OpenAIEmbeddings as _OpenAIEmbeddings
-from ....constant import (
+from shared.constant import (
     MessageType,
     LLMModelType,
     ModelProvider
 )
-from ....utils.logger_utils import (
+from shared.utils.logger_utils import (
     get_logger
 )
 from . import EmbeddingModel

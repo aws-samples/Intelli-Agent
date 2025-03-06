@@ -1,6 +1,6 @@
 from . import RerankModelBase
 
-from ....constant import (
+from shared.constant import (
     MessageType,
     LLMModelType,
     ModelProvider

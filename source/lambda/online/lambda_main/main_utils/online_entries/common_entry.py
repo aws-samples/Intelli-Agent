@@ -12,27 +12,27 @@ from shared.constant import (
     GUIDE_INTENTION_NOT_FOUND,
     Threshold,
 )
-from common_logic.common_utils.lambda_invoke_utils import (
+from shared.utils.lambda_invoke_utils import (
     is_running_local,
     node_monitor_wrapper,
     send_trace,
 )
 from langchain_core.messages import ToolMessage, AIMessage
-from common_logic.common_utils.logger_utils import get_logger
-from source.lambda.shared.utils.prompt_utils import get_prompt_templates_from_ddb
-from source.lambda.shared.utils.python_utils import add_messages, update_nest_dict
+from shared.utils.logger_utils import get_logger
+from shared.utils.prompt_utils import get_prompt_templates_from_ddb
+from shared.utils.python_utils import add_messages, update_nest_dict
 from common_logic.common_utils.response_utils import process_response
-from common_logic.langchain_integration.tools import ToolManager
+from shared.langchain_integration.tools import ToolManager
 from langchain_core.tools import BaseTool
 from langchain_core.messages.tool import ToolCall
 from langgraph.prebuilt.tool_node import ToolNode, TOOL_CALL_ERROR_TEMPLATE
-from common_logic.langchain_integration.chains import LLMChain
+from shared.langchain_integration.chains import LLMChain
 from common_logic.common_utils.serialization_utils import JSONEncoder
 from common_logic.common_utils.monitor_utils import format_intention_output, format_preprocess_output, format_qq_data
 from common_logic.common_utils.ddb_utils import custom_index_desc
 from lambda_main.main_utils.parse_config import CommonConfigParser
 from langgraph.graph import END, StateGraph
-from common_logic.langchain_integration.retrievers.retriever import lambda_handler as retrieve_fn
+from shared.langchain_integration.retrievers.retriever import lambda_handler as retrieve_fn
 from common_logic.common_utils.monitor_utils import (
     format_preprocess_output,
     format_qq_data,
@@ -40,7 +40,7 @@ from common_logic.common_utils.monitor_utils import (
 )
 from lambda_intention_detection.intention import get_intention_results
 from lambda_query_preprocess.query_preprocess import conversation_query_rewrite
-from common_logic.langchain_integration.chains import LLMChain
+from shared.langchain_integration.chains import LLMChain
 from common_logic.common_utils.serialization_utils import JSONEncoder
 
 

@@ -1,5 +1,5 @@
 from . import EmbeddingModel 
-from ....constant import (
+from shared.constant import (
     MessageType,
     LLMModelType,
     ModelProvider

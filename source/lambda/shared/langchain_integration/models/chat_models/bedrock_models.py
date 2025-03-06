@@ -6,7 +6,7 @@ from shared.constant import (
     LLMModelType,
     ModelProvider
 )
-from ....utils.logger_utils import (
+from shared.utils.logger_utils import (
     get_logger,
     llm_messages_print_decorator
 )

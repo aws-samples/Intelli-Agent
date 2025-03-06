@@ -1,9 +1,9 @@
 from . import RerankModelBase
-from ....utils.logger_utils import get_logger
+from shared.utils.logger_utils import get_logger
 from ..model_config import (
     BEDROCK_RERANK_CONFIGS
 )
-from ....constant import (
+from shared.constant import (
     ModelProvider
 )
 import json

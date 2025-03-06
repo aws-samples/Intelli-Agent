@@ -507,11 +507,13 @@ class QueryQuestionRetriever(BaseRetriever):
             field=self.vector_field,
             size=self.top_k,
         )
+
         opensearch_knn_results.extend(
             organize_faq_results(
                 opensearch_knn_response, self.index_name, self.source_field
             )
         )
+
         docs = []
         for result in opensearch_knn_results:
             docs.append(
@@ -553,7 +555,6 @@ class QueryDocumentKNNRetriever(BaseRetriever):
     async def __ainvoke_get_context(self, aos_hit, window_size, loop):
         return await loop.run_in_executor(
             None, get_context, aos_hit, self.index_name, window_size
-
         )
 
     async def __spawn_task(self, aos_hits, context_size):
