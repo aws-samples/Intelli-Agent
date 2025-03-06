@@ -1,14 +1,23 @@
 import axios from 'axios';
+import { User } from 'oidc-client-ts';
 import { useContext } from 'react';
 import ConfigContext from 'src/context/config-context';
 import { alertMsg } from 'src/utils/utils';
 
+function getUser(authority?: string, clientId?: string) {
+  const oidcStorage = localStorage.getItem(
+    `oidc.user:${authority}:${clientId}`,
+  );
+  if (!oidcStorage) {
+    return null;
+  }
+  return User.fromStorageString(oidcStorage);
+}
+
 const useAxiosRequest = () => {
   const config = useContext(ConfigContext);
-
-  // Mock user and token
-  const mockToken = 'mock-token';
-
+  const user = getUser(config?.oidcIssuer, config?.oidcClientId);
+  const token = user?.id_token;
   const sendRequest = async ({
     url = '',
     method = 'get',
@@ -30,7 +39,9 @@ const useAxiosRequest = () => {
         params: params,
         headers: {
           ...headers,
-          Authorization: `Bearer ${mockToken}`,
+          Authorization: `Bearer ${token}`,
+          // 'x-api-key': config?.apiKey,
+          // 'author': user?.profile.email || 'anonumous user'
         },
       });
       return response.data;
