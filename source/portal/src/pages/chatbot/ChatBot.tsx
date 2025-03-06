@@ -398,7 +398,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   }, [apiKeyArn]);
 
   const handleAIMessage = (message: MessageDataType) => {
-    console.info('handleAIMessage:', message);
+    // console.info('handleAIMessage:', message);
     if (message.message_type === 'START') {
       console.info('message started');
     } else if (message.message_type === 'CHUNK') {
@@ -428,7 +428,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         });
       }
     } else if (message.message_type === 'END') {
+      console.info('message ended');
       setCurrentAIMessageId(message.message_id);
+      setAiSpeaking(false)
       setIsMessageEnd(true);
     }
   };
@@ -756,10 +758,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
 
     console.info('Send stop message:', message);
     sendMessage(JSON.stringify(message));
-    
-    // Reset states to stop generation
-    setAiSpeaking(false);
-    setIsMessageEnd(true);
   };
 
   // Update the render send button section
