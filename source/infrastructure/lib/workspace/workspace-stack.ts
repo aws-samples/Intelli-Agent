@@ -39,6 +39,10 @@ interface WorkspaceProps extends StackProps {
   readonly apiConstructOutputs: ApiConstructOutputs;
   readonly modelConstructOutputs: ModelConstructOutputs;
   readonly sharedConstructOutputs: SharedConstructOutputs;
+  readonly userPoolId: string;
+  readonly oidcClientId: string;
+  readonly oidcIssuer: string;
+  readonly oidcLogoutUrl: string;
   readonly portalBucketName: string;
   readonly clientPortalBucketName: string;
   readonly portalUrl: string;
@@ -137,7 +141,9 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
       code: Code.fromAsset(join(__dirname, "../../../lambda/authorizer")),
       handler: "custom_authorizer.lambda_handler",
       environment: {
-        REGION: Aws.REGION
+        USER_POOL_ID: props.userPoolId,
+        REGION: Aws.REGION,
+        APP_CLIENT_ID: props.oidcClientId,
       },
       layers: [apiLambdaAuthorizerLayer],
       statements: [props.sharedConstructOutputs.iamHelper.logStatement],
@@ -207,6 +213,10 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
         workspaceWebsocket: this.wsEndpoint,
         apiUrl: props.apiConstructOutputs.api.url,
         workspaceApiUrl: workspaceApi.url,
+        oidcIssuer: props.oidcIssuer,
+        oidcClientId: props.oidcClientId,
+        oidcLogoutUrl: props.oidcLogoutUrl,
+        oidcRedirectUrl: `https://${props.portalUrl}/signin`,
         kbEnabled: props.config.knowledgeBase.enabled.toString(),
         kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
         embeddingEndpoint: embeddingEndpoint,
@@ -223,6 +233,10 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
         workspaceWebsocket: this.wsEndpoint,
         apiUrl: props.apiConstructOutputs.api.url,
         workspaceApiUrl: workspaceApi.url,
+        oidcIssuer: props.oidcIssuer,
+        oidcClientId: props.oidcClientId,
+        oidcLogoutUrl: props.oidcLogoutUrl,
+        oidcRedirectUrl: `https://${props.clientPortalUrl}/signin`,
         kbEnabled: props.config.knowledgeBase.enabled.toString(),
         kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
         embeddingEndpoint: embeddingEndpoint,
