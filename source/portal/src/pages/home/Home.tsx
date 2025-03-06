@@ -45,11 +45,11 @@ const Home: React.FC = () => {
       content: t('tour.chatbot'),
       disableBeacon: true,
     },
-    // {
-    //   target: 'a[href="/intention"]',
-    //   content: t('tour.intention'),
-    //   disableBeacon: true,
-    // },
+    {
+      target: 'a[href="/intention"]',
+      content: t('tour.intention'),
+      disableBeacon: true,
+    },
   ];
 
   const kbStep = {
