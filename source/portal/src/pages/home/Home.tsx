@@ -5,7 +5,6 @@ import {
   ContentLayout,
   Grid,
   Header,
-  Link,
   SpaceBetween,
 } from '@cloudscape-design/components';
 import React, { useState, useEffect, useContext } from 'react';
@@ -46,11 +45,11 @@ const Home: React.FC = () => {
       content: t('tour.chatbot'),
       disableBeacon: true,
     },
-    {
-      target: 'a[href="/intention"]',
-      content: t('tour.intention'),
-      disableBeacon: true,
-    },
+    // {
+    //   target: 'a[href="/intention"]',
+    //   content: t('tour.intention'),
+    //   disableBeacon: true,
+    // },
   ];
 
   const kbStep = {
@@ -233,7 +232,7 @@ const Home: React.FC = () => {
       <CommonLayout activeHref="/home">
         <ContentLayout
           header={
-            <div>
+            <div style={{marginTop:25}}>
               <Box variant="p">
                 {t('awsSolutionGuidance')} | {t('mead')}
               </Box>
@@ -277,11 +276,11 @@ const Home: React.FC = () => {
             >
               <SpaceBetween direction="vertical" size="l">
                 
-                <Container
+                {/* <Container
         className="fix-mid-screen common-header"
-      >
+      > */}
         {/* <SpaceBet direction='horizontal' size='m'> */}
-          <Grid gridDefinition={[{ colspan: 3 }, { colspan: 3 },{colspan: 3},{colspan: 3}]}>
+          {/* <Grid gridDefinition={[{ colspan: 3 }, { colspan: 3 },{colspan: 3},{colspan: 3}]}>
               <div>
                 <Box variant="h4" >
                   {t('modelCnt')}
@@ -302,11 +301,11 @@ const Home: React.FC = () => {
                 </Box>
                 <Link variant='awsui-value-large' className="no-link">18</Link>
               </div>
-            </Grid>
+            </Grid> */}
             
             {/* </SpaceBet ween> */}
        
-      </Container>
+      {/* </Container> */}
       <Container header={<Header variant="h2">{t('architecture')}</Header>}>
                 <div className="home-banner">
                   <img alt="banner" src={BANNER} width="100%" />

@@ -1,6 +1,9 @@
 import base64
 import io
 import json
+import base64
+import io
+import json
 import logging
 import os
 import re
@@ -191,7 +194,15 @@ class figureUnderstand:
 
     def get_mermaid(self, img, classification):
         with open("prompt/mermaid_template.txt") as f:
+        with open("prompt/mermaid_template.txt") as f:
             mermaid_prompt = f.read()
+        prompt = mermaid_prompt.format(
+            diagram_type=classification,
+            diagram_example=self.mermaid_prompt[classification],
+        )
+        output = self.invoke_llm(
+            img, prompt, prefix="<description>", stop="</mermaid>"
+        )
         prompt = mermaid_prompt.format(
             diagram_type=classification,
             diagram_example=self.mermaid_prompt[classification],
@@ -201,29 +212,43 @@ class figureUnderstand:
         )
         return output
 
+
     def parse_result(self, llm_output, tag):
         try:
+            pattern = rf"<{tag}>(.*?)</{tag}>"
             pattern = rf"<{tag}>(.*?)</{tag}>"
             output = re.findall(pattern, llm_output, re.DOTALL)[0].strip()
         except:
             output = llm_output.replace(f"<{tag}>", "").replace(f"</{tag}>", "")
+            output = llm_output.replace(f"<{tag}>", "").replace(f"</{tag}>", "")
         return output
+
 
     def __call__(self, img, context, tag, s3_link):
         classification = self.get_classification(img)
+        classification = self.parse_result(classification, "output")
         classification = self.parse_result(classification, "output")
         if classification in self.mermaid_prompt:
             mermaid_output = self.get_mermaid(img, classification)
             description = self.parse_result(mermaid_output, "description")
             mermaid_code = self.parse_result(mermaid_output, "mermaid")
             if classification in ("XY Chart", "Pie chart diagrams"):
+            description = self.parse_result(mermaid_output, "description")
+            mermaid_code = self.parse_result(mermaid_output, "mermaid")
+            if classification in ("XY Chart", "Pie chart diagrams"):
                 table = self.get_chart(img, context, tag)
                 table = self.parse_result(table, "output")
                 output = f"\n<figure>\n<type>chart</type>\n<link>{s3_link}</link>\n<desp>\n{description}\n</desp>\n<value>\n{table}\n</value>\n</figure>\n"
+                table = self.parse_result(table, "output")
+                output = f"\n<figure>\n<type>chart</type>\n<link>{s3_link}</link>\n<desp>\n{description}\n</desp>\n<value>\n{table}\n</value>\n</figure>\n"
             else:
+                output = f"\n<figure>\n<type>chart-mermaid</type>\n<link>{s3_link}</link>\n<desp>\n{description}\n</desp>\n<value>\n{mermaid_code}\n</value>\n</figure>\n"
                 output = f"\n<figure>\n<type>chart-mermaid</type>\n<link>{s3_link}</link>\n<desp>\n{description}\n</desp>\n<value>\n{mermaid_code}\n</value>\n</figure>\n"
         else:
             description = self.get_description(img, context, tag)
             description = self.parse_result(description, "output")
             output = f"\n<figure>\n<type>image</type>\n<link>{s3_link}</link>\n<desp>\n{description}\n</desp>\n</figure>\n"
+            description = self.parse_result(description, "output")
+            output = f"\n<figure>\n<type>image</type>\n<link>{s3_link}</link>\n<desp>\n{description}\n</desp>\n</figure>\n"
         return output
+

@@ -13,6 +13,7 @@ sudo tar xvf "${file_name}.tar.xz" --directory=/usr/local
 sudo mv "/usr/local/${file_name}" /usr/local/nodejs
 sudo ln -sf /usr/local/nodejs/bin/node /usr/bin/node
 sudo ln -sf /usr/local/nodejs/bin/npm /usr/bin/npm
+sudo ln -sf /usr/local/nodejs/bin/npx /usr/bin/npx
 # Install AWS CLI
 pip3 install awscli
 # Install Docker
@@ -38,4 +39,4 @@ echo "TypeScript $(tsc --version)"
 # End of user data script
 
 echo "Create service linked role for Amazon Opensearch Service"
-aws iam create-service-linked-role --aws-service-name es.amazonaws.com 2> /dev/null
+# aws iam create-service-linked-role --aws-service-name es.amazonaws.com 2> /dev/null

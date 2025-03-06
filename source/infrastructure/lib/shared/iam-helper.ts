@@ -13,7 +13,7 @@
 
 import { Aws } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import {PolicyStatement, Effect} from "aws-cdk-lib/aws-iam";
+import { PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 
 export class IAMHelper extends Construct {
   public logStatement: PolicyStatement;
@@ -32,6 +32,7 @@ export class IAMHelper extends Construct {
   public cfnStatement: PolicyStatement;
   public serviceQuotaStatement: PolicyStatement;
   public sagemakerModelManagementStatement: PolicyStatement;
+  public secretsManagerStatement: PolicyStatement;
 
   public createPolicyStatement(actions: string[], resources: string[]) {
     return new PolicyStatement({
@@ -51,7 +52,7 @@ export class IAMHelper extends Construct {
         "logs:CreateLogStream",
         "logs:PutLogEvents",
       ],
-      [ `arn:${Aws.PARTITION}:logs:${Aws.REGION}:${Aws.ACCOUNT_ID}:log-group:*:*` ],
+      [`arn:${Aws.PARTITION}:logs:${Aws.REGION}:${Aws.ACCOUNT_ID}:log-group:*:*`],
     );
     this.s3Statement = this.createPolicyStatement(
       [
@@ -60,14 +61,14 @@ export class IAMHelper extends Construct {
         "s3:PutObject",
         "s3:GetObject",
       ],
-      [ "*" ],
+      ["*"],
     );
     this.glueStatement = this.createPolicyStatement(
       [
         "glue:StartJobRun",
         "glue:GetJobRun*",
       ],
-      [ "*" ],
+      ["*"],
     );
     this.endpointStatement = this.createPolicyStatement(
       [
@@ -106,7 +107,7 @@ export class IAMHelper extends Construct {
         "iam:PutRolePolicy",
         "iam:Get*",
       ],
-      [ "*" ],
+      ["*"],
     );
     this.ecrStatement = this.createPolicyStatement(
       [
@@ -123,7 +124,7 @@ export class IAMHelper extends Construct {
         "ecr:CompleteLayerUpload",
         "ecr:PutImage",
       ],
-      [ "*" ],
+      ["*"],
     );
     this.llmStatement = this.createPolicyStatement(
       [
@@ -135,19 +136,19 @@ export class IAMHelper extends Construct {
         "cloudwatch:DeleteAlarms",
         "cloudwatch:DescribeAlarms",
       ],
-      [ "*" ],
+      ["*"],
     );
     this.cognitoStatement = this.createPolicyStatement(
       [
         "cognito-idp:ListGroups",
       ],
-      [ "*" ],
+      ["*"],
     );
     this.bedrockStatement = this.createPolicyStatement(
       [
         "bedrock:*",
       ],
-      [ "*" ],
+      ["*"],
     );
     this.esStatement = this.createPolicyStatement(
       [
@@ -157,13 +158,13 @@ export class IAMHelper extends Construct {
         "es:ESHttpHead",
         "es:DescribeDomain"
       ],
-      [ "*" ],
+      ["*"],
     );
     this.secretStatement = this.createPolicyStatement(
       [
         "secretsmanager:GetSecretValue",
       ],
-      [ "*" ],
+      ["*"],
     )
     this.codePipelineStatement = this.createPolicyStatement(
       [
@@ -175,7 +176,7 @@ export class IAMHelper extends Construct {
         "codepipeline:StopPipelineExecution",
         "codepipeline:GetPipelineExecution",
       ],
-      [ "*" ],
+      ["*"],
     );
     this.cfnStatement = this.createPolicyStatement(
       [
@@ -242,6 +243,12 @@ export class IAMHelper extends Construct {
         "servicequotas:ListServiceQuotas",
         "servicequotas:ListServiceQuotaIncreaseRequestsInTemplate",
         "servicequotas:ListTagsForResource"
+      ],
+      ["*"],
+    );
+    this.secretsManagerStatement = this.createPolicyStatement(
+      [
+        "secretsmanager:GetSecretValue",
       ],
       ["*"],
     );

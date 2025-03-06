@@ -43,8 +43,6 @@ interface ApiStackProps extends StackProps {
   modelConstructOutputs: ModelConstructOutputs;
   knowledgeBaseStackOutputs: KnowledgeBaseStackOutputs;
   chatStackOutputs: ChatStackOutputs;
-  userPoolId: string;
-  oidcClientId: string;
   // userConstructOutputs: UserConstructOutputs;
 }
 
@@ -119,8 +117,8 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
             // Handle CREATE and UPDATE events
             if (event.RequestType === 'Create' || event.RequestType === 'Update') {
               try {
-                // Wait for 5 seconds
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                // Wait for 10 seconds
+                await new Promise(resolve => setTimeout(resolve, 20000));
                 
                 return {
                   Status: 'SUCCESS',
@@ -140,7 +138,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
             };
           };
         `),
-        timeout: Duration.seconds(10),
+        timeout: Duration.seconds(30),
       });
 
       // Create the provider that will handle the custom resource
@@ -239,9 +237,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
       code: Code.fromAsset(join(__dirname, "../../../lambda/authorizer")),
       handler: "custom_authorizer.lambda_handler",
       environment: {
-        USER_POOL_ID: props.userPoolId,
         REGION: Aws.REGION,
-        APP_CLIENT_ID: props.oidcClientId,
       },
       layers: [apiLambdaAuthorizerLayer],
       statements: [props.sharedConstructOutputs.iamHelper.logStatement],
