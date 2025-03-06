@@ -11,7 +11,10 @@ from datetime import datetime
 from typing import Union
 
 import boto3
+import openai
 import requests
+from llm_bot_dep.utils.s3_utils import upload_file_to_s3
+from llm_bot_dep.utils.secrets_manager_utils import get_api_key
 from PIL import Image
 
 CHART_UNDERSTAND_PROMPT = """
@@ -49,7 +52,14 @@ MIN_WIDTH = 50  # minimum width in pixels
 MIN_HEIGHT = 50  # minimum height in pixels
 
 logger = logging.getLogger(__name__)
-s3_client = boto3.client("s3")
+
+BEDROCK_CROSS_REGION_SUPPORTED_REGIONS = [
+    "us-east-1",
+    "us-west-2",
+    "eu-central-1",
+    "eu-west-1",
+    "eu-west-3",
+]
 
 
 def load_prompt_file(file_path, is_json=False):
@@ -79,13 +89,59 @@ def load_prompt_file(file_path, is_json=False):
 class figureUnderstand:
     """A class to understand and process figures using LLM.
 
-    This class provides methods to analyze images using Claude 3 Sonnet model,
+    This class provides methods to analyze images using Claude 3 Sonnet model or OpenAI models,
     classify them, and generate appropriate descriptions or representations.
     """
 
-    def __init__(self):
-        """Initialize the figureUnderstand class with Bedrock runtime client."""
-        self.bedrock_runtime = boto3.client(service_name="bedrock-runtime")
+    def __init__(self, model_provider="bedrock", api_secret_name=None):
+        """Initialize the figureUnderstand class with appropriate client.
+
+        Args:
+            model_provider (str): The LLM provider to use ('bedrock' or 'openai')
+            api_secret_name (str): Secret name for OpenAI API key (required for OpenAI)
+        """
+        self.model_provider = model_provider
+        if model_provider == "bedrock":
+            session = boto3.session.Session()
+            bedrock_region = session.region_name
+
+            # Validate region support
+            if bedrock_region not in BEDROCK_CROSS_REGION_SUPPORTED_REGIONS:
+                raise ValueError(
+                    f"Bedrock is not supported in region {bedrock_region}"
+                )
+
+            model_prefix = bedrock_region.split("-")[0] + "."
+
+            # Initialize Bedrock client and model ID
+            self.bedrock_runtime = boto3.client(service_name="bedrock-runtime")
+            self.model_id = (
+                model_prefix + "anthropic.claude-3-5-sonnet-20241022-v2:0"
+            )
+        elif model_provider == "openai":
+            self.openai_api_key = get_api_key(api_secret_name)
+            if not self.openai_api_key:
+                raise ValueError(
+                    "Failed to retrieve OpenAI API key from Secrets Manager"
+                )
+
+            openai.api_key = self.openai_api_key
+
+            # Set OpenAI base URL from environment variable if provided
+            base_url = os.environ.get("OPENAI_API_BASE")
+            if base_url:
+                openai.base_url = base_url
+
+            # Set model ID from environment variable or use default
+            self.model_id = os.environ.get(
+                "OPENAI_MODEL_ID", "gpt-4o-2024-08-06"
+            )
+            self.openai_client = openai
+        else:
+            raise ValueError(
+                "Unsupported model provider. Choose 'bedrock' or 'openai'"
+            )
+
         self.mermaid_prompt = load_prompt_file("mermaid.json", is_json=True)
         self.figure_classification_prompt = load_prompt_file(
             "figure_classification.txt"
@@ -104,6 +160,13 @@ class figureUnderstand:
         Returns:
             str: The model's response with prefix and stop tags
         """
+        if self.model_provider == "bedrock":
+            return self._invoke_bedrock(img, prompt, prefix, stop)
+        elif self.model_provider == "openai":
+            return self._invoke_openai(img, prompt, prefix, stop)
+
+    def _invoke_bedrock(self, img, prompt, prefix="<output>", stop="</output>"):
+        """Invoke Bedrock model with image and prompt."""
         # If img is already a base64 string, use it directly
         if isinstance(img, str):
             base64_encoded = img
@@ -132,7 +195,6 @@ class figureUnderstand:
             },
             {"role": "assistant", "content": prefix},
         ]
-        model_id = "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
         body = json.dumps(
             {
                 "anthropic_version": "bedrock-2023-05-31",
@@ -142,28 +204,70 @@ class figureUnderstand:
             }
         )
         response = self.bedrock_runtime.invoke_model(
-            body=body, modelId=model_id
+            body=body, modelId=self.model_id
         )
         response_body = json.loads(response.get("body").read())
         result = prefix + response_body["content"][0]["text"] + stop
         return result
 
+    def _invoke_openai(self, img, prompt, prefix="<output>", stop="</output>"):
+        """Invoke OpenAI model with image and prompt."""
+        # If img is already a base64 string, use it directly
+        if isinstance(img, str):
+            base64_encoded = img
+        else:
+            # If img is a PIL Image, convert it to base64
+            image_stream = io.BytesIO()
+            img.save(image_stream, format="JPEG")
+            base64_encoded = base64.b64encode(image_stream.getvalue()).decode(
+                "utf-8"
+            )
+
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_encoded}"
+                        },
+                    },
+                ],
+            },
+            {"role": "assistant", "content": prefix},
+        ]
+
+        response = self.openai_client.chat.completions.create(
+            model=self.model_id,
+            messages=messages,
+            max_tokens=4096,
+            stop=[stop] if stop else None,
+        )
+
+        result = prefix + response.choices[0].message.content + stop
+        return result
+
     def get_classification(self, img):
+        """Get image classification from LLM."""
         output = self.invoke_llm(img, self.figure_classification_prompt)
         return output
 
     def get_chart(self, img, context, tag):
+        """Get chart data from image."""
         prompt = CHART_UNDERSTAND_PROMPT.strip()
-        output = self.invoke_llm(img, prompt)
+        output = self.invoke_llm(img, prompt.format(context=context, tag=tag))
         return output
 
     def get_description(self, img, context, tag):
+        """Get image description from LLM."""
         prompt = DESCRIPTION_PROMPT.strip()
-
         output = self.invoke_llm(img, prompt.format(context=context, tag=tag))
         return f"![{output}]()"
 
     def get_mermaid(self, img, classification):
+        """Get mermaid diagram from image."""
         prompt = self.mermaid_template_prompt.format(
             diagram_type=classification,
             diagram_example=self.mermaid_prompt[classification],
@@ -174,6 +278,7 @@ class figureUnderstand:
         return output
 
     def parse_result(self, llm_output, tag):
+        """Parse LLM output to extract content between tags."""
         try:
             pattern = rf"<{tag}>(.*?)</{tag}>"
             output = re.findall(pattern, llm_output, re.DOTALL)[0].strip()
@@ -182,6 +287,10 @@ class figureUnderstand:
         return output
 
     def figure_understand(self, img, context, tag, s3_link):
+        """Process image and generate appropriate representation based on classification.
+
+        This is the main method that orchestrates the image understanding process.
+        """
         classification = self.get_classification(img)
         classification = self.parse_result(classification, "output")
         if classification in self.mermaid_prompt:
@@ -199,6 +308,9 @@ class figureUnderstand:
             description = self.parse_result(description, "output")
             output = f"\n<figure>\n<type>image</type>\n<link>{s3_link}</link>\n<desp>\n{description}\n</desp>\n</figure>\n"
         return output
+
+    # Add compatibility with the __call__ method from the ETL version
+    __call__ = figure_understand
 
 
 def encode_image_to_base64(image_path: str) -> str:
@@ -232,7 +344,6 @@ def upload_image_to_s3(
     file_name: str,
     splitting_type: str,
     idx: int,
-    is_bytes: bool = False,
 ):
     """Upload image to S3 from either a file path or binary data.
 
@@ -250,10 +361,7 @@ def upload_image_to_s3(
     )
     object_key = f"{file_name}/{splitting_type}/{hour_timestamp}/{image_name}"
 
-    if is_bytes:
-        s3_client.put_object(Bucket=bucket, Key=object_key, Body=image_data)
-    else:
-        s3_client.upload_file(image_data, bucket, object_key)
+    upload_file_to_s3(bucket, object_key, image_data)
 
     return object_key
 

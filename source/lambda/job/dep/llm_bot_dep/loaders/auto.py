@@ -1,65 +1,37 @@
-import logging
 
+from llm_bot_dep.loaders.csv import process_csv
 from llm_bot_dep.loaders.docx import process_doc
+from llm_bot_dep.loaders.html import process_html
+from llm_bot_dep.loaders.image import process_image
+from llm_bot_dep.loaders.json import process_json
+from llm_bot_dep.loaders.jsonl import process_jsonl
 from llm_bot_dep.loaders.markdown import process_md
-
-from .csv import process_csv
-from .html import process_html
-from .image import process_image
-from .json import process_json
-from .jsonl import process_jsonl
-from .pdf import process_pdf
-from .text import process_text
-from .xlsx import process_xlsx
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+from llm_bot_dep.loaders.pdf import process_pdf
+from llm_bot_dep.loaders.text import process_text
+from llm_bot_dep.loaders.xlsx import process_xlsx
 
 
-# def process_json(jsonstr: str, max_os_docs_per_put, **kwargs):
-#     logger.info("Processing JSON file...")
-#     chunks = json.loads(jsonstr)
-
-#     db_shards = (len(chunks) // max_os_docs_per_put) + 1
-#     shards = np.array_split(chunks, db_shards)
-#     return shards
-
-
-def cb_process_object(s3_client, file_type: str, file_content, **kwargs):
+def cb_process_object(file_type: str, file_content, **kwargs):
     res = None
     if file_type == "txt":
         res = process_text(file_content, **kwargs)
     elif file_type == "csv":
-        res = process_csv(s3_client, file_content, **kwargs)
+        res = process_csv(**kwargs)
     elif file_type == "html":
         res = process_html(file_content, **kwargs)
     elif file_type == "doc":
-        res = process_doc(s3_client, **kwargs)
+        res = process_doc(**kwargs)
     elif file_type == "md":
         res = process_md(file_content, **kwargs)
     elif file_type == "pdf":
-        # res = post_process_pdf(process_pdf(file_content, **kwargs))
-        res = process_pdf(s3_client, file_content, **kwargs)
+        res = process_pdf(**kwargs)
     elif file_type == "json":
         res = process_json(file_content, **kwargs)
-        # shards = process_json(file_content, kwargs["max_os_docs_per_put"])
-        # for shard_id, shard in enumerate(shards):
-        #     process_shard(
-        #         shard,
-        #         kwargs["embeddings_model_info_list"],
-        #         kwargs["region"],
-        #         kwargs["aos_index"],
-        #         kwargs["aosEndpoint"],
-        #         kwargs["awsauth"],
-        #         1,
-        #         kwargs["content_type"],
-        #         kwargs["max_os_docs_per_put"],
-        #     )
     elif file_type == "jsonl":
-        res = process_jsonl(s3_client, file_content, **kwargs)
+        res = process_jsonl(file_content, **kwargs)
     elif file_type == "xlsx":
-        res = process_xlsx(s3_client, **kwargs)
+        res = process_xlsx(**kwargs)
     elif file_type == "image":
         logger.info("process image")
-        res = process_image(s3_client, **kwargs)
+        res = process_image(**kwargs)
     return res

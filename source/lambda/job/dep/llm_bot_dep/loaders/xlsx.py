@@ -1,17 +1,19 @@
 import json
-import uuid
 import logging
-from typing import Iterable, List
+import uuid
 from datetime import datetime
+from typing import Iterable, List
+
 import pandas as pd
 from langchain.docstore.document import Document
-
+from llm_bot_dep.loaders.csv import CustomCSVLoader
+from llm_bot_dep.utils.s3_utils import download_file_from_s3
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def process_xlsx(s3, **kwargs) -> List[Document]:
+def process_xlsx(**kwargs) -> List[Document]:
     """
     Process the Excel file
     We will extract the question and assemble the content in page_content of Document, extract the answer and assemble as extra field in metadata (jsonlAnswer) of Document.
@@ -33,7 +35,7 @@ def process_xlsx(s3, **kwargs) -> List[Document]:
     row_count = kwargs["xlsx_row_count"]
     local_path = f"/tmp/excel-{timestamp_str}-{random_uuid}.xlsx"
 
-    s3.download_file(bucket_name, key, local_path)
+    download_file_from_s3(bucket_name, key, local_path)
 
     try:
         # load the excel file
@@ -66,8 +68,7 @@ def process_xlsx(s3, **kwargs) -> List[Document]:
                         )
                     )
                     # assemble the Document
-                    doc = Document(page_content=page_content,
-                                   metadata=metadata)
+                    doc = Document(page_content=page_content, metadata=metadata)
                     doc_list.append(doc)
                 except json.JSONDecodeError as e:
                     logger.error(
@@ -76,13 +77,15 @@ def process_xlsx(s3, **kwargs) -> List[Document]:
                     continue
                 except KeyError as e:
                     logger.error(
-                        f"line: {str(json_obj)} does not contain key: {e}")
+                        f"line: {str(json_obj)} does not contain key: {e}"
+                    )
         else:
-            from .csv import CustomCSVLoader
-            local_temp_path = local_path.replace('.xlsx', '.csv')
+            local_temp_path = local_path.replace(".xlsx", ".csv")
             df.to_csv(local_temp_path, index=None)
             loader = CustomCSVLoader(
-                file_path=local_temp_path, aws_path=f"s3://{bucket_name}/{key}", row_count=row_count
+                file_path=local_temp_path,
+                aws_path=f"s3://{bucket_name}/{key}",
+                row_count=row_count,
             )
             doc_list = loader.load()
     except UnicodeDecodeError as e:

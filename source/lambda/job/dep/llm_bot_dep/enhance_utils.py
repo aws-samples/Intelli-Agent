@@ -5,7 +5,6 @@ import os
 from typing import Dict, List
 
 import boto3
-import nltk
 import openai
 from langchain.docstore.document import Document
 
@@ -208,15 +207,14 @@ class EnhanceWithBedrock:
         - List[Document]: A list of documents, each containing a slice of the original document.
         """
         # Get the token number of input paragraph
-        tokens = nltk.word_tokenize(document.page_content)
+        # TODO: use a better method to tokenize the document
+        tokens = []
+        # tokens = nltk.word_tokenize(document.page_content)
         metadata = document.metadata
         if "content_type" in metadata:
             metadata["content_type"] = "qa"
         if "chunk_id" in metadata:
             metadata["chunk_id"] = ""
-        # Calculate the total number of tokens and chunk number
-        total_tokens = len(tokens)
-        chunk_num = total_tokens // token_num + 1
 
         # Initial document list to sttore ducoment slices separated by 50 tokens
         documents_list = []

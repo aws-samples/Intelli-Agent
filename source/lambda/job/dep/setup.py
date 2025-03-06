@@ -23,7 +23,6 @@ setup(
         "mammoth==1.6.0",
         "chardet==5.2.0",
         "python-docx==1.1.0",
-        "nltk==3.9.1",
         "pdfminer.six==20221105",
         "smart-open==7.0.4",
         "pillow==10.0.1",

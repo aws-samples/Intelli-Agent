@@ -9,7 +9,6 @@ from typing import Generator, Iterable, List
 
 import boto3
 import chardet
-import nltk
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import OpenSearchVectorSearch
@@ -94,12 +93,12 @@ except Exception as e:
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
 from llm_bot_dep.loaders.auto import cb_process_object
+from llm_bot_dep.schemas.processing_parameters import ProcessingParameters
 from llm_bot_dep.storage_utils import save_content_to_s3
 
 # Adaption to allow nougat to run in AWS Glue with writable /tmp
 os.environ["TRANSFORMERS_CACHE"] = "/tmp/transformers_cache"
 os.environ["NOUGAT_CHECKPOINT"] = "/tmp/nougat_checkpoint"
-os.environ["NLTK_DATA"] = "/tmp/nltk_data"
 
 # Parse arguments
 if "BATCH_INDICE" not in args:
@@ -144,9 +143,6 @@ OBJECT_EXPIRY_TIME = 3600
 
 credentials = boto3.Session().get_credentials()
 MAX_OS_DOCS_PER_PUT = 8
-
-nltk.data.path.append("/tmp/nltk_data")
-
 
 def get_aws_auth():
     try:
@@ -202,23 +198,22 @@ class S3FileProcessor:
             file_content (str): The content of the file.
 
         Returns:
-            tuple: A tuple containing the file type, processed file content, and additional keyword arguments.
+            tuple: A tuple containing the file type, processed file content, and processing parameters.
 
         Raises:
             None
         """
         create_time = str(datetime.now(timezone.utc))
-        kwargs = {
-            "bucket": self.bucket,
-            "key": key,
-            "etl_model_endpoint": etlModelEndpoint,
-            "smr_client": smr_client,
-            "res_bucket": res_bucket,
-            "table_item_id": table_item_id,
-            "create_time": create_time,
-            "portal_bucket_name": portal_bucket_name,
-            "document_language": document_language,
-        }
+        
+        # Create base processing parameters
+        processing_params = ProcessingParameters(
+            source_bucket_name=self.bucket,
+            source_object_key=key,
+            etl_endpoint_name=etlModelEndpoint,
+            result_bucket_name=res_bucket,
+            portal_bucket_name=portal_bucket_name,
+            document_language=document_language,
+        )
 
         input_body = {
             "s3Path": f"s3://{self.bucket}/{key}",
@@ -231,28 +226,28 @@ class S3FileProcessor:
         etl_object_table.put_item(Item=input_body)
 
         if file_type == "txt":
-            return "txt", self.decode_file_content(file_content), kwargs
+            return "txt", self.decode_file_content(file_content), processing_params
         elif file_type == "csv":
-            kwargs["csv_row_count"] = 1
-            return "csv", self.decode_file_content(file_content), kwargs
+            processing_params.csv_row_count = 1
+            return "csv", self.decode_file_content(file_content), processing_params
         elif file_type in ["xlsx", "xls"]:
-            kwargs["xlsx_row_count"] = 1
-            return "xlsx", file_content, kwargs
+            processing_params.xlsx_row_count = 1
+            return "xlsx", file_content, processing_params
         elif file_type == "html":
-            return "html", self.decode_file_content(file_content), kwargs
+            return "html", self.decode_file_content(file_content), processing_params
         elif file_type in ["pdf"]:
-            return "pdf", file_content, kwargs
+            return "pdf", file_content, processing_params
         elif file_type in ["docx", "doc"]:
-            return "doc", file_content, kwargs
+            return "doc", file_content, processing_params
         elif file_type == "md":
-            return "md", self.decode_file_content(file_content), kwargs
+            return "md", self.decode_file_content(file_content), processing_params
         elif file_type == "json":
-            return "json", self.decode_file_content(file_content), kwargs
+            return "json", self.decode_file_content(file_content), processing_params
         elif file_type == "jsonl":
-            return "jsonl", file_content, kwargs
+            return "jsonl", file_content, processing_params
         elif file_type in ["png", "jpeg", "jpg", "webp"]:
-            kwargs["image_file_type"] = file_type
-            return "image", file_content, kwargs
+            processing_params.image_file_type = file_type
+            return "image", file_content, processing_params
         else:
             message = "Unknown file type: " + file_type
             input_body = {
@@ -317,7 +312,16 @@ class S3FileProcessor:
                         file_content = self.get_file_content(key)
                         yield self.process_file(key, file_type, file_content)
                     else:
-                        yield file_type, "", {"bucket": self.bucket, "key": key}
+                        # For operations that don't need file content (like delete)
+                        processing_params = ProcessingParameters(
+                            source_bucket_name=self.bucket,
+                            source_object_key=key,
+                            etl_endpoint_name=etlModelEndpoint,
+                            result_bucket_name=res_bucket,
+                            portal_bucket_name=portal_bucket_name,
+                            document_language=document_language,
+                        )
+                        yield file_type, "", processing_params
 
             if current_indice >= (int(batchIndice) + 1) * int(batchFileNumber):
                 # Exit the outer loop
@@ -576,25 +580,25 @@ def ingestion_pipeline(
     ingestion_worker,
     extract_only=False,
 ):
-    for file_type, file_content, kwargs in s3_files_iterator:
+    for file_type, file_content, processing_params in s3_files_iterator:
         input_body = {
-            "s3Path": f"s3://{kwargs['bucket']}/{kwargs['key']}",
-            "s3Bucket": kwargs["bucket"],
-            "s3Prefix": kwargs["key"],
+            "s3Path": f"s3://{processing_params.source_bucket_name}/{processing_params.source_object_key}",
+            "s3Bucket": processing_params.source_bucket_name,
+            "s3Prefix": processing_params.source_object_key,
             "executionId": table_item_id,
-            "createTime": kwargs["create_time"],
+            "createTime": kwargs.get("create_time", str(datetime.now(timezone.utc))),
             "status": "SUCCEED",
         }
         try:
             # The res is list[Document] type
             res = cb_process_object(
-                s3_client, file_type, file_content, **kwargs
+                s3_client, file_type, file_content, **processing_params.dict()
             )
             for document in res:
                 save_content_to_s3(
                     s3_client,
                     document,
-                    res_bucket,
+                    processing_params.result_bucket_name,
                     SplittingType.SEMANTIC.value,
                 )
 
@@ -618,7 +622,7 @@ def ingestion_pipeline(
                     save_content_to_s3(
                         s3_client,
                         document,
-                        res_bucket,
+                        processing_params.result_bucket_name,
                         SplittingType.CHUNK.value,
                     )
 
@@ -627,15 +631,15 @@ def ingestion_pipeline(
         except Exception as e:
             logger.error(
                 "Error processing object %s: %s",
-                kwargs["bucket"] + "/" + kwargs["key"],
+                f"{processing_params.source_bucket_name}/{processing_params.source_object_key}",
                 e,
             )
             input_body = {
-                "s3Path": f"s3://{kwargs['bucket']}/{kwargs['key']}",
-                "s3Bucket": kwargs["bucket"],
-                "s3Prefix": kwargs["key"],
+                "s3Path": f"s3://{processing_params.source_bucket_name}/{processing_params.source_object_key}",
+                "s3Bucket": processing_params.source_bucket_name,
+                "s3Prefix": processing_params.source_object_key,
                 "executionId": table_item_id,
-                "createTime": kwargs["create_time"],
+                "createTime": kwargs.get("create_time", str(datetime.now(timezone.utc))),
                 "status": "FAILED",
                 "detail": str(e),
             }
@@ -645,9 +649,9 @@ def ingestion_pipeline(
 
 
 def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
-    for _, _, kwargs in s3_files_iterator:
+    for _, _, processing_params in s3_files_iterator:
         try:
-            s3_path = f"s3://{kwargs['bucket']}/{kwargs['key']}"
+            s3_path = f"s3://{processing_params.source_bucket_name}/{processing_params.source_object_key}"
 
             batches = document_generator.batch_generator(s3_path)
             for batch in batches:
@@ -658,7 +662,7 @@ def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
         except Exception as e:
             logger.error(
                 "Error processing object %s: %s",
-                kwargs["bucket"] + "/" + kwargs["key"],
+                f"{processing_params.source_bucket_name}/{processing_params.source_object_key}",
                 e,
             )
             traceback.print_exc()
@@ -789,12 +793,4 @@ def main():
 if __name__ == "__main__":
     logger.info("boto3 version: %s", boto3.__version__)
 
-    # Set the NLTK data path to the /tmp directory for AWS Glue jobs
-    nltk.data.path.append("/tmp")
-    # List of NLTK packages to download
-    nltk_packages = ["words", "punkt"]
-    # Download the required NLTK packages to /tmp
-    for package in nltk_packages:
-        # Download the package to /tmp/nltk_data
-        nltk.download(package, download_dir="/tmp/nltk_data")
     main()

@@ -11,6 +11,7 @@ from langchain.docstore.document import Document
 from langchain.document_loaders.base import BaseLoader
 from llm_bot_dep.loaders.html import CustomHtmlLoader
 from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
+from llm_bot_dep.utils.s3_utils import download_file_from_s3
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -87,7 +88,10 @@ class CustomDocLoader(BaseLoader):
         pyDoc.save(self.file_path)
 
         with open(self.file_path, "rb") as docx_file:
-            result = mammoth.convert_to_html(docx_file, convert_image=mammoth.images.img_element(_convert_image))
+            result = mammoth.convert_to_html(
+                docx_file,
+                convert_image=mammoth.images.img_element(_convert_image),
+            )
             html_content = result.value
             loader = CustomHtmlLoader(aws_path=self.aws_path)
             doc = loader.load(html_content, bucket_name, file_name)
@@ -96,7 +100,7 @@ class CustomDocLoader(BaseLoader):
         return doc
 
 
-def process_doc(s3, **kwargs):
+def process_doc(**kwargs):
     now = datetime.now()
     timestamp_str = now.strftime("%Y%m%d%H%M%S")
     random_uuid = str(uuid.uuid4())[:8]
@@ -106,9 +110,11 @@ def process_doc(s3, **kwargs):
     file_name = Path(key).stem
     local_path = f"/tmp/doc-{timestamp_str}-{random_uuid}.docx"
 
-    s3.download_file(bucket_name, key, local_path)
+    download_file_from_s3(bucket_name, key, local_path)
 
-    loader = CustomDocLoader(file_path=local_path, aws_path=f"s3://{bucket_name}/{key}")
+    loader = CustomDocLoader(
+        file_path=local_path, aws_path=f"s3://{bucket_name}/{key}"
+    )
     doc = loader.load(portal_bucket_name, file_name)
     splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
     doc_list = splitter.split_text(doc)

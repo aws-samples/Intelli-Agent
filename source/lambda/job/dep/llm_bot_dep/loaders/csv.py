@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Sequence
 from langchain.docstore.document import Document
 from langchain.document_loaders.csv_loader import CSVLoader
 from langchain.document_loaders.helpers import detect_file_encodings
+from llm_bot_dep.utils.s3_utils import download_file_from_s3
 
 
 class CustomCSVLoader(CSVLoader):
@@ -115,7 +116,11 @@ class CustomCSVLoader(CSVLoader):
                         row_content += v + "|"
                 content = header + "\n" + md_separator + "\n" + row_content
 
-                metadata = {"source": source, "row": i, "file_path": self.aws_path}
+                metadata = {
+                    "source": source,
+                    "row": i,
+                    "file_path": self.aws_path,
+                }
                 for col in self.metadata_columns:
                     try:
                         metadata[col] = row[col]
@@ -138,7 +143,9 @@ class CustomCSVLoader(CSVLoader):
 
         docs = []
         try:
-            with open(self.file_path, newline="", encoding=self.encoding) as csvfile:
+            with open(
+                self.file_path, newline="", encoding=self.encoding
+            ) as csvfile:
                 docs = self.__read_file(csvfile)
         except UnicodeDecodeError as e:
             if self.autodetect_encoding:
@@ -146,7 +153,9 @@ class CustomCSVLoader(CSVLoader):
                 for encoding in detected_encodings:
                     try:
                         with open(
-                            self.file_path, newline="", encoding=encoding.encoding
+                            self.file_path,
+                            newline="",
+                            encoding=encoding.encoding,
                         ) as csvfile:
                             docs = self.__read_file(csvfile)
                             break
@@ -160,7 +169,7 @@ class CustomCSVLoader(CSVLoader):
         return docs
 
 
-def process_csv(s3, csv_content: str, **kwargs):
+def process_csv(**kwargs):
     now = datetime.now()
     timestamp_str = now.strftime("%Y%m%d%H%M%S")
     random_uuid = str(uuid.uuid4())[:8]
@@ -169,9 +178,11 @@ def process_csv(s3, csv_content: str, **kwargs):
     row_count = kwargs["csv_row_count"]
     local_path = f"/tmp/csv-{timestamp_str}-{random_uuid}.csv"
 
-    s3.download_file(bucket_name, key, local_path)
+    download_file_from_s3(bucket_name, key, local_path)
     loader = CustomCSVLoader(
-        file_path=local_path, aws_path=f"s3://{bucket_name}/{key}", row_count=row_count
+        file_path=local_path,
+        aws_path=f"s3://{bucket_name}/{key}",
+        row_count=row_count,
     )
     data = loader.load()
 

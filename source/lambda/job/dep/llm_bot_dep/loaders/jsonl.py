@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def process_jsonl(s3, jsonl: bytes, **kwargs) -> List[Document]:
+def process_jsonl(jsonl: bytes, **kwargs) -> List[Document]:
     """
     Process the jsonl file include query and answer pairs or other k-v alike data, in format of:
     {"question": "<question 1>", "answer": "<answer 1>"}
@@ -70,7 +70,9 @@ def process_jsonl(s3, jsonl: bytes, **kwargs) -> List[Document]:
                 )
                 continue
             except KeyError as e:
-                logger.error(f"jsonl_line: {jsonl_line} does not contain key: {e}")
+                logger.error(
+                    f"jsonl_line: {jsonl_line} does not contain key: {e}"
+                )
     except UnicodeDecodeError as e:
         logger.error(f"jsonl file is not utf-8 encoded, error: {e}")
         raise e
