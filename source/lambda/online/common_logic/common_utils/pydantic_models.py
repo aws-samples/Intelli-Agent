@@ -2,7 +2,7 @@ import copy
 from typing import Any, Union, Dict
 
 from common_logic.common_utils.chatbot_utils import ChatbotManager
-from common_logic.common_utils.constant import (
+from shared.constant import (
     ChatbotMode,
     IndexType,
     LLMModelType,
@@ -14,10 +14,10 @@ from common_logic.common_utils.constant import (
     RerankModelType
 )
 
-from common_logic.common_utils.logger_utils import get_logger
-from common_logic.common_utils.python_utils import update_nest_dict
+from shared.utils.logger_utils import get_logger
+from shared.utils.python_utils import update_nest_dict
 from pydantic import BaseModel, ConfigDict, Field
-from sm_utils import get_secret_value
+from shared.utils.secret_utils import get_secret_value
 
 
 logger = get_logger("pydantic_models")
@@ -84,39 +84,31 @@ class RerankConfig(ModelConfig):
 ####### retriever config  ###########
     
 class RetrieverConfigBase(AllowBaseModel):
+    index_name: str
     index_type: str
+    query_key: str = "query"
     kb_type: KBType = KBType.AOS
     embedding_config: Union[EmbeddingModelConfig, None] = None
     rerank_config: Union[RerankConfig, None] = None
 
-
 class IntentionRetrieverConfig(RetrieverConfigBase):
     top_k: int = 5
-    query_key: str = "query"
-    index_name: str
-
+    
 
 class QQMatchRetrieverConfig(RetrieverConfigBase):
     top_k: int = 5
-    query_key: str = "query"
-    index_name: str
-
+    
 
 class PrivateKnowledgeRetrieverConfig(RetrieverConfigBase):
     top_k: int = 5
     context_num: int = 1
     using_whole_doc: bool = False
-    query_key: str = "query"
-    index_name: str
 
 
 class IntentionConfig(ForbidBaseModel):
     retrievers: list[IntentionRetrieverConfig] = Field(default_factory=list)
     intent_threshold: float = Threshold.INTENTION_THRESHOLD
     all_knowledge_in_agent_threshold: float = Threshold.ALL_KNOWLEDGE_IN_AGENT_THRESHOLD
-
-
-
 
 
 class QQMatchConfig(ForbidBaseModel):

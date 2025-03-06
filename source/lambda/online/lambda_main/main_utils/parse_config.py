@@ -1,7 +1,7 @@
 import copy
 import os
 
-from common_logic.common_utils.constant import IndexType
+from shared.constant import IndexType
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.pydantic_models import (
     ChatbotConfig,
@@ -9,7 +9,7 @@ from common_logic.common_utils.pydantic_models import (
     PrivateKnowledgeRetrieverConfig,
     RagToolConfig,
 )
-from common_logic.common_utils.python_utils import update_nest_dict
+from source.lambda.shared.utils.python_utils import update_nest_dict
 
 logger = get_logger("parse_config")
 

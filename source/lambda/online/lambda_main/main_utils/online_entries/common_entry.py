@@ -5,7 +5,7 @@ import re
 from typing import Annotated, Any, TypedDict, List, Union
 
 from common_logic.common_utils.chatbot_utils import ChatbotManager
-from common_logic.common_utils.constant import (
+from shared.constant import (
     IndexType,
     LLMTaskType,
     SceneType,
@@ -19,8 +19,8 @@ from common_logic.common_utils.lambda_invoke_utils import (
 )
 from langchain_core.messages import ToolMessage, AIMessage
 from common_logic.common_utils.logger_utils import get_logger
-from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
-from common_logic.common_utils.python_utils import add_messages, update_nest_dict
+from source.lambda.shared.utils.prompt_utils import get_prompt_templates_from_ddb
+from source.lambda.shared.utils.python_utils import add_messages, update_nest_dict
 from common_logic.common_utils.response_utils import process_response
 from common_logic.langchain_integration.tools import ToolManager
 from langchain_core.tools import BaseTool

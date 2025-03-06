@@ -1,8 +1,6 @@
-import logging
+from shared.utils.logger_utils import get_logger
 
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger = get_logger(__name__)
 
 
 def is_null_or_empty(value):

@@ -4,7 +4,7 @@ from common_logic.common_utils.lambda_invoke_utils import invoke_lambda, node_mo
 
 from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
 from common_logic.common_utils.lambda_invoke_utils import send_trace
-from common_logic.common_utils.exceptions import (
+from source.lambda.shared.exceptions import (
     ToolNotExistError,
     ToolParameterNotExistError,
     MultipleToolNameError,
