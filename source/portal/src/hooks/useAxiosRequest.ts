@@ -4,7 +4,6 @@ import ConfigContext, { Config } from 'src/context/config-context';
 import { OIDC_PROVIDER, OIDC_STORAGE } from 'src/utils/const';
 import { alertMsg } from 'src/utils/utils';
 
-
 const getToken = (oidcProvider?: string, oidcClientId?: string) => {
   const oidcStorage = localStorage.getItem(
     `oidc.${oidcProvider}:${oidcClientId}`,
@@ -13,13 +12,11 @@ const getToken = (oidcProvider?: string, oidcClientId?: string) => {
     return null;
   }
   return JSON.parse(oidcStorage).access_token;
- 
 }
 
 const useAxiosRequest = () => {
   const config = useContext(ConfigContext);
-  const token = getToken(config?.oidcProvider, config?.oidcClientId);;
-
+  const token = getToken(config?.oidcProvider, config?.oidcClientId);
   const sendRequest = async ({
     url = '',
     method = 'get',

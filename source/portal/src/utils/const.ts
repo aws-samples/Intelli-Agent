@@ -252,13 +252,9 @@ export const LLM_BOT_CHATBOT_LIST: SelectProps.Option[] = [
 
 export const MODEL_TYPE_LIST: SelectProps.Option[] = [
   {
-    label: 'Silicon Flow',
-    value: 'siliconflow',
+    label: 'Bedrock',
+    value: 'Bedrock',
   },
-  // {
-  //   label: 'Bedrock',
-  //   value: 'Bedrock',
-  // },
   {
     label: 'Bedrock API',
     value: 'Bedrock API',
@@ -267,10 +263,14 @@ export const MODEL_TYPE_LIST: SelectProps.Option[] = [
     label: 'OpenAI API',
     value: 'OpenAI API',
   },
-  // {
-  //   label: 'Custom Deployment',
-  //   value: 'dmaa',
-  // },
+  {
+    label: 'Silicon Flow',
+    value: 'siliconflow',
+  },
+  {
+    label: 'Custom Deployment',
+    value: 'dmaa',
+  },
 ];
 
 export const RETAIL_GOODS_LIST: SelectProps.Option[] = [

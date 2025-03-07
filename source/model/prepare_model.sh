@@ -31,75 +31,39 @@ else
   echo "Bucket $s3_bucket_name already exists."
 fi
 
-rm -rf model_temp
-mkdir model_temp
-cd model_temp
-wget https://aws-gcr-industry-assets.s3.cn-northwest-1.amazonaws.com.cn/mfg-kb-do-not-delete/object_list.txt
+cd bce_embedding/model
+hf_names=("InfiniFlow/bce-embedding-base_v1")
+model_names=("bce-embedding-base")
+commit_hashs=("00a7db29f2f740ce3aef3b4ed9653a5bd9b9ce7d")
+tensor_parallel_degree=(1)
 
-# S3 Bucket URL
-S3_BUCKET_URL="https://aws-gcr-industry-assets.s3.cn-northwest-1.amazonaws.com.cn"
+for index in "${!model_names[@]}"; do
+  hf_name="${hf_names[$index]}"
+  model_name="${model_names[$index]}"
+  commit_hash="${commit_hashs[$index]}"
+  tp="${tensor_parallel_degree[$index]}"
+  echo "model name $model_name"
+  echo "commit hash $commit_hash"
+  ./model.sh -h $hf_name -m $model_name -c $commit_hash -p $tp -s $s3_bucket_name
+done
 
-# Path to the object list file
-OBJECT_LIST_FILE="object_list.txt"
+cd ../../rerank/model
+hf_names=("BAAI/bge-reranker-large") 
+model_names=("bge-reranker-large")
+commit_hashs=("27c9168d479987529781de8474dff94d69beca11")
+tensor_parallel_degree=(1)
 
-# Loop through each line in the object list file
-while IFS= read -r line; do
-    # Extract the file path (skip the timestamp and file size columns)
-    file_path=$(echo $line | awk '{print $NF}')
-    
-    if [[ "$file_path" == */ ]]; then
-        mkdir -p "$file_path"
-    else
-        dir=$(dirname "$file_path")
-        mkdir -p "$dir"
-        
-        wget --no-check-certificate "$S3_BUCKET_URL/$file_path" -O "$file_path"
-    fi
-done < "$OBJECT_LIST_FILE"
+for index in "${!model_names[@]}"; do
+  hf_name="${hf_names[$index]}"
+  model_name="${model_names[$index]}"
+  commit_hash="${commit_hashs[$index]}"
+  tp="${tensor_parallel_degree[$index]}"
+  echo "model name $model_name"
+  echo "commit hash $commit_hash"
+  ./model.sh -h $hf_name -m $model_name -c $commit_hash -p $tp -s $s3_bucket_name
+done
 
-# Update S3 url
-cd mfg-kb-do-not-delete/bce-embedding-base_deploy_code
-tar xzvf bce_embedding_model.tar.gz
-rm -rf requirements.txt
-cp ../../../requirements_cn.txt requirements.txt
-if [ "$os_type" == "Darwin" ]; then
-  sed -i "" "s|option.s3url = s3://intelli-agent-models-817734611975-us-west-2|option.s3url = s3://$s3_bucket_name|g" serving.properties
-else
-  sed -i "s|option.s3url = s3://intelli-agent-models-817734611975-us-west-2|option.s3url = s3://$s3_bucket_name|g" serving.properties
-fi
-
-if [ -f bce_embedding_model.tar.gz ]; then
-  rm bce_embedding_model.tar.gz
-fi
-tar czvf bce_embedding_model.tar.gz *
-rm -rf requirements.txt
-rm -rf serving.properties
-rm -rf model.py
-rm -rf ../bce-embedding-and-bge-reranker_deploy_code/*
-cp bce_embedding_model.tar.gz ../bce-embedding-and-bge-reranker_deploy_code/
-
-
-cd ../bge-reranker-large_deploy_code
-tar xzvf bge_reranker_model.tar.gz
-rm -rf requirements.txt
-cp ../../../requirements_cn.txt requirements.txt
-if [ "$os_type" == "Darwin" ]; then
-  sed -i "" "s|option.s3url = s3://intelli-agent-models-817734611975-us-west-2|option.s3url = s3://$s3_bucket_name|g" serving.properties
-else
-  sed -i "s|option.s3url = s3://intelli-agent-models-817734611975-us-west-2|option.s3url = s3://$s3_bucket_name|g" serving.properties
-fi
-
-if [ -f bge_reranker_model.tar.gz ]; then
-  rm bge_reranker_model.tar.gz
-fi
-tar czvf bge_reranker_model.tar.gz *
-rm -rf requirements.txt
-rm -rf serving.properties
-rm -rf model.py
-cp bge_reranker_model.tar.gz ../bce-embedding-and-bge-reranker_deploy_code/
-cd ../../..
-
-
-aws s3 sync model_temp/mfg-kb-do-not-delete s3://$s3_bucket_name
+aws s3 cp --recursive s3://$s3_bucket_name/bce-embedding-base_deploy_code s3://$s3_bucket_name/bce-embedding-and-bge-reranker_deploy_code
+aws s3 cp --recursive s3://$s3_bucket_name/bge-reranker-large_deploy_code s3://$s3_bucket_name/bce-embedding-and-bge-reranker_deploy_code
 
 echo "Successfully prepared model for Intelli-Agent."

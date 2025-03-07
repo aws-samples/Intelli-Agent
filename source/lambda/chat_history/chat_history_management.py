@@ -21,6 +21,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 region_name = os.environ.get("AWS_REGION")
 
+
 @dataclass
 class AwsResources:
     """Centralized AWS resource management"""
@@ -239,7 +240,7 @@ class ApiHandler:
         """Handle GET /chat-history/sessions endpoint"""
         try:
             claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-            user_id = "default_user_id"
+            user_id = claims["cognito:username"]
             pagination_config = PaginationConfig.get_pagination_config(event)
             result = ChatHistoryManager.list_sessions(user_id, pagination_config)
             return ApiResponse.success(result)
@@ -265,7 +266,7 @@ class ApiHandler:
             session_id = event["pathParameters"]["sessionId"]
             message_id = event["pathParameters"]["messageId"]
             claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-            user_id = "default_user_id"
+            user_id = claims["cognito:username"]
 
             # Parse request body
             body = json.loads(event["body"])

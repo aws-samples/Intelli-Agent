@@ -117,7 +117,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
             // Handle CREATE and UPDATE events
             if (event.RequestType === 'Create' || event.RequestType === 'Update') {
               try {
-                // Wait for 10 seconds
+                // Wait for 20 seconds
                 await new Promise(resolve => setTimeout(resolve, 20000));
                 
                 return {

@@ -7,17 +7,12 @@ from urllib.request import urlopen
 import jwt
 
 # Replace with your Cognito User Pool info
+
 REGION = os.environ["REGION"]
 verify_exp = os.getenv("mode") != "dev"
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-# issuer = f"https://cognito-idp.{REGION}.amazonaws.com/{USER_POOL_ID}"
-# keys_url = f"https://cognito-idp.{REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json"
-# response = urlopen(keys_url)
-# keys = json.loads(response.read())["keys"]
-
 
 def generatePolicy(principalId, effect, resource, claims):
     authResponse = {}
@@ -36,11 +31,8 @@ def generatePolicy(principalId, effect, resource, claims):
         "claims": json.dumps(claims),
         "authorizerType": "lambda_authorizer",
     }
-
     authResponse_JSON = json.dumps(authResponse)
-
     return authResponse_JSON
-
 
 def generateAllow(principalId, resource, claims):
     return generatePolicy(principalId, "Allow", resource, claims)
@@ -67,7 +59,6 @@ def lambda_handler(event, context):
 
         headers = jwt.get_unverified_header(token)
         kid = headers["kid"]
-
 
         oidc_info = event["headers"].get("Oidc-Info")
         if oidc_info.provider == "authing":
@@ -106,14 +97,6 @@ def lambda_handler(event, context):
         # reformat claims to align with cognito output
         claims["cognito:groups"] = ",".join(claims["cognito:groups"])
         logger.info(claims)
-        # # Verify the signature of the JWT token
-        # claims = jwt.decode(
-        #     token, public_key, algorithms=["RS256"], audience=APP_CLIENT_ID,
-        #     issuer=issuer, options={"verify_exp": verify_exp}
-        # )
-        # # reformat claims to align with cognito output
-        # claims["cognito:groups"] = ",".join(claims["cognito:groups"])
-        # logger.info(claims)
 
         response = generateAllow("me", "*", claims)
         logger.info("Authorized")

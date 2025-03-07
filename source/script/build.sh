@@ -44,7 +44,11 @@ prepare_etl_model() {
 prepare_online_model() {
     echo "Preparing Online Model"
     cd model
-    bash prepare_model.sh -s $model_assets_bucket
+    if [ "$deploy_region" == "cn-north-1" ] || [ "$deploy_region" == "cn-northwest-1" ]; then
+        bash prepare_model_cn.sh -s $model_assets_bucket
+    else
+        bash prepare_model.sh -s $model_assets_bucket
+    fi
     cd - > /dev/null
 }
 
