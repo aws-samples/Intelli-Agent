@@ -152,7 +152,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
 
     const auth = new apigw.RequestAuthorizer(this, 'ApiAuthorizer', {
       handler: customAuthorizerLambda.function,
-      identitySources: [apigw.IdentitySource.header('Authorization')],
+      identitySources: [apigw.IdentitySource.header('Authorization'),apigw.IdentitySource.header('Oidc-Info')],
     });
 
     const apiResourceSessions = workspaceApi.root.addResource("customer-sessions");
