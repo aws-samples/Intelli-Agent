@@ -253,9 +253,13 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
       identitySources: [apigw.IdentitySource.header('Authorization')],
     });
 
+    // Add delay after initial setup
+    const initialDelay = this.addDeploymentDelay('Initial');
+
     // Create all API resources and their methods
     if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
       const kbDelay = this.addDeploymentDelay('KnowledgeBase');
+      kbDelay.node.addDependency(initialDelay);
 
       const executionManagementLambda = new LambdaFunction(this, "ExecutionManagementLambda", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
@@ -270,7 +274,6 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
       });
 
       props.knowledgeBaseStackOutputs.sfnOutput.grantStartExecution(executionManagementLambda.function);
-      executionManagementLambda.node.addDependency(kbDelay);
 
       const uploadDocLambda = new LambdaFunction(this, "UploadDocument", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
@@ -280,10 +283,8 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         },
         statements: [this.iamHelper.s3Statement],
       });
-      uploadDocLambda.node.addDependency(executionManagementLambda)
 
       const apiResourceStepFunction = this.api.root.addResource("knowledge-base");
-      apiResourceStepFunction.node.addDependency(uploadDocLambda)
       const apiKBExecution = apiResourceStepFunction.addResource("executions");
       if (props.knowledgeBaseStackOutputs.sfnOutput !== undefined) {
         // Integration with Step Function to trigger ETL process
@@ -396,7 +397,6 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
       );
 
       const apiGetExecutionById = apiKBExecution.addResource("{executionId}");
-      apiGetExecutionById.node.addDependency(apiKBExecution);
       apiGetExecutionById.addMethod(
         "GET",
         new apigw.LambdaIntegration(executionManagementLambda.function),
@@ -428,10 +428,8 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
       );
       apiGetExecutionById.addMethod("PUT", new apigw.LambdaIntegration(executionManagementLambda.function), this.genMethodOption(this.api, this.auth, null));
 
-      const kbDelay2 = this.addDeploymentDelay('KnowledgeBase2');
-      kbDelay2.node.addDependency(apiGetExecutionById)
+
       const apiUploadDoc = apiResourceStepFunction.addResource("kb-presigned-url");
-      apiUploadDoc.node.addDependency(kbDelay2)
       apiUploadDoc.addMethod(
         "POST",
         new apigw.LambdaIntegration(uploadDocLambda.function),
@@ -454,10 +452,12 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
           })
         }
       );
+      apiResourceStepFunction.node.addDependency(kbDelay);
     }
 
     if (props.config.chat.enabled) {
       const chatDelay = this.addDeploymentDelay('Chat');
+      chatDelay.node.addDependency(initialDelay);
 
       const chatbotManagementApi = new ChatbotManagementApi(
         scope, "ChatbotManagementApi", {
@@ -474,8 +474,6 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
       });
       chatbotManagementApi.node.addDependency(chatDelay);
 
-      const chatDelay2 = this.addDeploymentDelay('Chat2');
-      chatDelay2.node.addDependency(chatbotManagementApi);
       const chatHistoryApi = new ChatHistoryApi(
         scope, "ChatHistoryApi", {
         api: this.api,
@@ -485,10 +483,8 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         iamHelper: this.iamHelper,
         genMethodOption: this.genMethodOption,
       });
-      chatHistoryApi.node.addDependency(chatDelay2);
+      chatHistoryApi.node.addDependency(chatDelay);
 
-      const chatDelay3 = this.addDeploymentDelay('Chat3');
-      chatDelay3.node.addDependency(chatHistoryApi);
       const promptApi = new PromptApi(
         scope, "PromptApi", {
         api: this.api,
@@ -498,10 +494,8 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         iamHelper: this.iamHelper,
         genMethodOption: this.genMethodOption,
       });
-      promptApi.node.addDependency(chatDelay3);
+      promptApi.node.addDependency(chatHistoryApi);
 
-      const chatDelay4 = this.addDeploymentDelay('Chat4');
-      chatDelay4.node.addDependency(promptApi);
       const intentionApi = new IntentionApi(
         scope, "IntentionApi", {
         api: this.api,
@@ -521,11 +515,8 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         genMethodOption: this.genMethodOption,
         genRequestModel: this.genRequestModel,
       });
-      // intentionApi.node.addDependency(promptApi);
-      intentionApi.node.addDependency(chatDelay4);
+      intentionApi.node.addDependency(promptApi);
 
-      const chatDelay5 = this.addDeploymentDelay('Chat5');
-      chatDelay5.node.addDependency(intentionApi);
       const modelApi = new ModelApi(
         scope, "ModelApi", {
         api: this.api,
@@ -534,8 +525,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         iamHelper: this.iamHelper,
         genMethodOption: this.genMethodOption,
       });
-      // modelApi.node.addDependency(intentionApi);
-      modelApi.node.addDependency(chatDelay5);
+      modelApi.node.addDependency(intentionApi);
 
       // Define the API Gateway Lambda Integration with proxy and no integration responses
       const lambdaExecutorIntegration = new apigw.LambdaIntegration(
@@ -556,15 +546,12 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         statements: [sqsStatement],
       });
 
-      const chatDelay6 = this.addDeploymentDelay('Chat6');
-      chatDelay6.node.addDependency(lambdaDispatcher);
       // Create WebSocket API after all REST APIs
       const webSocketApi = new WebSocketConstruct(this, "WebSocketApi", {
         dispatcherLambda: lambdaDispatcher.function,
         sendMessageLambda: props.chatStackOutputs.lambdaOnlineMain,
         customAuthorizerLambda: this.customAuthorizerLambda.function,
       });
-      webSocketApi.node.addDependency(chatDelay6);
 
       // Set WebSocket endpoint
       let wsStage = webSocketApi.websocketApiStage;
