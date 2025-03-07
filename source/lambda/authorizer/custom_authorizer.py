@@ -60,13 +60,13 @@ def lambda_handler(event, context):
         headers = jwt.get_unverified_header(token)
         kid = headers["kid"]
 
-        oidc_info = event["headers"].get("Oidc-Info")
-        if oidc_info.provider == "authing":
-            issuer = f"{oidc_info.redirectUri}/oidc"
-            keys_url = f"{oidc_info.redirectUri}/oidc/.well-known/jwks.json"
+        oidc_info = json.loads(event["headers"].get("Oidc-Info"))
+        if oidc_info.get("provider") == "authing":
+            issuer = f"{oidc_info.get('redirectUri')}/oidc"
+            keys_url = f"{oidc_info.get('redirectUri')}/oidc/.well-known/jwks.json"
         else:
-            issuer = f"https://cognito-idp.{REGION}.amazonaws.com/{oidc_info.poolId}"
-            keys_url = f"https://cognito-idp.{REGION}.amazonaws.com/{oidc_info.poolId}/.well-known/jwks.json"
+            issuer = f"https://cognito-idp.{REGION}.amazonaws.com/{oidc_info.getInfo('poolId')}"
+            keys_url = f"https://cognito-idp.{REGION}.amazonaws.com/{oidc_info.getInfo('poolId')}/.well-known/jwks.json"
         
         response = urlopen(keys_url)
         keys = json.loads(response.read())["keys"]
@@ -90,12 +90,12 @@ def lambda_handler(event, context):
             token,
             public_key,
             algorithms=["RS256"],
-            audience=oidc_info.clientId,
+            audience=oidc_info.get("clientId"),
             issuer=issuer,
             options={"verify_exp": verify_exp},
         )
         # reformat claims to align with cognito output
-        claims["cognito:groups"] = ",".join(claims["cognito:groups"])
+        claims["cognito:groups"] = ",".join(claims["cognito:groups"]) if oidc_info.get("provider") == "cognito" else "Admin"
         logger.info(claims)
 
         response = generateAllow("me", "*", claims)
