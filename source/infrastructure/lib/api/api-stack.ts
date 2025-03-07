@@ -119,9 +119,10 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
             // Handle CREATE and UPDATE events
             if (event.RequestType === 'Create' || event.RequestType === 'Update') {
               try {
-                // Wait for 5 seconds
+                // Wait for 20 seconds
+                console.log('Waiting started')
                 await new Promise(resolve => setTimeout(resolve, 20000));
-                
+                console.log('Waiting ended')
                 return {
                   Status: 'SUCCESS',
                   PhysicalResourceId: event.RequestId,
@@ -322,6 +323,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
           }
         );
       }
+      
       apiKBExecution.addMethod(
         "GET",
         new apigw.LambdaIntegration(executionManagementLambda.function),
