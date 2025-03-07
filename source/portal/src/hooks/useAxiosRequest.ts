@@ -5,9 +5,7 @@ import { OIDC_PROVIDER, OIDC_STORAGE } from 'src/utils/const';
 import { alertMsg } from 'src/utils/utils';
 
 const getToken = (oidcProvider?: string, oidcClientId?: string) => {
-  const oidcStorage = localStorage.getItem(
-    `oidc.${oidcProvider}:${oidcClientId}`,
-  );
+  const oidcStorage = localStorage.getItem(`oidc.${oidcProvider}.${oidcClientId}`);
   if (!oidcStorage) {
     return null;
   }
@@ -17,7 +15,7 @@ const getToken = (oidcProvider?: string, oidcClientId?: string) => {
 const useAxiosRequest = () => {
   const config = useContext(ConfigContext);
   const oidcStorage = JSON.parse(localStorage.getItem(OIDC_STORAGE) || '')
-  const token = getToken(oidcStorage?.oidcProvider, oidcStorage?.oidcClientId);
+  const token = getToken(oidcStorage?.provider, oidcStorage?.client_id);
   const sendRequest = async ({
     url = '',
     method = 'get',

@@ -258,7 +258,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
 
     this.auth = new apigw.RequestAuthorizer(this, 'ApiAuthorizer', {
       handler: this.customAuthorizerLambda.function,
-      identitySources: [apigw.IdentitySource.header('Authorization')],
+      identitySources: [apigw.IdentitySource.header('Authorization'),apigw.IdentitySource.header('Oidc-Info')],
     });
 
    
