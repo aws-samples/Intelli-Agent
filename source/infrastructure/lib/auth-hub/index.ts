@@ -11,7 +11,7 @@
  *  and limitations under the License.
  */
 
-import { LambdaIntegration, RequestAuthorizer } from 'aws-cdk-lib/aws-apigateway';
+import { LambdaIntegration } from 'aws-cdk-lib/aws-apigateway';
 import { Function, Code, Runtime, LayerVersion, Alias } from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 import * as apigw from "aws-cdk-lib/aws-apigateway";

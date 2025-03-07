@@ -16,7 +16,8 @@ const getToken = (oidcProvider?: string, oidcClientId?: string) => {
 
 const useAxiosRequest = () => {
   const config = useContext(ConfigContext);
-  const token = getToken(config?.oidcProvider, config?.oidcClientId);
+  const oidcStorage = JSON.parse(localStorage.getItem(OIDC_STORAGE) || '')
+  const token = getToken(oidcStorage?.oidcProvider, oidcStorage?.oidcClientId);
   const sendRequest = async ({
     url = '',
     method = 'get',
