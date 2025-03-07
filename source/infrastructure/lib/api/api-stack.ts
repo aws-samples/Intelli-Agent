@@ -253,13 +253,9 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
       identitySources: [apigw.IdentitySource.header('Authorization')],
     });
 
-    // Add delay after initial setup
-    const initialDelay = this.addDeploymentDelay('Initial');
-
     // Create all API resources and their methods
     if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
       const kbDelay = this.addDeploymentDelay('KnowledgeBase');
-      kbDelay.node.addDependency(initialDelay);
 
       const executionManagementLambda = new LambdaFunction(this, "ExecutionManagementLambda", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
@@ -462,7 +458,6 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
 
     if (props.config.chat.enabled) {
       const chatDelay = this.addDeploymentDelay('Chat');
-      chatDelay.node.addDependency(initialDelay);
 
       const chatbotManagementApi = new ChatbotManagementApi(
         scope, "ChatbotManagementApi", {
@@ -503,7 +498,6 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         iamHelper: this.iamHelper,
         genMethodOption: this.genMethodOption,
       });
-      promptApi.node.addDependency(chatHistoryApi);
       promptApi.node.addDependency(chatDelay3);
 
       const chatDelay4 = this.addDeploymentDelay('Chat4');
@@ -527,7 +521,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         genMethodOption: this.genMethodOption,
         genRequestModel: this.genRequestModel,
       });
-      intentionApi.node.addDependency(promptApi);
+      // intentionApi.node.addDependency(promptApi);
       intentionApi.node.addDependency(chatDelay4);
 
       const chatDelay5 = this.addDeploymentDelay('Chat5');
@@ -540,7 +534,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         iamHelper: this.iamHelper,
         genMethodOption: this.genMethodOption,
       });
-      modelApi.node.addDependency(intentionApi);
+      // modelApi.node.addDependency(intentionApi);
       modelApi.node.addDependency(chatDelay5);
 
       // Define the API Gateway Lambda Integration with proxy and no integration responses
