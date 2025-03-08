@@ -227,13 +227,21 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
           "Oidc-Info"
         ],
         allowMethods: apigw.Cors.ALL_METHODS,
-        allowCredentials: true,
+        allowCredentials: false,
         allowOrigins: apigw.Cors.ALL_ORIGINS,
       },
-      deploy: false
+      deployOptions: {
+        stageName: "prod",
+        metricsEnabled: true,
+        loggingLevel: apigw.MethodLoggingLevel.INFO,
+        dataTraceEnabled: true,
+        tracingEnabled: true,
+      }
     });
+    new apigw.Deployment(this, 'Deployment', { api: this.api });
     // Add delay after initial setup
     const initialDelay = this.addDeploymentDelay('Initial');
+
     
     const authDelay = this.addDeploymentDelay('Auth');
     authDelay.node.addDependency(initialDelay);
