@@ -211,7 +211,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
     });
 
     // Define the API Gateway first
-    this.api = new apigw.RestApi(this, `${Constants.SOLUTION_SHORT_NAME.toLowerCase()}-api-${Date.now()}`, {
+    this.api = new apigw.RestApi(this, `${Constants.SOLUTION_SHORT_NAME.toLowerCase()}-api`, {
       description: `${Constants.SOLUTION_NAME} - Core API`,
       endpointConfiguration: {
         types: [apigw.EndpointType.REGIONAL],
