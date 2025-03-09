@@ -1,5 +1,6 @@
 from shared.utils.logger_utils import get_logger
-
+from typing import List
+from langchain_core.documents import Document
 logger = get_logger(__name__)
 
 
@@ -15,7 +16,7 @@ def _file_name_in_path(file_path: str) -> str:
     return file_path.split("/")[-1]
 
 
-def format_qq_data(data) -> str:
+def format_qq_data(doc:Document,source_field,rerank_score_field="relevance_score") -> str:
     """
     Formats QQ match result.
 
@@ -25,7 +26,7 @@ def format_qq_data(data) -> str:
     Returns:
         str: A markdown table string representing the formatted data.
     """
-    if is_null_or_empty(data):
+    if is_null_or_empty(doc):
         return ""
 
     markdown_table = "**QQ Match Result**\n"
@@ -33,16 +34,21 @@ def format_qq_data(data) -> str:
     markdown_table += "|-----|-----|-----|-----|\n"
 
     # Data contains only one QQ match result
-    qq_source = _file_name_in_path(data.get("source", ""))
-    qq_score = data.get("score", -1)
-    qq_question = data.get("page_content", "").replace("\n", "<br>")
-    qq_answer = data.get("answer", "").replace("\n", "<br>")
-    markdown_table += f"| {qq_source} | {qq_score} | {qq_question} | {qq_answer} |\n"
+    qq_source = _file_name_in_path(doc.metadata.get(source_field, ""))
+    score = doc.metadata.get("score", -1)
+    rerank_score = doc.metadata.get(rerank_score_field, None)
+    if rerank_score is not None:
+        score = f"{doc.metadata['search_by']} score: {score}, rerank score: {rerank_score})"
+    else:
+        score = f"{doc.metadata['search_by']} score: {score}"
+    qq_question = doc.page_content.replace("\n", "<br>")
+    qq_answer = doc.metadata.get("answer", "").replace("\n", "<br>")
+    markdown_table += f"| {qq_source} | {score} | {qq_question} | {qq_answer} |\n"
 
     return markdown_table
 
 
-def format_rag_data(data, qq_result) -> str:
+def format_rag_data(retrieved_contexts:List[Document], qq_result:List[Document],source_field:str,rerank_score_field="relevance_score") -> str:
     """
     Formats the given data into a markdown table.
 
@@ -53,16 +59,22 @@ def format_rag_data(data, qq_result) -> str:
     Returns:
         str: A markdown table string representing the formatted data.
     """
-    if is_null_or_empty(data):
+    if is_null_or_empty(retrieved_contexts):
         return ""
 
     markdown_table = "| Source File Name | Source URI | Score | RAG Context |\n"
     markdown_table += "|-----|-----|-----|-----|\n"
-    for item in data:
-        raw_source = item.get("source", "")
+    for item in retrieved_contexts:
+        raw_source = item.metadata.get(source_field, "")
         source = _file_name_in_path(raw_source)
-        score = item.get("score", -1)
-        page_content = item.get("retrieval_content", "").replace("\n", "<br>")
+        score = item.metadata.get("score", -1)
+        rerank_score = item.metadata.get(rerank_score_field, None)
+        if rerank_score is not None:
+            score = f"{item.metadata['search_by']} score: {score}, rerank score: {rerank_score})"
+        else:
+            score = f"{item.metadata['search_by']} score: {score}"
+
+        page_content = item.page_content.replace("\n", "<br>")
         markdown_table += f"| {source} | {raw_source} | {score} | {page_content} |\n"
 
     if not is_null_or_empty(qq_result):
@@ -71,12 +83,20 @@ def format_rag_data(data, qq_result) -> str:
         markdown_table += "|-----|-----|-----|-----|-----|\n"
 
         for qq_item in qq_result:
-            raw_qq_source = qq_item.get("source", "")
+            raw_qq_source = item.metadata.get(source_field, "")
             qq_source = _file_name_in_path(raw_qq_source)
-            qq_score = qq_item.get("score", -1)
-            qq_question = qq_item.get("page_content", "").replace("\n", "<br>")
-            qq_answer = qq_item.get("answer", "").replace("\n", "<br>")
-            markdown_table += f"| {qq_source} | {raw_qq_source} | {qq_score} | {qq_question} | {qq_answer} |\n"
+
+            score = item.metadata.get("score", -1)
+            rerank_score = item.metadata.get(rerank_score_field, None)
+            if rerank_score is not None:
+                score = f"{item.metadata['search_by']} score: {score}, rerank score: {rerank_score})"
+            else:
+                score = f"{item.metadata['search_by']} score: {score}"
+
+            # qq_score = qq_item.get("score", -1)
+            qq_question = qq_item.page_content.replace("\n", "<br>")
+            qq_answer = qq_item.metadata.get("answer", "").replace("\n", "<br>")
+            markdown_table += f"| {qq_source} | {raw_qq_source} | {score} | {qq_question} | {qq_answer} |\n"
 
     return markdown_table
 
@@ -92,7 +112,7 @@ def format_preprocess_output(ori_query, rewrite_query):
     return markdown_table
 
 
-def format_intention_output(data):
+def format_intention_output(data:List[Document]):
     if is_null_or_empty(data):
         return ""
 

@@ -167,17 +167,17 @@ def get_faq_answer(source, index_name, source_field):
     return ""
 
 
-def get_faq_content(source, index_name):
-    opensearch_query_response = aos_client.search(
-        index_name=index_name,
-        query_type="basic",
-        query_term=source,
-        field="metadata.source",
-    )
-    for r in opensearch_query_response["hits"]["hits"]:
-        if r["_source"]["metadata"]["field"] == "all_text":
-            return r["_source"]["content"]
-    return ""
+# def get_faq_content(source, index_name):
+#     opensearch_query_response = aos_client.search(
+#         index_name=index_name,
+#         query_type="basic",
+#         query_term=source,
+#         field="metadata.source",
+#     )
+#     for r in opensearch_query_response["hits"]["hits"]:
+#         if r["_source"]["metadata"]["field"] == "all_text":
+#             return r["_source"]["content"]
+#     return ""
 
 
 def get_doc(file_path, index_name):

@@ -22,13 +22,14 @@ from langchain.retrievers.multi_query import MultiQueryRetriever
 logger = get_logger(__name__)
 
 
-class OpensearchHybridRetriever(BaseRetriever):
+class OpensearchHybridRetrieverBase(BaseRetriever):
     database: OpenSearchHybridSearch
     embeddings: Embeddings
     reranker: Union[BaseDocumentCompressor,None] = None
     bm25_search_context_extend_method: ContextExtendMethod = ContextExtendMethod.WHOLE_DOC
     bm25_search_whole_doc_max_size:int = 100
     bm25_search_chunk_window_size: int = 10
+    enable_bm25_search:bool = True
 
     bm25_search_top_k:int = 5
     
@@ -36,6 +37,7 @@ class OpensearchHybridRetriever(BaseRetriever):
     vector_search_chunk_window_size: int = 10
     vector_search_top_k:int = 5 
     vector_search_whole_doc_max_size:int = 100
+    enable_vector_search:bool = True
 
     rerank_top_k:Union[int,None] = None
     # search_params: dict = Field(default=dict)
@@ -45,10 +47,8 @@ class OpensearchHybridRetriever(BaseRetriever):
         cls,
         embedding_config: dict = None,
         rerank_config: dict = None,
-        search_params:dict = None,
         **kwargs
     ):
-        # search_params = search_params or {}
         database = OpenSearchHybridSearch(
             **kwargs 
         )
@@ -64,6 +64,7 @@ class OpensearchHybridRetriever(BaseRetriever):
             database=database,
             embeddings=embeddings,
             reranker=reranker,
+            **kwargs
             # search_params=search_params
         )
 
@@ -115,8 +116,126 @@ class OpensearchHybridRetriever(BaseRetriever):
             "sort": [{"_score": {"order": "desc"}}],
         }
         return query
+
     
 
+    async def aextend_bm25_search_results(
+            self,
+            search_response:dict,
+            **kwargs
+        ) -> List[Document]:
+
+        raise NotImplementedError
+    
+    async def aextend_vector_search_results(
+            self,
+            search_response:dict,
+            **kwargs
+        ) -> List[Document]:
+
+        raise NotImplementedError
+
+    async def abm25_search(self,query:str,**kwargs):
+        top_k = kwargs.get("bm25_search_top_k",self.bm25_search_top_k)
+        search_query_dict = self.create_bm25_search_query_dict(
+            query=query, 
+            top_k=top_k, 
+            **kwargs
+        )
+
+        search_res = await self.database.asearch(**search_query_dict)
+        results = await self.aextend_bm25_search_results(search_res, **kwargs)
+        for doc in results:
+            doc.metadata['search_by'] = 'bm25'
+        return results
+
+    
+    async def avector_search(self, query:str, top_k:int, **kwargs):
+        top_k = kwargs.get("vector_search_top_k", self.vector_search_top_k)
+        embedding = await self._aget_embedding(query)
+        search_query_dict = self.create_vector_search_query_dict(
+            embedding=embedding,
+            top_k=top_k,
+            **kwargs
+        )
+        search_res = await self.database.asearch(**search_query_dict)
+        results = await self.aextend_vector_search_results(search_res, **kwargs)
+        for doc in results:
+            doc.metadata['search_by'] = 'vector'
+        return results
+
+    async def _aget_embedding(self,query:str):
+        return await self.embeddings.aembed_query(query)
+
+
+    async def acompress_documents(self,output_docs:list[Document],**kwargs):
+        rerank_top_k = kwargs.get('rerank_top_k',self.rerank_top_k)
+        bm25_search_top_k = kwargs.get('bm25_search_top_k', self.bm25_search_top_k)
+        vector_search_top_k = kwargs.get('vector_search_top_k', self.vector_search_top_k)
+        rerank_top_k = rerank_top_k or bm25_search_top_k + vector_search_top_k
+        compressed_output_docs = await self.reranker.acompress_documents(
+            documents=output_docs, 
+        )
+        
+        compressed_output_docs = sorted(compressed_output_docs, key=lambda x: x.metadata['relevance_score'], reverse=True)
+        compressed_output_docs = compressed_output_docs[:rerank_top_k]
+        return compressed_output_docs
+
+
+
+    async def _aget_relevant_documents(
+        self, query: str, *, 
+        run_manager: AsyncCallbackManagerForRetrieverRun,
+        **kwargs
+    ) -> List[Document]:
+        # bm_25 search 
+        enable_bm25_search = kwargs.get(
+            "enable_bm25_search", 
+            self.enable_bm25_search
+        )
+        enable_vector_search = kwargs.get(
+            "enable_vector_search",
+            self.enable_vector_search
+        )
+        bm25_search_results = []
+        vector_search_results = []
+        if not (enable_bm25_search or enable_vector_search):
+            raise ValueError("At least one of enable_bm25_search or enable_vector_search must be True")
+        
+        if enable_bm25_search:
+            bm25_search_results:List[Document] = await self.abm25_search(query,**kwargs)
+
+        if enable_vector_search:
+            vector_search_results = await self.avector_search(
+                    query=query,
+                    **kwargs
+            )
+        # rerank
+        if self.reranker is not None:
+            output_docs = bm25_search_results + vector_search_results
+            return await self.acompress_documents(output_docs,**kwargs)
+            # TODO 
+            # rerank_top_k = kwargs.get("rerank_top_k", self.rerank_top_k) or self.bm25_search_top_k + self.vector_search_top_k
+            # compressed_output_docs = await self.reranker.acompress_documents(
+            #     documents=output_docs, 
+            # )
+            
+            # compressed_output_docs = sorted(compressed_output_docs, key=lambda x: x.metadata['relevance_score'], reverse=True)
+            # compressed_output_docs = compressed_output_docs[:rerank_top_k]
+            # return compressed_output_docs
+        else:
+            # altertively to merge the retriverd docs
+            merged_documents = []
+            retriever_docs = [bm25_search_results,vector_search_results]
+            max_docs = max(map(len, retriever_docs), default=0)
+            for i in range(max_docs):
+                for doc in retriever_docs:
+                    if i < len(doc):
+                        merged_documents.append(doc[i])
+            return merged_documents
+
+class OpensearchHybridQueryDocumentRetriever(OpensearchHybridRetrieverBase):
+    
     async def aget_sibling_context(self, chunk_id, window_size)-> Tuple[List[Document],List[Document]]:
         next_content_list:List[Document] = []
         previous_content_list:List[Document] = []
@@ -336,7 +455,7 @@ class OpensearchHybridRetriever(BaseRetriever):
         )
         # chunk_text_list = [x[4] for x in sorted_chunk_list]
         return sorted_chunk_list
-
+    
     
     async def _aextend_search_results(
             self,
@@ -419,7 +538,6 @@ class OpensearchHybridRetriever(BaseRetriever):
             return results
         
         raise ValueError(f"ContextExtendMethod {context_extend_method} not supported")
-
     
     async def aextend_bm25_search_results(
             self,
@@ -470,16 +588,105 @@ class OpensearchHybridRetriever(BaseRetriever):
         )
 
 
-    async def abm25_search(self,query:str,**kwargs):
-        top_k = kwargs.get("bm25_search_top_k",self.bm25_search_top_k)
-        search_query_dict = self.create_bm25_search_query_dict(
-            query=query, 
-            top_k=top_k, 
-            **kwargs
-        )
 
-        search_res = await self.database.asearch(**search_query_dict)
-        return await self.aextend_bm25_search_results(search_res, **kwargs)
+class OpensearchHybridQueryQuestionRetriever(OpensearchHybridRetrieverBase):
+    
+    async def aget_faq_answer(self,file_path):
+        opensearch_query_response = await self.database.asearch(
+            self._build_exact_search_query(
+                query_term=file_path,
+                field=f"metadata.{self.database.source_field}",
+                size=1
+            )
+        ) 
+        #     index_name=index_name,
+        #     query_type="basic",
+        #     query_term=source,
+        #     field=f"metadata.{source_field}",
+        # )
+        for r in opensearch_query_response["hits"]["hits"]:
+            if (
+                "field" in r["_source"]["metadata"]
+                and "answer" == r["_source"]["metadata"]["field"]
+            ):
+                return r["_source"]["content"]
+            elif "jsonlAnswer" in r["_source"]["metadata"]:
+                return r["_source"]["metadata"]["jsonlAnswer"]["answer"]
+        return ""
+
+    
+    async def _aextend_faq_results(
+        self,
+        search_response:dict,
+        **kwargs
+    )-> List[Document]:
+        """
+        Organize results from aos response
+        :param query_type: query type
+        :param response: aos response json
+        """
+        results = []
+        if not search_response:
+            return results
+        hits = search_response["hits"]["hits"]
+        for hit in hits:
+            result = {}
+            try:
+                result["score"] = hit["_score"]
+                data = hit["_source"]
+                metadata = data["metadata"]
+                if "field" in metadata:
+                    result["answer"] = await self.aget_faq_answer(
+                        result["source"]
+                    )
+                    result["content"] = hit["_source"]["content"]
+                    result["question"] = hit["_source"]["content"]
+                    result[self.database.source_field] = hit["_source"]["metadata"][self.database.source_field]
+                elif "answer" in metadata:
+                    # Intentions
+                    result["answer"] = metadata["answer"]
+                    result["question"] = data[self.database.text_field]
+                    result["content"] = data[self.database.text_field]
+                    result["source"] = metadata[self.database.source_field]
+                    result["kwargs"] = metadata.get("kwargs", {})
+                elif "jsonlAnswer" in hit["_source"]["metadata"] and "answer" in hit["_source"]["metadata"]["jsonlAnswer"]:
+                    # Intention
+                    result["answer"] = hit["_source"]["metadata"]["jsonlAnswer"]["answer"]
+                    result["question"] = hit["_source"]["metadata"]["jsonlAnswer"]["question"]
+                    result["content"] = hit["_source"][self.database.text_field]
+                    if self.database.source_field in hit["_source"]["metadata"]["jsonlAnswer"].keys():
+                        result[self.database.source_field] = hit["_source"]["metadata"]["jsonlAnswer"][self.database.source_field]
+                    else:
+                        result[self.database.source_field] = hit["_source"]["metadata"][self.database.source_field]
+                elif "jsonlAnswer" in hit["_source"]["metadata"] and "answer" not in hit["_source"]["metadata"]["jsonlAnswer"]:
+                    # QQ match
+                    result["answer"] = hit["_source"]["metadata"]["jsonlAnswer"]
+                    result["question"] = hit["_source"][self.database.text_field]
+                    result["content"] = hit["_source"][self.database.text_field]
+                    result[self.database.source_field] = hit["_source"]["metadata"][self.database.source_field]
+                else:
+                    result["answer"] = hit["_source"]["metadata"]
+                    result["content"] = hit["_source"][self.database.text_field]
+                    result["question"] = hit["_source"][self.database.text_field]
+                    result[self.database.source_field] = hit["_source"]["metadata"][self.database.source_field]
+            except Exception as e:
+                logger.error(e)
+                logger.error(traceback.format_exc())
+                logger.error(hit)
+                continue
+
+            results.append(
+                Document(
+                    page_content=result["question"],
+                    metadata={
+                        **result,
+                        "retrieval_score": hit["_score"],
+                        "detail": hit["_source"],
+                    }
+                )
+            )
+            # results.append(result)
+        return results
 
     
     async def avector_search(self, query:str, top_k:int, **kwargs):
@@ -491,51 +698,23 @@ class OpensearchHybridRetriever(BaseRetriever):
             **kwargs
         )
         search_res = await self.database.asearch(**search_query_dict)
-        return await self.aextend_vector_search_results(search_res, **kwargs)
-
-    async def _aget_embedding(self,query:str):
-        return await self.embeddings.aembed_query(query)
-
-
-    async def _aget_relevant_documents(
-        self, query: str, *, 
-        run_manager: AsyncCallbackManagerForRetrieverRun,
-        **kwargs
-    ) -> List[Document]:
-        # bm_25 search 
-        bm25_search_results:List[Document] = await self.abm25_search(query,**kwargs)
-
-        for doc in bm25_search_results:
-            doc.metadata['search_by'] = 'bm25'
-
-        # vector search
-        vector_search_results = await self.avector_search(
-                query=query,
-                **kwargs
-        )
-        for doc in vector_search_results:
+        results = await self._aextend_faq_results(search_res, **kwargs)
+        for doc in results:
             doc.metadata['search_by'] = 'vector'
-         
-        # rerank
-        if self.reranker is not None:
-            output_docs = bm25_search_results + vector_search_results
-            rerank_top_k = kwargs.get("rerank_top_k", self.rerank_top_k)
-            compressed_output_docs = await self.reranker.acompress_documents(
-                documents=output_docs, 
-            )
-            
-            compressed_output_docs = sorted(compressed_output_docs, key=lambda x: x.metadata['relevance_score'], reverse=True)
-            compressed_output_docs = compressed_output_docs[:rerank_top_k]
-            return compressed_output_docs
-        else:
-            # altertively to merge the retriverd docs
-            merged_documents = []
-            retriever_docs = [bm25_search_results,vector_search_results]
-            max_docs = max(map(len, retriever_docs), default=0)
-            for i in range(max_docs):
-                for doc in retriever_docs:
-                    if i < len(doc):
-                        merged_documents.append(doc[i])
-            return merged_documents
+        return results
+    
+    async def aextend_bm25_search_results(
+            self,
+            search_response:dict,
+            **kwargs
+        ) -> List[Document]:
 
-            
+        return await self._aextend_faq_results(search_response,**kwargs)
+
+    async def aextend_vector_search_results(
+            self,
+            search_response:dict,
+            **kwargs
+        ) -> List[Document]:
+        return await self._aextend_faq_results(search_response,**kwargs)
+    

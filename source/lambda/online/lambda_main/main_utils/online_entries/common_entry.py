@@ -3,6 +3,7 @@ import json
 import uuid
 import re
 from typing import Annotated, Any, TypedDict, List, Union
+from langchain_core.documents import Document
 
 from common_logic.common_utils.chatbot_utils import ChatbotManager
 from shared.constant import (
@@ -28,12 +29,11 @@ from langchain_core.messages.tool import ToolCall
 from langgraph.prebuilt.tool_node import ToolNode, TOOL_CALL_ERROR_TEMPLATE
 from shared.langchain_integration.chains import LLMChain
 from common_logic.common_utils.serialization_utils import JSONEncoder
-from common_logic.common_utils.monitor_utils import format_intention_output, format_preprocess_output, format_qq_data
 from common_logic.common_utils.ddb_utils import custom_index_desc
 from lambda_main.main_utils.parse_config import CommonConfigParser
 from langgraph.graph import END, StateGraph
-from shared.langchain_integration.retrievers.retriever import lambda_handler as retrieve_fn
-from common_logic.common_utils.monitor_utils import (
+from shared.langchain_integration.retrievers import OpensearchHybridQueryQuestionRetriever
+from shared.utils.monitor_utils import (
     format_preprocess_output,
     format_qq_data,
     format_intention_output
@@ -161,16 +161,46 @@ def intention_detection(state: ChatbotState):
     retriever_params["query"] = state[
         retriever_params.get("retriever_config", {}).get("query_key", "query")
     ]
+    qq_retriever = OpensearchHybridQueryQuestionRetriever.from_config(
+        **retriever_params
+    )
+    qq_retrievered:List[Document] = qq_retriever.invoke(retriever_params["query"])
 
-    output = retrieve_fn(retriever_params)
-    context_list = []
-    qq_match_contexts = []
+    # output = retrieve_fn(retriever_params)
+    # context_list = []
+    qq_match_results = [] # used in rag tool
     qq_match_threshold = retriever_params["qq_match_threshold"]
     qq_in_rag_context_threshold = retriever_params["qq_in_rag_context_threshold"]
 
-    for doc in output["result"]["docs"]:
-        if doc["retrieval_score"] > qq_match_threshold:
-            doc_md = format_qq_data(doc)
+    # for doc in output["result"]["docs"]:
+    #     if doc["retrieval_score"] > qq_match_threshold:
+    #         doc_md = format_qq_data(doc)
+    #         send_trace(
+    #             f"\n\n**similar query found**\n\n{doc_md}",
+    #             state["stream"],
+    #             state["ws_connection_id"],
+    #             state["enable_trace"],
+    #         )
+    #         query_content = doc["answer"]
+    #         # query_content = doc['answer']['jsonlAnswer']
+    #         return {
+    #             "answer": query_content,
+    #             "intent_type": "similar query found",
+    #         }
+
+    #     if doc["retrieval_score"] > qq_in_rag_context_threshold:
+    #         question = doc["question"]
+    #         answer = doc["answer"]
+    #         context_list.append(f"问题: {question}, \n答案：{answer}")
+    #         qq_match_contexts.append(doc)
+    
+    # TODO modify intention and qq match score
+    for doc in qq_retrievered:
+        if doc.metadata["score"] > qq_match_threshold:
+            doc_md = format_qq_data(
+                doc,
+                source_field=qq_retriever.database.source_field
+            )
             send_trace(
                 f"\n\n**similar query found**\n\n{doc_md}",
                 state["stream"],
@@ -184,15 +214,23 @@ def intention_detection(state: ChatbotState):
                 "intent_type": "similar query found",
             }
 
-        if doc["retrieval_score"] > qq_in_rag_context_threshold:
+        if doc.metadata["score"] > qq_in_rag_context_threshold:
             question = doc["question"]
             answer = doc["answer"]
-            context_list.append(f"问题: {question}, \n答案：{answer}")
-            qq_match_contexts.append(doc)
 
+            qq_match_results.append(
+                Document(
+                    page_content=f"问题: {question}, \n答案：{answer}",
+                    metadata={
+                        **doc.metadata
+                    }
+                )
+            )
+            # qq_match_contexts.append(Document(
+            # ))
     if state["chatbot_config"]["agent_config"]["only_use_rag_tool"]:
         return {
-            "qq_match_results": context_list,
+            "qq_match_results": qq_match_results,
             "intent_type": "intention detected"
         }
 

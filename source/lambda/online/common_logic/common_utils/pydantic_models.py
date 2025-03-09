@@ -11,7 +11,8 @@ from shared.constant import (
     ModelProvider,
     EmbeddingModelType,
     KBType,
-    RerankModelType
+    RerankModelType,
+    ContextExtendMethod
 )
 
 from shared.utils.logger_utils import get_logger
@@ -80,30 +81,42 @@ class RerankConfig(ModelConfig):
     pass
 
 
-
 ####### retriever config  ###########
+
+class HybridSearchConfig(AllowBaseModel):
+    bm25_search_context_extend_method: ContextExtendMethod = ContextExtendMethod.WHOLE_DOC
+    bm25_search_whole_doc_max_size:int = 100
+    bm25_search_chunk_window_size: int = 10
+    bm25_search_top_k:int = 5
+    enable_bm25_search:bool = True
+
+    vector_search_context_extend_method: ContextExtendMethod = ContextExtendMethod.WHOLE_DOC
+    vector_search_chunk_window_size: int = 10
+    vector_search_top_k:int = 5 
+    vector_search_whole_doc_max_size:int = 100
+    enable_vector_search:bool = True
     
-class RetrieverConfigBase(AllowBaseModel):
+class RetrieverConfigBase(HybridSearchConfig):
+    database: dict = Field(default_factory=dict)
     index_name: str
-    index_type: str
+    index_type: IndexType
     query_key: str = "query"
     kb_type: KBType = KBType.AOS
     embedding_config: Union[EmbeddingModelConfig, None] = None
     rerank_config: Union[RerankConfig, None] = None
+    
 
 class IntentionRetrieverConfig(RetrieverConfigBase):
-    top_k: int = 5
+    index_type = IndexType.INTENTION
     
 
 class QQMatchRetrieverConfig(RetrieverConfigBase):
-    top_k: int = 5
+    index_type = IndexType.QQ
     
 
 class PrivateKnowledgeRetrieverConfig(RetrieverConfigBase):
-    top_k: int = 5
-    context_num: int = 1
-    using_whole_doc: bool = False
-
+    index_type = IndexType.QD
+    
 
 class IntentionConfig(ForbidBaseModel):
     retrievers: list[IntentionRetrieverConfig] = Field(default_factory=list)
@@ -121,7 +134,7 @@ class QQMatchConfig(ForbidBaseModel):
 class RagToolConfig(AllowBaseModel):
     retrievers: list[PrivateKnowledgeRetrieverConfig] = Field(
         default_factory=list)
-    rerankers: list[RerankConfig] = Field(default_factory=list)
+    # rerankers: list[RerankConfig] = Field(default_factory=list)
     llm_config: LLMConfig = Field(default_factory=LLMConfig)
 
 

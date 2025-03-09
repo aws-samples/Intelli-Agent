@@ -1,20 +1,18 @@
-from common_logic.common_utils.lambda_invoke_utils import StateContext
-from source.lambda.shared.utils.prompt_utils import get_prompt_templates_from_ddb
+from shared.utils.lambda_invoke_utils import StateContext
+from shared.utils.prompt_utils import get_prompt_templates_from_ddb
 from shared.constant import (
     LLMTaskType,
     Threshold
 )
-from common_logic.common_utils.lambda_invoke_utils import send_trace
-from common_logic.langchain_integration.retrievers.retriever import lambda_handler as retrieve_fn
-from common_logic.langchain_integration.chains import LLMChain
-from common_logic.common_utils.monitor_utils import format_rag_data
-from typing import Iterable
-import logging
+from shared.utils.lambda_invoke_utils import send_trace
+from shared.langchain_integration.retrievers import OpensearchHybridQueryDocumentRetriever
+from shared.langchain_integration.chains import LLMChain
+from langchain_core.documents import Document
+from shared.utils.monitor_utils import format_rag_data
+from typing import Iterable,List
+from shared.utils.logger_utils import get_logger
 
-
-logger = logging.getLogger("rag")
-logger.setLevel(logging.INFO)
-
+logger = get_logger(__name__)
 
 def filter_response(res: Iterable, state: dict):
     """
@@ -81,6 +79,24 @@ def filter_response(res: Iterable, state: dict):
         state["extra_response"]["ref_figures"] = unique_figure_list
 
 
+
+def format_retrieved_context(retrieved_context:Document)->List[str]:
+    """
+    Format the retrieved contexts into a list of dictionaries
+    Args:
+        retrieved_contexts: List of retrieved contexts
+    Returns:
+        List of dictionaries containing the formatted contexts
+    """
+    extend_chunks:List[Document] = retrieved_context.metadata("extend_chunks", [])
+    page_content = retrieved_context.page_content
+    extend_page_content = "\n".join([chunk.page_content for chunk in extend_chunks])
+    if page_content in extend_page_content:
+        return extend_page_content
+    else:
+        return extend_page_content + "\n" + page_content
+
+
 def rag_tool(retriever_config: dict, query=None):
     state = StateContext.get_current_state()
     context_list = []
@@ -90,20 +106,40 @@ def rag_tool(retriever_config: dict, query=None):
     retriever_params = retriever_config
     retriever_params["query"] = query or state[retriever_config.get(
         "query_key", "query")]
-    output = retrieve_fn(retriever_params)
-    top_k = retriever_config.get("top_k", Threshold.TOP_K_RETRIEVALS)
-    score = retriever_config.get("score", Threshold.ALL_KNOWLEDGE_IN_AGENT_THRESHOLD)
-    filtered_docs = [item for item in output["result"]["docs"] if item["score"] >= score]
-    sorted_docs = sorted(filtered_docs, key=lambda x: x["score"], reverse=True)
-    final_docs = sorted_docs[:top_k]
+    
+    # 
+    qd_retriever = OpensearchHybridQueryDocumentRetriever.from_config(
+        **retriever_params
+    )
+    retrieved_contexts:List[Document] = qd_retriever.invoke(retriever_params["query"])
+
+    # output = retrieve_fn(retriever_params)
+    # top_k = retriever_config.get("top_k", Threshold.TOP_K_RETRIEVALS)
+    # score = retriever_config.get("score", Threshold.ALL_KNOWLEDGE_IN_AGENT_THRESHOLD)
+    # filtered_docs = [item for item in output["result"]["docs"] if item["score"] >= score]
+    # sorted_docs = sorted(filtered_docs, key=lambda x: x["score"], reverse=True)
+    # final_docs = sorted_docs[:top_k]
+    #
+
+    # retrieved_contexts
+    final_docs = []
+
+    # state["extra_response"]["docs"] = final_docs
+
+    for doc in retrieved_contexts:
+        formated_context = format_retrieved_context(doc)
+        final_docs.append(formated_context)
+        context_list.append(formated_context)
+        # context_list.append(doc["page_content"])
+        figure_list = figure_list + doc.metadata.get("figure", [])
+    
     state["extra_response"]["docs"] = final_docs
 
-    for doc in final_docs:
-        context_list.append(doc["page_content"])
-        figure_list = figure_list + doc.get("figure", [])
-
     context_md = format_rag_data(
-        final_docs, state.get("qq_match_contexts", {}))
+        retrieved_contexts, 
+        state.get("qq_match_results", []),
+        source_field=qd_retriever.database.source_field
+    )
     send_trace(
         f"\n\n{context_md}\n\n", enable_trace=state["enable_trace"])
     # send_trace(

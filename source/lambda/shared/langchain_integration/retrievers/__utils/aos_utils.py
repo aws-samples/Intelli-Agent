@@ -85,6 +85,7 @@ class LLMBotOpenSearchClient:
             "query": {
                 "bool": {
                     "should": [{"match_phrase": {field: query_term}}],
+                    # "or": [{"match_phrase": {field: query_term}}],
                 }
             },
             "sort": [{"_score": {"order": "desc"}}],

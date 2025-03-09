@@ -29,6 +29,7 @@ class OpenSearceBase:
     client: any = None
     async_client: any = None
     http_auth: Any = None
+    
 
     def __post_init__(self):
         if self.opensearch_url is None:
