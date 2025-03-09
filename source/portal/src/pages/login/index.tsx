@@ -261,7 +261,7 @@ const Login: FC = () => {
       console.log(`user is ${user}`);
       const session = await fetchAuthSession();
       localStorage.setItem(
-        `oidc.${currentProvider.label}.${currentProvider.clientId}`,
+        `oidc.${currentProvider.value}.${currentProvider.clientId}`,
         JSON.stringify({
           accessToken: session.tokens?.accessToken.toString(),
           idToken: session.tokens?.idToken?.toString(),
@@ -299,7 +299,7 @@ const Login: FC = () => {
           lang: i18n.language === 'zh'? "zh-CN" : "en-US"
         },
       });
-      if(response.statusCode !== 200) {
+      if(response.body.error) {
         res = response.body.error_description
         return res;
       }

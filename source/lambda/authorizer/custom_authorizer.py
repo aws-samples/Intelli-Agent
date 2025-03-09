@@ -65,8 +65,8 @@ def lambda_handler(event, context):
             issuer = f"{oidc_info.get('redirectUri')}/oidc"
             keys_url = f"{oidc_info.get('redirectUri')}/oidc/.well-known/jwks.json"
         else:
-            issuer = f"https://cognito-idp.{REGION}.amazonaws.com/{oidc_info.getInfo('poolId')}"
-            keys_url = f"https://cognito-idp.{REGION}.amazonaws.com/{oidc_info.getInfo('poolId')}/.well-known/jwks.json"
+            issuer = f"https://cognito-idp.{REGION}.amazonaws.com/{oidc_info.get('poolId')}"
+            keys_url = f"https://cognito-idp.{REGION}.amazonaws.com/{oidc_info.get('poolId')}/.well-known/jwks.json"
         
         response = urlopen(keys_url)
         keys = json.loads(response.read())["keys"]

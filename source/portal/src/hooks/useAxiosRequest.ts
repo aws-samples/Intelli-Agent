@@ -8,7 +8,7 @@ import { alertMsg, getCredentials } from 'src/utils/utils';
 const useAxiosRequest = () => {
   const config = useContext(ConfigContext);
   
-  const token = getCredentials().access_token;
+  const token = getCredentials();
   const sendRequest = async ({
     url = '',
     method = 'get',
@@ -30,7 +30,7 @@ const useAxiosRequest = () => {
         params: params,
         headers: {
           ...headers,
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token.access_token || token.idToken}`,
           'Oidc-Info': genHeaderOidcInfo(config)
         },
       });

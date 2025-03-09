@@ -91,7 +91,7 @@ export class IntentionApi extends Construct {
         ].join(' && ')
         ]
       ),
-      handler: "lambda_handler",
+      handler: "intention.lambda_handler",
       // timeout: Duration.minutes(15),
       vpc: this.vpc,
       securityGroups: this.securityGroups,
