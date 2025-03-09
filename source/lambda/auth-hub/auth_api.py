@@ -119,7 +119,7 @@ def __custom_oidc_login(request: LoginRequest):
     headers = {'Content-Type': 'application/x-www-form-urlencoded','x-authing-lang': request.lang}
     response = requests.post(authing_login_url, data=payload, headers=headers, timeout=100)
     # if response.status_code == 200:
-    return __gen_response_with_status_code(response.status_code, response.body.json())
+    return __gen_response_with_status_code(200, response.json())
     # else:
         # raise HTTPException(status_code=response.status_code, detail=response.text)
 

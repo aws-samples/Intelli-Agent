@@ -60,7 +60,16 @@ export const getCredentialsFromLocalStorage = () => {
   const oidc = localStorage.getItem(OIDC_STORAGE)
   if (!oidc) return null
   const oidcRes = JSON.parse(oidc)
-  const authToken = localStorage.getItem(`${OIDC_PREFIX}${oidcRes.provider}.${oidcRes.client_id}`)
+  const authToken = localStorage.getItem(`${OIDC_PREFIX}${oidcRes.provider}.${oidcRes.clientId}`)
   if(!authToken) return null
   return JSON.parse(authToken)    
+}
+
+export const getCredentials = () => {
+  const oidcInfo = JSON.parse(localStorage.getItem(OIDC_STORAGE) || '')
+  const credentials = localStorage.getItem(`oidc.${oidcInfo?.provider}.${oidcInfo?.clientId}`);
+  if (!credentials) {
+    return null;
+  }
+  return JSON.parse(credentials);
 }

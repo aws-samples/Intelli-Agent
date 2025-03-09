@@ -272,7 +272,6 @@ def lambda_handler(event, context):
     if "use_api_key" in claims:
         group_name = __get_query_parameter(event, "GroupName", "Admin")
     else:
-        email = claims["email"]
         group_name = claims["cognito:groups"]  # Agree to only be in one group
     http_method = event["httpMethod"]
     resource: str = event["resource"]

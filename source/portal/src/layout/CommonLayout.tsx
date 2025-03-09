@@ -86,7 +86,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
     const oidc = localStorage.getItem(OIDC_STORAGE)
     if (oidc) {
       const oidcRes = JSON.parse(oidc)
-      const authToken = localStorage.getItem(`${OIDC_PREFIX}${oidcRes.provider}.${oidcRes.client_id}`)
+      const authToken = localStorage.getItem(`${OIDC_PREFIX}${oidcRes.provider}.${oidcRes.clientId}`)
       if (authToken){
         const token = JSON.parse(authToken)
       if(oidcRes.provider === OIDC_PROVIDER.AUTHING){

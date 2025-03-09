@@ -60,7 +60,7 @@ def lambda_handler(event, context):
         headers = jwt.get_unverified_header(token)
         kid = headers["kid"]
 
-        oidc_info = json.loads(event["headers"].get("Oidc-Info"))
+        oidc_info = json.loads(event["headers"].get("oidc-info"))
         if oidc_info.get("provider") == "authing":
             issuer = f"{oidc_info.get('redirectUri')}/oidc"
             keys_url = f"{oidc_info.get('redirectUri')}/oidc/.well-known/jwks.json"
@@ -96,6 +96,7 @@ def lambda_handler(event, context):
         )
         # reformat claims to align with cognito output
         claims["cognito:groups"] = ",".join(claims["cognito:groups"]) if oidc_info.get("provider") == "cognito" else "Admin"
+        claims["cognito:username"] =  claims["cognito:username"] if oidc_info.get("provider") == "cognito" else f"{oidc_info.get('provider')}-{oidc_info.get('username')}"
         logger.info(claims)
 
         response = generateAllow("me", "*", claims)

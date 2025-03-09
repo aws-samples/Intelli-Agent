@@ -28,13 +28,13 @@ export const refreshAccessToken = async () => {
     method: 'post',
     data: {
       provider: oidc.provider.toLowerCase(),
-    client_id: oidc.client_id,
-    refresh_token: refreshToken,
-    redirect_uri: oidc.redirect_uri
+    clientId: oidc.clientId,
+    refreshToken: refreshToken,
+    redirectUri: oidc.redirectUri
     }
   });
   const { access_token } = response.data;
-  localStorage.setItem(`${OIDC_PREFIX}${oidc.provider}.${oidc.client_id}`, JSON.stringify(response.data))
+  localStorage.setItem(`${OIDC_PREFIX}${oidc.provider}.${oidc.clientId}`, JSON.stringify(response.data))
   return access_token;
 };
 
@@ -82,7 +82,7 @@ export const logout = async () => {
     )
     await signOut({ global: true })
   } else {
-    const redirectUri = JSON.parse(oidc).redirect_uri
+    const redirectUri = JSON.parse(oidc).redirectUri
     const authToken = getCredentialsFromLocalStorage()
     if (!redirectUri || !authToken) return
     axios.get(

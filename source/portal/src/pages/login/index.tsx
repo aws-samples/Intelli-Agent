@@ -342,9 +342,10 @@ const Login: FC = () => {
     localStorage.setItem(
       OIDC_STORAGE,
       JSON.stringify({
+        username,
         provider: currentProvider.value,
-        client_id: currentProvider.clientId,
-        redirect_uri: currentProvider.redirectUri,
+        clientId: currentProvider.clientId,
+        redirectUri: currentProvider.redirectUri,
       }),
     );
     navigate(ROUTES.Home);

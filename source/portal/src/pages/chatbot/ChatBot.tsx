@@ -52,7 +52,7 @@ import {
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';
-import { isValidJson } from 'src/utils/utils';
+import { getCredentials, isValidJson } from 'src/utils/utils';
 
 interface MessageType {
   messageId: string;
@@ -110,8 +110,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     },
   ]);
   const [userMessage, setUserMessage] = useState('');
+
+
   const { lastMessage, sendMessage, readyState } = useWebSocket(
-    `${config?.websocket}?idToken=${auth.user?.id_token}`,
+    `${config?.websocket}?idToken=${getCredentials().id_token}`,
     {
       onOpen: () => console.log('opened'),
       shouldReconnect: () => true,

@@ -2,20 +2,13 @@ import axios from 'axios';
 import { useContext } from 'react';
 import ConfigContext, { Config } from 'src/context/config-context';
 import { OIDC_PROVIDER, OIDC_STORAGE } from 'src/utils/const';
-import { alertMsg } from 'src/utils/utils';
+import { alertMsg, getCredentials } from 'src/utils/utils';
 
-const getToken = (oidcProvider?: string, oidcClientId?: string) => {
-  const oidcStorage = localStorage.getItem(`oidc.${oidcProvider}.${oidcClientId}`);
-  if (!oidcStorage) {
-    return null;
-  }
-  return JSON.parse(oidcStorage).access_token;
-}
 
 const useAxiosRequest = () => {
   const config = useContext(ConfigContext);
-  const oidcStorage = JSON.parse(localStorage.getItem(OIDC_STORAGE) || '')
-  const token = getToken(oidcStorage?.provider, oidcStorage?.client_id);
+  
+  const token = getCredentials().access_token;
   const sendRequest = async ({
     url = '',
     method = 'get',
@@ -58,8 +51,8 @@ const genHeaderOidcInfo =(config: Config | null)=>{
     case OIDC_PROVIDER.AUTHING:
       return JSON.stringify({
         provider: oidc?.provider,
-        clientId: oidc?.client_id,
-        redirectUri: oidc?.redirect_uri,
+        clientId: oidc?.clientId,
+        redirectUri: oidc?.redirectUri,
       })
     default:
       return JSON.stringify({
