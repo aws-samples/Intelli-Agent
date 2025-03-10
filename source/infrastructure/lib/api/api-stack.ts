@@ -118,9 +118,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
             if (event.RequestType === 'Create' || event.RequestType === 'Update') {
               try {
                 // Wait for 20 seconds
-                console.log('Waiting started')
                 await new Promise(resolve => setTimeout(resolve, 20000));
-                console.log('Waiting ended')
                 return {
                   Status: 'SUCCESS',
                   PhysicalResourceId: event.RequestId,
