@@ -138,6 +138,25 @@ def get_aws_auth():
     return aws_auth
 
 
+def update_etl_object_table(processing_params: ProcessingParameters, status: str, detail: str = ""):
+    """
+    Update the etl object table with the processing parameters.
+
+    Args:
+        processing_params (ProcessingParameters): The processing parameters.
+    """
+    input_body = {
+        "s3Path": f"s3://{processing_params.source_bucket_name}/{processing_params.source_object_key}",
+        "s3Bucket": processing_params.source_bucket_name,
+        "s3Prefix": processing_params.source_object_key,
+        "executionId": table_item_id,
+        "createTime": str(datetime.now(timezone.utc)),
+        "status": status,
+        "detail": detail,
+    }
+    etl_object_table.put_item(Item=input_body)
+
+
 class S3FileIterator:
     def __init__(
         self, bucket: str, prefix: str, supported_file_types: List[str] = []
@@ -146,23 +165,6 @@ class S3FileIterator:
         self.prefix = prefix
         self.supported_file_types = supported_file_types
         self.paginator = s3_client.get_paginator("list_objects_v2")
-
-    def update_etl_object_table(self, processing_params: ProcessingParameters):
-        """
-        Update the etl object table with the processing parameters.
-
-        Args:
-            processing_params (ProcessingParameters): The processing parameters.
-        """
-        input_body = {
-            "s3Path": f"s3://{processing_params.source_bucket_name}/{processing_params.source_object_key}",
-            "s3Bucket": processing_params.source_bucket_name,
-            "s3Prefix": processing_params.source_object_key,
-            "executionId": table_item_id,
-            "createTime": str(datetime.now(timezone.utc)),
-            "status": "RUNNING",
-        }
-        etl_object_table.put_item(Item=input_body)
 
     def iterate_s3_files(self, extract_content=True) -> Generator:
         current_indice = 0
@@ -202,7 +204,7 @@ class S3FileIterator:
                         file_type=file_type,
                     )
 
-                    self.update_etl_object_table(processing_params)
+                    update_etl_object_table(processing_params, "RUNNING")
 
                     yield processing_params
 
@@ -505,24 +507,15 @@ def ingestion_pipeline(
 
                 if not extract_only:
                     ingestion_worker.aos_ingestion(batch)
+            update_etl_object_table(processing_params, "COMPLETED")
         except Exception as e:
             logger.error(
                 "Error processing object %s: %s",
                 f"{processing_params.source_bucket_name}/{processing_params.source_object_key}",
                 e,
             )
-            input_body = {
-                "s3Path": f"s3://{processing_params.source_bucket_name}/{processing_params.source_object_key}",
-                "s3Bucket": processing_params.source_bucket_name,
-                "s3Prefix": processing_params.source_object_key,
-                "executionId": table_item_id,
-                "createTime": str(datetime.now(timezone.utc)),
-                "status": "FAILED",
-                "detail": str(e),
-            }
+            update_etl_object_table(processing_params, "FAILED", str(e))
             traceback.print_exc()
-        finally:
-            etl_object_table.put_item(Item=input_body)
 
 
 def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
