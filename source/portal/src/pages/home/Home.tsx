@@ -14,14 +14,12 @@ import GetStarted from './comps/GetStarted';
 import MoreResource from './comps/MoreResource';
 import BenefitsFeatures from './comps/BenefitsFeatures';
 import BANNER from 'src/assets/images/banner.jpeg';
-import { useNavigate } from 'react-router-dom';
 import Joyride, { CallBackProps, STATUS, ACTIONS } from 'react-joyride';
 import ConfigContext from 'src/context/config-context';
 import { ROUTES } from 'src/utils/const';
 
 const Home: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [runTour, setRunTour] = useState(false);
   const config = useContext(ConfigContext);
 
