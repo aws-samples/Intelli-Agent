@@ -1,1 +1,0 @@
-https://aws-gcr-solutions-assets.s3.us-east-1.amazonaws.com/emd/wheels/emd-0.6.0%2B0.6.0.mini-py3-none-any.whl

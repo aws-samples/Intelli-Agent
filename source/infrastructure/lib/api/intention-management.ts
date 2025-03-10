@@ -11,9 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Duration } from "aws-cdk-lib";
 import { Runtime, Code } from "aws-cdk-lib/aws-lambda";
-import { JsonSchemaType } from "aws-cdk-lib/aws-apigateway";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 import { join } from "path";

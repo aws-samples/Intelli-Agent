@@ -97,7 +97,6 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
 
     const lambdaLayers = new LambdaLayers(this);
     const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineMainLayer();
-    const modelLayer = lambdaLayers.createModelDeploymentLayer();
 
 
     const openAiKey = new secretsmanager.Secret(this, "OpenAiSecret", {
