@@ -1,12 +1,13 @@
 import copy
 import json
 import logging
-from typing import Optional
+import tempfile
+from pathlib import Path
 
 from langchain.docstore.document import Document
-from langchain.document_loaders.base import BaseLoader
-
-from ..splitter_utils import MarkdownHeaderTextSplitter
+from langchain_community.document_loaders.base import BaseLoader
+from llm_bot_dep.schemas.processing_parameters import ProcessingParameters
+from llm_bot_dep.utils.s3_utils import download_file_from_s3, load_content_from_file
 
 logger = logging.getLogger(__name__)
 
@@ -15,63 +16,55 @@ class CustomJsonLoader(BaseLoader):
     """Load markdown file.
 
     Args:
-        file_content: File content in markdown file.
-
-        encoding: File encoding to use. If `None`, the file will be loaded
-        with the default system encoding.
-
-        autodetect_encoding: Whether to try to autodetect the file encoding
-            if the specified encoding fails.
+        file_path: Path to the file to load.
+        s3_uri: S3 URI of the file to load.
     """
 
     def __init__(
         self,
-        aws_path: str,
-        res_bucket: str,
-        encoding: Optional[str] = None,
-        autodetect_encoding: bool = False,
+        file_path: str,
+        s3_uri: str,
     ):
         """Initialize with file path."""
-        self.aws_path = aws_path
-        self.encoding = encoding
-        self.autodetect_encoding = autodetect_encoding
-        self.splitter = MarkdownHeaderTextSplitter(res_bucket)
+        self.file_path = file_path
+        self.s3_uri = s3_uri
 
-    def load(self, content: str):
+    def load(self):
         """Load from file path."""
-        metadata = {
-            "content_type": "paragraph",
-            "heading_hierarchy": {},
-            "figure_list": [],
-            "chunk_id": "$$",
-            "file_path": "",
-            "keywords": [],
-            "summary": "",
-            "file_type": "json",
-        }
-        item = json.loads(content)
-        content = item["content"]
-        source_url = item["source"] if "source" in item else item.get("url", "N/A")
-        source_url = source_url if isinstance(source_url, str) else "N/A"
+        content = load_content_from_file(self.file_path)
 
-        item_metadata = copy.deepcopy(metadata)
-        item_metadata["file_path"] = source_url
-
-        for key, values in item.items():
-            if key not in ["content", "source", "url"]:
-                item_metadata[key] = values
-
-        doc = Document(page_content=content, metadata=item_metadata)
+        metadata = {"file_path": self.s3_uri, "file_type": "json"}
+        doc = Document(page_content=content, metadata=metadata)
 
         return doc
 
 
-def process_json(file_content: str, **kwargs):
-    bucket = kwargs["bucket"]
-    key = kwargs["key"]
-    res_bucket = kwargs["res_bucket"]
-    loader = CustomJsonLoader(aws_path=f"s3://{bucket}/{key}", res_bucket=res_bucket)
-    doc = loader.load(file_content)
-    splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
-    doc_list = splitter.split_text(doc)
+def process_json(processing_params: ProcessingParameters):
+    """Process text content and split into documents.
+    
+    Args:
+        processing_params: ProcessingParameters object containing the bucket and key
+        
+    Returns:
+        List of processed documents.
+    """
+    bucket = processing_params.source_bucket_name
+    key = processing_params.source_object_key
+    suffix = Path(key).suffix
+    
+    # Create a temporary file with .txt suffix
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
+        local_path = temp_file.name
+    
+    # Download the file locally
+    download_file_from_s3(bucket, key, local_path)
+    
+    # Use the loader with the local file path
+    loader = CustomJsonLoader(file_path=local_path, s3_uri=f"s3://{bucket}/{key}")
+    doc = loader.load()
+    doc_list = [doc]
+    
+    # Clean up the temporary file
+    Path(local_path).unlink(missing_ok=True)
+
     return doc_list

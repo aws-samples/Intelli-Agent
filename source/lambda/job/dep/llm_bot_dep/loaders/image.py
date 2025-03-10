@@ -1,20 +1,21 @@
 import base64
 import logging
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
 import boto3
 from langchain.docstore.document import Document
-from langchain.document_loaders.base import BaseLoader
-from llm_bot_dep.figure_llm import (
-    figureUnderstand,
-    load_content_from_s3,
-    upload_image_to_s3,
-)
+from langchain_community.document_loaders.base import BaseLoader
+from llm_bot_dep.figure_llm import figureUnderstand
+from llm_bot_dep.schemas.processing_parameters import ProcessingParameters
 from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
-from llm_bot_dep.utils.s3_utils import put_object_to_s3
+from llm_bot_dep.utils.s3_utils import (
+    download_file_from_s3,
+    parse_s3_uri,
+    put_object_to_s3,
+)
 
-bedrock_client = boto3.client("bedrock-runtime")
 logger = logging.getLogger(__name__)
 
 
@@ -23,24 +24,23 @@ class CustomImageLoader(BaseLoader):
 
     def __init__(
         self,
-        aws_path: str,
-        file_type: str,
+        file_path: str,
+        s3_uri: str,
     ):
         """Initialize with S3 parameters."""
-        self.aws_path = aws_path
-        self.file_type = file_type
+        self.file_path = file_path
+        self.s3_uri = s3_uri
 
-    def load(self, bucket_name: str, file_name: str) -> Document:
+    def load(self, image_result_bucket_name: str) -> Document:
         """Load directly from S3."""
-        # Parse bucket and key from aws_path
-        # aws_path format: s3://bucket-name/path/to/key
-        aws_path = self.aws_path.replace("s3://", "")
-        path_parts = aws_path.split("/", 1)
-        s3_bucket = path_parts[0]
-        s3_key = path_parts[1]
+        # Parse bucket and key from s3_uri
+        s3_bucket, object_key = parse_s3_uri(self.s3_uri)
+        file_name = Path(object_key).stem
+        file_type = Path(object_key).suffix[1:]
 
-        # Read image from S3
-        image_bytes = load_content_from_s3(s3_bucket, s3_key).encode("utf-8")
+        # Read image from file_path
+        with open(self.file_path, "rb") as image_file:
+            image_bytes = image_file.read()
         encoded_image = base64.b64encode(image_bytes).decode("utf-8")
 
         # Initialize figureUnderstand and process image
@@ -56,27 +56,42 @@ class CustomImageLoader(BaseLoader):
             f"{0:05d}-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')}.jpg"
         )
         object_key = f"{file_name}/image/{hour_timestamp}/{image_name}"
-        put_object_to_s3(bucket_name, object_key, image_bytes)
+        put_object_to_s3(image_result_bucket_name, object_key, image_bytes)
         understanding = understanding.replace(
             "<link>0.jpg</link>", f"<link>{object_key}</link>"
         )
         logger.info("Generated understanding: %s", understanding)
-        metadata = {"file_path": self.aws_path, "file_type": self.file_type}
+        metadata = {"file_path": self.s3_uri, "file_type": file_type}
 
         return Document(page_content=understanding, metadata=metadata)
 
 
-def process_image(**kwargs):
-    bucket_name = kwargs["bucket"]
-    key = kwargs["key"]
-    portal_bucket_name = kwargs["portal_bucket_name"]
-    file_type = kwargs["image_file_type"]
-    file_name = Path(key).stem
-    loader = CustomImageLoader(
-        aws_path=f"s3://{bucket_name}/{key}", file_type=file_type
-    )
-    doc = loader.load(portal_bucket_name, file_name)
-    splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
-    doc_list = splitter.split_text(doc)
+def process_image(processing_params: ProcessingParameters):
+    """Process text content and split into documents.
+    
+    Args:
+        processing_params: ProcessingParameters object containing the bucket and key
+        
+    Returns:
+        List of processed documents.
+    """
+    bucket = processing_params.source_bucket_name
+    key = processing_params.source_object_key
+    suffix = Path(key).suffix
+    
+    # Create a temporary file with .txt suffix
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
+        local_path = temp_file.name
+    
+    # Download the file locally
+    download_file_from_s3(bucket, key, local_path)
+    
+    # Use the loader with the local file path
+    loader = CustomImageLoader(file_path=local_path, s3_uri=f"s3://{bucket}/{key}")
+    doc = loader.load(bucket_name=processing_params.portal_bucket_name)
+    doc_list = [doc]
+    # Clean up the temporary file
+    Path(local_path).unlink(missing_ok=True)
 
     return doc_list
+

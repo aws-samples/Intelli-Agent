@@ -1,4 +1,3 @@
-import datetime
 import json
 import logging
 import os
@@ -6,17 +5,18 @@ import re
 import tempfile
 import time
 import uuid
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 import boto3
 import botocore
 from botocore.exceptions import ClientError
 from langchain.docstore.document import Document
-from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
-from llm_bot_dep.storage_utils import _s3_uri_exist
+from llm_bot_dep.schemas.processing_parameters import ProcessingParameters
 from llm_bot_dep.utils.s3_utils import (
     download_file_from_s3,
     load_content_from_s3,
+    parse_s3_uri,
     s3_object_exists,
     upload_file_to_s3,
 )
@@ -175,45 +175,48 @@ class SageMakerPdfLoader:
         }
 
         # Create unique filename for the request
-        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         unique_id = uuid.uuid4().hex
         request_filename = f"data_{timestamp}_{unique_id}.json"
 
-        # Save request data locally
-        with open(request_filename, "w") as json_file:
-            json.dump(request_data, json_file)
+        # Create a temporary file
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix=".json") as temp_file:
+            json.dump(request_data, temp_file)
+            temp_file_path = temp_file.name
 
-        # Upload request to S3
-        request_s3_prefix = f"{ETL_INFERENCE_PREFIX}{request_filename}"
-        upload_file_to_s3(
-            self.result_bucket_name, request_s3_prefix, request_filename
-        )
-        logger.info(
-            f"JSON request uploaded to s3://{self.result_bucket_name}/{request_s3_prefix}"
-        )
+        try:
+            # Upload request to S3
+            request_s3_prefix = f"{ETL_INFERENCE_PREFIX}{request_filename}"
+            upload_file_to_s3(
+                self.result_bucket_name, request_s3_prefix, temp_file_path
+            )
+            logger.info(
+                f"JSON request uploaded to s3://{self.result_bucket_name}/{request_s3_prefix}"
+            )
 
-        # Invoke the endpoint asynchronously
-        # Set RequestTTLSeconds to 5 hours to avoid timeout
-        response = self.sagemaker_runtime_client.invoke_endpoint_async(
-            EndpointName=self.etl_endpoint_name,
-            ContentType="application/json",
-            InputLocation=f"s3://{self.result_bucket_name}/{request_s3_prefix}",
-            RequestTTLSeconds=3600 * 5,
-            InvocationTimeoutSeconds=3600,
-        )
+            # Invoke the endpoint asynchronously
+            # Set RequestTTLSeconds to 5 hours to avoid timeout
+            response = self.sagemaker_runtime_client.invoke_endpoint_async(
+                EndpointName=self.etl_endpoint_name,
+                ContentType="application/json",
+                InputLocation=f"s3://{self.result_bucket_name}/{request_s3_prefix}",
+                RequestTTLSeconds=3600 * 5,
+                InvocationTimeoutSeconds=3600,
+            )
 
-        logger.info(
-            f"Async inference started with ID: {response['InferenceId']}"
-        )
+            logger.info(
+                f"Async inference started with ID: {response['InferenceId']}"
+            )
 
-        # Clean up local request file
-        os.remove(request_filename)
-
-        return {
-            "output_location": response["OutputLocation"],
-            "failure_location": response["FailureLocation"],
-            "inference_id": response["InferenceId"],
-        }
+            return {
+                "output_location": response["OutputLocation"],
+                "failure_location": response["FailureLocation"],
+                "inference_id": response["InferenceId"],
+            }
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
 
     def wait_for_async_inference_results(self, inference_results):
         """
@@ -421,7 +424,6 @@ class SageMakerPdfLoader:
             Exception: If all chunks fail processing
         """
         
-
         # Split the PDF into chunks
         chunks = self.split_pdf(local_pdf_path, temp_dir)
         
@@ -466,8 +468,7 @@ class SageMakerPdfLoader:
         return all_text
         
     
-
-    def process_pdf(self, source_object_key):
+    def process(self, source_object_key):
         """
         Process a PDF file, automatically choosing the appropriate method based on size.
         
@@ -504,7 +505,7 @@ class SageMakerPdfLoader:
                 shutil.rmtree(temp_dir)
 
 
-def process_pdf(**kwargs):
+def process_pdf(processing_params: ProcessingParameters):
     """
     Process a PDF file and extract structured information.
 
@@ -524,25 +525,17 @@ def process_pdf(**kwargs):
     logger.info("Processing PDF file...")
 
     # Extract required parameters
-    source_bucket_name = kwargs.get("bucket") or kwargs.get(
-        "source_bucket_name"
-    )
-    source_object_key = kwargs.get("key") or kwargs.get("source_object_key")
+    source_bucket_name = processing_params.source_bucket_name
+    source_object_key = processing_params.source_object_key
 
     if not source_bucket_name or not source_object_key:
         raise ValueError("Source bucket name and object key are required")
 
     # Extract optional parameters
-    etl_endpoint_name = kwargs.get("etl_model_endpoint") or kwargs.get(
-        "etl_endpoint_name"
-    )
-    result_bucket_name = kwargs.get("res_bucket") or kwargs.get(
-        "result_bucket_name"
-    )
-    portal_bucket_name = kwargs.get("portal_bucket_name")
-    language_code = kwargs.get("document_language") or kwargs.get(
-        "language_code", "zh"
-    )
+    etl_endpoint_name = processing_params.etl_endpoint_name
+    result_bucket_name = processing_params.result_bucket_name
+    portal_bucket_name = processing_params.portal_bucket_name
+    language_code = processing_params.document_language or "zh"
 
     pdf_loader = SageMakerPdfLoader(
         etl_endpoint_name=etl_endpoint_name,
@@ -553,14 +546,13 @@ def process_pdf(**kwargs):
         language_code=language_code,
     )
 
-    content = pdf_loader.process_large_pdf(source_object_key)
+    content = pdf_loader.process(source_object_key)
 
     metadata = {
         "file_path": f"s3://{source_bucket_name}/{source_object_key}",
         "file_type": "pdf",
     }
-    document = Document(page_content=content, metadata=metadata)
+    doc = Document(page_content=content, metadata=metadata)
 
-    # Split document into chunks
-    markdown_splitter = MarkdownHeaderTextSplitter(result_bucket_name)
-    return markdown_splitter.split_text(document)
+    doc_list = [doc]
+    return doc_list

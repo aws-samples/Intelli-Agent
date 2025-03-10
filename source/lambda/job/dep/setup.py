@@ -12,11 +12,11 @@ setup(
     },
     include_package_data=True,  # This tells setuptools to include package_data
     install_requires=[
-        "langchain==0.3.7",
+        "langchain==0.3.19",
         "beautifulsoup4==4.12.2",
         "requests-aws4auth==1.2.3",
         "boto3==1.35.98",
-        "openai==0.28.1",
+        "openai==1.65.5",
         "pyOpenSSL==23.3.0",
         "tenacity==8.2.3",
         "markdownify==0.11.6",

@@ -32,19 +32,18 @@ class ProcessingParameters(BaseModel):
     document_language: str = Field(
         description="The language of the document (e.g., 'en', 'zh')"
     )
+    file_type: str = Field(
+        description="The type of the file (e.g., 'csv', 'xlsx', 'image')"
+    )
     
     # Additional parameters for specific file types
-    csv_row_count: Optional[int] = Field(
-        default=None,
+    csv_rows_per_document: Optional[int] = Field(
+        default=1,
         description="Number of rows to process for CSV files"
     )
-    xlsx_row_count: Optional[int] = Field(
-        default=None,
+    xlsx_rows_per_document: Optional[int] = Field(
+        default=1,
         description="Number of rows to process for Excel files"
-    )
-    image_file_type: Optional[str] = Field(
-        default=None,
-        description="The specific image file type (e.g., 'png', 'jpg')"
     )
     
     class Config:

@@ -1,9 +1,12 @@
 import json
 import logging
+import os
+import tempfile
 from urllib.parse import urlparse
 
 import boto3
 from botocore.exceptions import ClientError
+from langchain_community.document_loaders.helpers import detect_file_encodings
 
 logger = logging.getLogger(__name__)
 
@@ -11,19 +14,61 @@ s3_client = boto3.client("s3")
 secrets_client = boto3.client("secretsmanager")
 
 
-def load_content_from_s3(bucket_name, object_key):
+def load_content_from_file(file_path: str, encoding: str = "utf-8"):
+    """Load content from a file.
+    
+    Args:
+        file_path: The path to the file.
+        encoding: The encoding of the file.
+    """
+    try:
+        with open(file_path, encoding=encoding) as f:
+            text = f.read()
+    except UnicodeDecodeError as e:
+        detected_encodings = detect_file_encodings(file_path)
+        for detected_encoding in detected_encodings:
+            logger.debug(f"Trying encoding: {detected_encoding.encoding}")
+            try:
+                with open(file_path, encoding=detected_encoding.encoding) as f:
+                    text = f.read()
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            raise RuntimeError(f"Error loading {file_path}") from e
+    except Exception as e:
+        raise RuntimeError(f"Error loading {file_path}") from e
+    
+    return text
+
+
+def load_content_from_s3(bucket_name, object_key, encoding="utf-8"):
     """
     Load content from an S3 object.
 
     Args:
         bucket_name (str): Name of the S3 bucket
         object_key (str): S3 object key
+        encoding (str): Initial encoding to try
 
     Returns:
         str: Content of the S3 object
     """
     response = s3_client.get_object(Bucket=bucket_name, Key=object_key)
-    return response["Body"].read().decode("utf-8")
+    content = response["Body"].read()
+    
+    # Try with the provided encoding first
+    try:
+        return content.decode(encoding)
+    except UnicodeDecodeError:
+        # If that fails, try to detect the encoding
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_file_path = temp_file.name
+            temp_file.write(content)
+        
+        decoded_content = load_content_from_file(temp_file_path)
+        os.unlink(temp_file_path)
+        return decoded_content
 
 
 def s3_object_exists(s3_uri):
