@@ -7,3 +7,4 @@ pydantic==2.9.2
 datamodel-code-generator==0.26.2
 langchain-openai==0.3.7
 langchain-deepseek==0.1.2
+openpyxl==3.1.3
