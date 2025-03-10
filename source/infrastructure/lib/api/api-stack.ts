@@ -119,6 +119,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
               try {
                 // Wait for 20 seconds
                 await new Promise(resolve => setTimeout(resolve, 20000));
+                
                 return {
                   Status: 'SUCCESS',
                   PhysicalResourceId: event.RequestId,
