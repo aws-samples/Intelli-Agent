@@ -249,8 +249,7 @@ const Login: FC = () => {
         Auth: {
           Cognito: {
             userPoolId: builtInConfig?.oidcPoolId || '',
-            userPoolClientId: builtInConfig?.oidcClientId || '',
-            
+            userPoolClientId: builtInConfig?.oidcClientId || ''
           },
         },
       });

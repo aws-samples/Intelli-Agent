@@ -241,7 +241,7 @@ const Home: React.FC = () => {
                 variant="h1"
                 actions={
                   <SpaceBetween size="xs" direction="horizontal">
-                    <Button
+                    {/* <Button
                       iconName="add-plus"
                       iconAlign="right"
                       variant="primary"
@@ -250,7 +250,7 @@ const Home: React.FC = () => {
                       }}
                     >
                       {t('common:button.startToChat')}
-                    </Button>
+                    </Button> */}
                     <Button
                       iconName="refresh"
                       variant="normal"
@@ -260,7 +260,7 @@ const Home: React.FC = () => {
                     </Button>
                   </SpaceBetween>
                 }
-                description={t('projectDescription')}
+                // description={t('projectDescription')}
               >
                 <Box variant="h1">{t('common:solutionName')}</Box>
                 {/* <Box fontSize="heading-l">{t('subTitle')}</Box> */}
