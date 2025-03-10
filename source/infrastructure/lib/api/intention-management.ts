@@ -13,7 +13,6 @@
 
 import { Duration } from "aws-cdk-lib";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
-import { JsonSchemaType } from "aws-cdk-lib/aws-apigateway";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 import { join } from "path";
@@ -40,7 +39,6 @@ export interface IntentionApiProps {
   sharedLayer: pyLambda.PythonLayerVersion;
   iamHelper: IAMHelper;
   genMethodOption: any;
-  genRequestModel: any;
 }
 
 export class IntentionApi extends Construct {
@@ -59,7 +57,6 @@ export class IntentionApi extends Construct {
   private readonly domainEndpoint: string;
   private readonly config: SystemConfig;
   private readonly genMethodOption: any;
-  private readonly genRequestModel: any;
 
   constructor(scope: Construct, id: string, props: IntentionApiProps) {
     super(scope, id);
@@ -79,7 +76,6 @@ export class IntentionApi extends Construct {
     this.sharedLayer = props.sharedLayer;
     this.iamHelper = props.iamHelper;
     this.genMethodOption = props.genMethodOption;
-    this.genRequestModel = props.genRequestModel;
 
     const intentionLambda = new PythonFunction(scope, "IntentionLambda", {
       runtime: Runtime.PYTHON_3_12,
@@ -120,86 +116,15 @@ export class IntentionApi extends Construct {
     const indexScan = apiResourceIntentionManagement.addResource("index-used-scan")
     indexScan.addMethod("POST", lambdaIntentionIntegration, this.genMethodOption(this.api, this.auth, null));
     const presignedUrl = apiResourceIntentionManagement.addResource("execution-presigned-url");
-    presignedUrl.addMethod("POST", lambdaIntentionIntegration, {
-      ...this.genMethodOption(this.api, this.auth, {
-        data: { type: JsonSchemaType.STRING },
-        message: { type: JsonSchemaType.STRING },
-        s3Bucket: { type: JsonSchemaType.STRING },
-        s3Prefix: { type: JsonSchemaType.STRING }
-      }),
-      requestModels: this.genRequestModel(this.api, {
-        "content_type": { "type": JsonSchemaType.STRING },
-        "file_name": { "type": JsonSchemaType.STRING },
-      })
-    })
+    presignedUrl.addMethod("POST", lambdaIntentionIntegration, this.genMethodOption(this.api, this.auth, null));
     const apiResourceDownload = apiResourceIntentionManagement.addResource("download-template");
     apiResourceDownload.addMethod("GET", lambdaIntentionIntegration, this.genMethodOption(this.api, this.auth, null));
 
     const apiResourceIntentionExecution = apiResourceIntentionManagement.addResource("executions");
-    apiResourceIntentionExecution.addMethod("DELETE", lambdaIntentionIntegration, this.genMethodOption(this.api, this.auth, null))
-    apiResourceIntentionExecution.addMethod("POST", lambdaIntentionIntegration, {
-      ...this.genMethodOption(this.api, this.auth, {
-        execution_id: { type: JsonSchemaType.STRING },
-        input_payload: {
-          type: JsonSchemaType.OBJECT,
-          properties: {
-            tableItemId: { type: JsonSchemaType.STRING },
-            chatbotId: { type: JsonSchemaType.STRING },
-            groupName: { type: JsonSchemaType.STRING },
-            index: { type: JsonSchemaType.STRING },
-            model: { type: JsonSchemaType.STRING },
-            fieldName: { type: JsonSchemaType.STRING }
-          }
-        },
-        result: { type: JsonSchemaType.STRING }
-      }),
-      requestModels: this.genRequestModel(this.api, {
-        "chatbotId": { "type": JsonSchemaType.STRING },
-        "index": { "type": JsonSchemaType.STRING },
-        "model": { "type": JsonSchemaType.STRING },
-        "s3Bucket": { "type": JsonSchemaType.STRING },
-        "s3Prefix": { "type": JsonSchemaType.STRING }
-      })
-    });
+    apiResourceIntentionExecution.addMethod("DELETE", lambdaIntentionIntegration, this.genMethodOption(this.api, this.auth, null));
+    apiResourceIntentionExecution.addMethod("POST", lambdaIntentionIntegration, this.genMethodOption(this.api, this.auth, null));
     apiResourceIntentionExecution.addMethod("GET", lambdaIntentionIntegration, {
-      ...this.genMethodOption(this.api, this.auth, {
-        Items: {
-          type: JsonSchemaType.ARRAY, items: {
-            type: JsonSchemaType.OBJECT,
-            properties: {
-              model: { type: JsonSchemaType.STRING },
-              executionStatus: { type: JsonSchemaType.STRING },
-              index: { type: JsonSchemaType.STRING },
-              fileName: { type: JsonSchemaType.STRING },
-              createTime: { type: JsonSchemaType.STRING },
-              createBy: { type: JsonSchemaType.STRING },
-              executionId: { type: JsonSchemaType.STRING },
-              chatbotId: { type: JsonSchemaType.STRING },
-              details: { type: JsonSchemaType.STRING },
-              tag: { type: JsonSchemaType.STRING },
-            },
-            required: ['model',
-              'executionStatus',
-              'index',
-              'fileName',
-              'createTime',
-              'createBy',
-              'executionId',
-              'chatbotId',
-              'details',
-              'tag'],
-          }
-        },
-        Count: { type: JsonSchemaType.INTEGER },
-        Config: {
-          type: JsonSchemaType.OBJECT,
-          properties: {
-            MaxItems: { type: JsonSchemaType.INTEGER },
-            PageSize: { type: JsonSchemaType.INTEGER },
-            StartingToken: { type: JsonSchemaType.NULL }
-          }
-        }
-      }),
+      ...this.genMethodOption(this.api, this.auth, null),
       requestParameters: {
         'method.request.querystring.max_items': false,
         'method.request.querystring.page_size': false
@@ -210,33 +135,7 @@ export class IntentionApi extends Construct {
       "GET",
       lambdaIntentionIntegration,
       {
-        ...this.genMethodOption(this.api, this.auth, {
-          Items: {
-            type: JsonSchemaType.ARRAY,
-            items: {
-              type: JsonSchemaType.OBJECT,
-              properties: {
-                s3Path: { type: JsonSchemaType.STRING },
-                s3Prefix: { type: JsonSchemaType.STRING },
-                createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'                
-                status: { type: JsonSchemaType.STRING },
-                QAList: {
-                  type: JsonSchemaType.ARRAY,
-                  items: {
-                    type: JsonSchemaType.OBJECT,
-                    properties: {
-                      question: { type: JsonSchemaType.STRING },
-                      intention: { type: JsonSchemaType.STRING },
-                      kwargs: { type: JsonSchemaType.STRING },
-                    }
-                  }
-                }
-              },
-              required: ['s3Path', 's3Prefix', 'createTime', 'status', 'executionId'],
-            }
-          },
-          Count: { type: JsonSchemaType.INTEGER }
-        }),
+        ...this.genMethodOption(this.api, this.auth, null),
         requestParameters: {
           'method.request.path.intentionId': true
         },
