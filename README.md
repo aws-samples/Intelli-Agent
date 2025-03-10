@@ -445,66 +445,6 @@ Documents of various types are first converted to Markdown format and then split
 
 To inject intent data into your system, follow these steps:
 
-### Step-by-Step Guide to Inject Intent Data
-
-1. **Obtain JWT Token:**
-   - Refer to the documentation at [docs/auth.md](docs/auth.md) to understand how to obtain a JWT token.
-   - Use Postman or a similar tool for this process.
-
-2. **Injection Using ETL API:**
-   - Use the schema specified in [docs/ETL_API_SCHEMA.md](docs/ETL_API_SCHEMA.md) for intent data injection.
-   - Below is a sample JSON structure that you can use to inject intent data. Replace the placeholders with your specific S3 bucket and file details:
-
-   ```json
-   {
-       "s3Bucket": "your-bucket-name",
-       "s3Prefix": "s3path/default-intent.jsonl",
-       "offline": "true",
-       "qaEnhance": "false",
-       "workspaceId": "default-intent",
-       "operationType": "create",
-       "documentLanguage": "zh",
-       "indexType": "qq"
-   }
-   ```
-
-3. **Data Injection Format:**
-   - Use the following JSON format for injecting individual intent data:
-
-   ```json
-   {"question": "Hello", "answer": {"intent": "chat"}}
-   ```
-
-   - Replace `"Hello"` with the actual question text.
-
-
-### How to Update Resources Used by ETL
-
-The current solution is undergoing continuous updates, requiring manual updates for the document parsing component.
-
-1. [Optional] Update Document Parsing Model Endpoint
-
-```bash
-# Input a new ETL tag when executing sh build.sh
-cd source/script
-sh build.sh -b <S3 bucket name> -i <ETL model name> -t <new ETL tag name> -r <AWS region>
-
-# Input a new ETL tag when executing cdk deploy to trigger ETL endpoint update
-npx cdk deploy --rollback true --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your new ETL tag name> --require-approval never
-```
-
-2. Manually Update ETL Dependencies' whl Package
-
-
-First, confirm the path corresponding to `--extra-py-files` in your ETL Job.
-
-![Glue S3 bucket](docs/images/glue-s3-bucket.png)
-
-Next, upload `source/lambda/job/dep/dist/llm_bot_dep-0.1.0-py3-none-any.whl` to the location where Glue dependencies are stored.
-
-```bash
-aws s3 cp source/lambda/job/dep/dist/llm_bot_dep-0.1.0-py3-none-any.whl s3://<Your Glue job bucket>/llm_bot_dep-0.1.0-py3-none-any.whl
-```
 
 
 ## Testing

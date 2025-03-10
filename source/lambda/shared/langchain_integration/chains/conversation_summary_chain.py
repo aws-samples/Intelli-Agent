@@ -29,7 +29,8 @@ from langchain.prompts import (
 from ..models.model_config import (
     BEDROCK_MODEL_CONFIGS,
     OPENAI_MODEL_CONFIGS,
-    QWEN25_MODEL_CONFIGS
+    QWEN25_MODEL_CONFIGS,
+    SILICONFLOW_DEEPSEEK_MODEL_CONFIGS
 )
 from ...utils.prompt_utils import get_prompt_template
 from ...utils.logger_utils import get_logger, print_llm_messages
@@ -156,9 +157,11 @@ class ConversationSummaryBaseChain(LLMChain):
         return chain
 
 
-ConversationSummaryBaseChain.create_for_chains(BEDROCK_MODEL_CONFIGS,LLMTaskType.CONVERSATION_SUMMARY_TYPE)
-ConversationSummaryBaseChain.create_for_chains(OPENAI_MODEL_CONFIGS,LLMTaskType.CONVERSATION_SUMMARY_TYPE)
-ConversationSummaryBaseChain.create_for_chains(QWEN25_MODEL_CONFIGS,LLMTaskType.CONVERSATION_SUMMARY_TYPE)
+ConversationSummaryBaseChain.create_for_chains(BEDROCK_MODEL_CONFIGS, LLMTaskType.CONVERSATION_SUMMARY_TYPE)
+ConversationSummaryBaseChain.create_for_chains(OPENAI_MODEL_CONFIGS, LLMTaskType.CONVERSATION_SUMMARY_TYPE)
+ConversationSummaryBaseChain.create_for_chains(QWEN25_MODEL_CONFIGS, LLMTaskType.CONVERSATION_SUMMARY_TYPE)
+ConversationSummaryBaseChain.create_for_chains(SILICONFLOW_DEEPSEEK_MODEL_CONFIGS, LLMTaskType.CONVERSATION_SUMMARY_TYPE)
+
 
 # class Internlm2Chat20BConversationSummaryChain(Internlm2Chat7BChatChain):
 #     model_id = LLMModelType.INTERNLM2_CHAT_20B

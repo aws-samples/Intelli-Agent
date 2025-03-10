@@ -9,3 +9,5 @@ markdownify
 flask
 gevent
 GPUtil
+openai>=1.0.0
+requests

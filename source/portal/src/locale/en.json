@@ -183,14 +183,15 @@
     "referenceDocuments": "Reference Documents",
     "selectADocumentToPreview": "Select a document to preview its content",
     "architecture": "Architecture",
-    "modelCnt":"Models",
-    "docCnt":"Documents",
-    "botCnt":"Bots",
-    "sessionCnt":"Sessions",
+    "modelCnt": "Models",
+    "docCnt": "Documents",
+    "botCnt": "Bots",
+    "sessionCnt": "Sessions",
     "button": {
       "login": "Log in to Multi-modal Enterprise Knowledge Base in Manufacturing",
       "reload": "Reload",
       "send": "Send",
+      "stop": "Stop",
       "modelSettings": "Model Settings",
       "cancel": "Cancel",
       "confirm": "Confirm",
@@ -245,7 +246,11 @@
       "repeatedIndexName": "The index is duplicated with a previous entry, please modify it",
       "repeatedIndex": "The index name is already in use. Please choose a different name",
       "requireApiEndpoint": "API endpoint is required",
-      "requireApiModelName": "API model name is required"
+      "requireApiModelName": "API model name is required",
+      "noStartWithUnderscoreOrDash": "Name cannot start with underscore or dash",
+      "uppercaseNotAllowed": "Name cannot contain uppercase letters",
+      "invalidCharacters": "Name contains invalid characters",
+      "onlyStandardEnglishAllowed": "Name can only contain English lowercase letters, numbers, underscores, dashes, and periods"
     },
     "tour": {
       "home": "Deploying this solution using the default parameters will build the environment in Amazon Web Services.",

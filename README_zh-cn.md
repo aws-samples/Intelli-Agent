@@ -109,7 +109,7 @@ Intelli-Agent 旨在以最小的开销和最大的效率帮助开发人员快速
 
 ### 灵活的模式选项
 
-下图是基于 [LangGraph](https://langchain-ai.github.io/langgraph/) 生成的在线逻辑。第一个节点是 **query_preprocess_lambda**，它处理聊天历史记录。然后用户可以从三种模式中选择：聊天模式（chat）、检索生成模式（rag）和代理模式（agent）。**聊天模式（chat）** 让您可以直接与不同的 LLM（如 Anthropic Claude 3）进行交互。**检索生成模式（rag）** 将检索与当前查询相关的内容并让 LLM 回答。**代理模式（agent）** 是最复杂的模式，能够处理复杂的业务场景。根据 **intention_detection_lambda** 提供的最相关意图和 **query_preprocess_lambda** 提供的聊天历史记录，**agent_lambda** 将决定使用哪些工具以及这些信息是否足以回答查询。**parse_tool_calling** 节点将解析 **agent_lambda** 的输出：
+下图是基于 [LangGraph](https://langchain-ai.github.io/langgraph/) 生成的在线逻辑。第一个节点是 **query_preprocess_lambda**，它处理聊天历史记录。用户在会话页面开启或关闭**只使用RAG**开关：**开启只使用RAG** 将检索与当前查询相关的内容并让 LLM 回答。**关闭只使用RAG** 会根据 **intention_detection_lambda** 提供的最相关意图和 **query_preprocess_lambda** 提供的聊天历史记录，**agent_lambda** 将决定使用哪些工具以及这些信息是否足以回答查询。**parse_tool_calling** 节点将解析 **agent_lambda** 的输出：
 
 * 如果 **agent_lambda** 从工具格式的角度选择了错误的工具，那么会通过 **invalid_tool_calling** 进行重新思考。
 * 如果 **agent_lambda** 选择了有效工具，那么会通过 **tool_execute_lambda** 执行该工具。然后，**agent_lambda** 将决定运行结果是否足以回答查询。
@@ -126,9 +126,8 @@ flowchart TD
         tools_execution["tools_execution"]
   end
     _start_["_start_"] --> query_preprocess["query_preprocess"]
-    query_preprocess == chat mode ==> llm_direct_results_generation["llm_direct_results_generation"]
-    query_preprocess == rag mode ==> all_knowledge_retrieve["all_knowledge_retrieve"]
-    query_preprocess == agent mode ==> intention_detection["intention_detection"]
+    query_preprocess == use_rag_only enabled ==> all_knowledge_retrieve["all_knowledge_retrieve"]
+    query_preprocess == use_rag_only disabled ==> intention_detection["intention_detection"]
     all_knowledge_retrieve --> llm_rag_results_generation["llm_rag_results_generation"]
     intention_detection -- similar query found --> matched_query_return["matched_query_return"]
     intention_detection -- intention detected --> tools_choose_and_results_generation
@@ -137,7 +136,6 @@ flowchart TD
     results_evaluation -. valid tool calling .-> tools_execution
     results_evaluation -. no need tool calling .-> final_results_preparation["final_results_preparation"]
     tools_execution --> tools_choose_and_results_generation
-    llm_direct_results_generation --> _end_["_end_"]
     llm_rag_results_generation --> _end_
     matched_query_return --> final_results_preparation
     final_results_preparation --> _end_
@@ -145,7 +143,6 @@ flowchart TD
      results_evaluation:::process
      tools_execution:::process
      query_preprocess:::process
-     llm_direct_results_generation:::process
      all_knowledge_retrieve:::process
      intention_detection:::process
      llm_rag_results_generation:::process

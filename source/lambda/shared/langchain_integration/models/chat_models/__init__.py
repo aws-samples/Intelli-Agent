@@ -7,6 +7,10 @@ from typing import Union,Dict
 from ..model_config import ModelConfig
 from .. import ModelBase 
 
+from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
+from langchain_core.messages import BaseMessage,BaseMessageChunk
+from typing import Iterator,Union
+
 
 class ModeMixins:
     @staticmethod
@@ -51,6 +55,7 @@ class ChatModelBase(ModeMixins, ModelBase):
             (cls,),
             {
                 "model_id": model_id,
+                "model": config.model,
                 "default_model_kwargs": config.default_model_kwargs,
                 "enable_any_tool_choice": config.enable_any_tool_choice,
                 "enable_prefill": config.enable_prefill,
@@ -98,4 +103,73 @@ MODEL_PROVIDER_LOAD_FN_MAP = {
     ModelProvider.EMD: _import_emd_models,
     ModelProvider.SAGEMAKER: _import_sagemaker_models,
 }
+
+
+
+class ReasonModelResult:
+    def __init__(self,
+                 ai_message:BaseMessage,
+                 think_start_tag="<think>",
+                 think_end_tag="</think>",
+                 reasoning_content_key="reasoning_content"
+        ):
+        self.ai_message = ai_message
+        self.content = ai_message.content
+        self.think_start_tag = think_start_tag
+        self.think_end_tag = think_end_tag
+        self.reasoning_content = ai_message.additional_kwargs.get(reasoning_content_key,"")
+    
+    def __str__(self):
+        return f"{self.think_start_tag}{self.reasoning_content}{self.think_end_tag}{self.content}"
+
+class ReasonModelStreamResult:
+    def __init__(
+        self,
+        message_stream: Iterator[BaseMessageChunk],
+        think_start_tag="<think>",
+        think_end_tag="</think>\n",
+        reasoning_content_key="reasoning_content"
+    ):
+        self.message_stream = message_stream
+        self.think_start_tag = think_start_tag
+        self.think_end_tag = think_end_tag
+        self.reasoning_content_key = reasoning_content_key
+        self.think_stream = self.create_think_stream(message_stream)
+        self.content_stream = self.create_content_stream(message_stream)
+        self.new_stream = None
+    def create_think_stream(self,message_stream: Iterator[BaseMessageChunk]):
+        think_start_flag = False
+        for message in message_stream:
+            reasoning_content = message.additional_kwargs.get(
+                self.reasoning_content_key,
+                None
+            )
+            if reasoning_content is None and think_start_flag:
+                return
+            if reasoning_content is not None:
+                if not think_start_flag:
+                    think_start_flag = True
+                yield reasoning_content
+    def create_content_stream(self, message_stream: Iterator[BaseMessageChunk]):
+        for message in message_stream:
+            yield message.content
+    def generate_stream(self,message_stream: Iterator[BaseMessageChunk]):
+        think_start_flag = False
+        for message in message_stream:
+            reasoning_content = message.additional_kwargs.get(self.reasoning_content_key, None)
+            if reasoning_content is not None:
+                if not think_start_flag:
+                    think_start_flag = True
+                    yield self.think_start_tag
+                yield reasoning_content
+                continue
+            if reasoning_content is None and think_start_flag:
+                think_start_flag = False
+                yield self.think_end_tag
+            yield message.content
+    def __iter__(self):
+        if self.new_stream is not None:
+            yield from self.new_stream
+        else:
+            yield from self.generate_stream(self.message_stream)
 

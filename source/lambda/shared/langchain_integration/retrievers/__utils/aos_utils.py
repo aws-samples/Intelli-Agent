@@ -60,6 +60,19 @@ class LLMBotOpenSearchClient:
             verify_certs=True,
             connection_class=RequestsHttpConnection,
         )
+        # self.client = OpenSearch(
+        #     hosts=[
+        #         {
+        #             "host": "localhost",
+        #             "port": 8443,
+        #         }
+        #     ],
+        #     http_auth=auth if auth is not None else awsauth,
+        #     use_ssl=True,
+        #     verify_certs=False,
+        #     ssl_show_warn=False,
+        #     connection_class=RequestsHttpConnection,
+        # )
         self.query_match = {
             "knn": self._build_knn_search_query,
             "exact": self._build_exactly_match_query,

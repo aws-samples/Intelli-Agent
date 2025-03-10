@@ -1,4 +1,6 @@
 import base64
+import importlib.resources
+import importlib.resources
 import io
 import json
 import logging
@@ -43,16 +45,36 @@ DESCRIPTION_PROMPT = """
 请将你的描述写在<output></output>xml标签之间。
 """
 
-MERMAID_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "prompt/mermaid.json")
-FIGURE_CLASSIFICATION_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "prompt/figure_classification.txt")
-MERMAID_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "prompt/mermaid_template.txt")
-
 # Add minimum size threshold constants
 MIN_WIDTH = 50  # minimum width in pixels
 MIN_HEIGHT = 50  # minimum height in pixels
 
 logger = logging.getLogger(__name__)
 s3_client = boto3.client("s3")
+
+
+def load_prompt_file(file_path, is_json=False):
+    """Load a prompt file from package resources or file system.
+
+    Args:
+        file_path (str): Path to the prompt file relative to the package
+        is_json (bool): Whether to parse the file as JSON
+
+    Returns:
+        The content of the prompt file, parsed as JSON if is_json=True
+    """
+    try:
+        with importlib.resources.files("llm_bot_dep.prompt").joinpath(
+            file_path
+        ).open("r") as file:
+            if is_json:
+                data = json.load(file)
+            else:
+                data = file.read()
+        return data
+    except (ImportError, ModuleNotFoundError, FileNotFoundError):
+        # Fallback for older Python versions or direct file access
+        raise FileNotFoundError(f"Prompt file not found: {file_path}")
 
 
 class figureUnderstand:
@@ -65,7 +87,11 @@ class figureUnderstand:
     def __init__(self):
         """Initialize the figureUnderstand class with Bedrock runtime client."""
         self.bedrock_runtime = boto3.client(service_name="bedrock-runtime")
-        self.mermaid_prompt = json.load(open(MERMAID_PROMPT_PATH, "r"))
+        self.mermaid_prompt = load_prompt_file("mermaid.json", is_json=True)
+        self.figure_classification_prompt = load_prompt_file(
+            "figure_classification.txt"
+        )
+        self.mermaid_template_prompt = load_prompt_file("mermaid_template.txt")
 
     def invoke_llm(self, img, prompt, prefix="<output>", stop="</output>"):
         """Invoke the LLM model with an image and prompt.
@@ -86,8 +112,26 @@ class figureUnderstand:
             # If img is a PIL Image, convert it to base64
             image_stream = io.BytesIO()
             img.save(image_stream, format="JPEG")
-            base64_encoded = base64.b64encode(image_stream.getvalue()).decode("utf-8")
+            base64_encoded = base64.b64encode(image_stream.getvalue()).decode(
+                "utf-8"
+            )
+            base64_encoded = base64.b64encode(image_stream.getvalue()).decode(
+                "utf-8"
+            )
 
+        if self.model_provider == "bedrock":
+            return self._invoke_bedrock(base64_encoded, prompt, prefix, stop)
+        elif self.model_provider in ["openai", "siliconflow"]:
+            return self._invoke_openai_compatible(
+                base64_encoded, prompt, prefix, stop
+            )
+        else:
+            raise ValueError(
+                f"Unsupported model provider: {self.model_provider}"
+            )
+
+    def _invoke_bedrock(self, base64_encoded, prompt, prefix, stop):
+        """Invoke Bedrock models"""
         messages = [
             {
                 "role": "user",
@@ -105,7 +149,7 @@ class figureUnderstand:
             },
             {"role": "assistant", "content": prefix},
         ]
-        model_id = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+        model_id = "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
         body = json.dumps(
             {
                 "anthropic_version": "bedrock-2023-05-31",
@@ -114,15 +158,15 @@ class figureUnderstand:
                 "stop_sequences": [stop],
             }
         )
-        response = self.bedrock_runtime.invoke_model(body=body, modelId=model_id)
+        response = self.bedrock_runtime.invoke_model(
+            body=body, modelId=model_id
+        )
         response_body = json.loads(response.get("body").read())
         result = prefix + response_body["content"][0]["text"] + stop
         return result
 
     def get_classification(self, img):
-        with open(FIGURE_CLASSIFICATION_PROMPT_PATH) as f:
-            figure_classification_prompt = f.read()
-        output = self.invoke_llm(img, figure_classification_prompt)
+        output = self.invoke_llm(img, self.figure_classification_prompt)
         return output
 
     def get_chart(self, img, context, tag):
@@ -137,13 +181,16 @@ class figureUnderstand:
         return f"![{output}]()"
 
     def get_mermaid(self, img, classification):
-        with open(MERMAID_TEMPLATE_PATH) as f:
-            mermaid_prompt = f.read()
-        prompt = mermaid_prompt.format(
+        prompt = self.mermaid_template_prompt.format(
             diagram_type=classification,
             diagram_example=self.mermaid_prompt[classification],
         )
-        output = self.invoke_llm(img, prompt, prefix="<description>", stop="</mermaid>")
+        output = self.invoke_llm(
+            img, prompt, prefix="<description>", stop="</mermaid>"
+        )
+        output = self.invoke_llm(
+            img, prompt, prefix="<description>", stop="</mermaid>"
+        )
         return output
 
     def parse_result(self, llm_output, tag):
@@ -170,9 +217,8 @@ class figureUnderstand:
         else:
             description = self.get_description(img, context, tag)
             description = self.parse_result(description, "output")
-            output = (
-                f"\n<figure>\n<type>image</type>\n<link>{s3_link}</link>\n<desp>\n{description}\n</desp>\n</figure>\n"
-            )
+            output = f"\n<figure>\n<type>image</type>\n<link>{s3_link}</link>\n<desp>\n{description}\n</desp>\n</figure>\n"
+            output = f"\n<figure>\n<type>image</type>\n<link>{s3_link}</link>\n<desp>\n{description}\n</desp>\n</figure>\n"
         return output
 
 
@@ -220,7 +266,12 @@ def upload_image_to_s3(
         is_bytes: Whether image_data contains binary data instead of a file path
     """
     hour_timestamp = datetime.now().strftime("%Y-%m-%d-%H")
-    image_name = f"{idx:05d}-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')}.jpg"
+    image_name = (
+        f"{idx:05d}-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')}.jpg"
+    )
+    image_name = (
+        f"{idx:05d}-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')}.jpg"
+    )
     object_key = f"{file_name}/{splitting_type}/{hour_timestamp}/{image_name}"
 
     if is_bytes:
@@ -259,6 +310,10 @@ def process_single_image(
     file_name: str,
     idx: int,
     s3_link: str = None,
+    model_provider: str = "bedrock",
+    model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0",
+    api_url: str = None,
+    api_key: str = None,
 ) -> str:
     """Process a single image and return its understanding text.
 
@@ -279,25 +334,52 @@ def process_single_image(
     with Image.open(img_path) as img:
         width, height = img.size
         if width < MIN_WIDTH or height < MIN_HEIGHT:
-            logger.warning(f"Image {idx} is too small ({width}x{height}). Skipping processing.")
+            logger.warning(
+                f"Image {idx} is too small ({width}x{height}). Skipping processing."
+            )
+            logger.warning(
+                f"Image {idx} is too small ({width}x{height}). Skipping processing."
+            )
             return None
 
     image_base64 = encode_image_to_base64(img_path)
-    figure_llm = figureUnderstand()
+    figure_llm = figureUnderstand(
+        model_provider=model_provider,
+        model_id=model_id,
+        api_url=api_url,
+        api_key=api_key,
+    )
 
     # Get image understanding
-    understanding = figure_llm.figure_understand(image_base64, context, image_tag, s3_link=f"{idx:05d}.jpg")
+    understanding = figure_llm.figure_understand(
+        image_base64, context, image_tag, s3_link=f"{idx:05d}.jpg"
+    )
+    understanding = figure_llm.figure_understand(
+        image_base64, context, image_tag, s3_link=f"{idx:05d}.jpg"
+    )
 
     # Update S3 link
     if not s3_link:
-        s3_link = upload_image_to_s3(img_path, bucket_name, file_name, "image", idx)
+        s3_link = upload_image_to_s3(
+            img_path, bucket_name, file_name, "image", idx
+        )
+        s3_link = upload_image_to_s3(
+            img_path, bucket_name, file_name, "image", idx
+        )
 
-    understanding = understanding.replace(f"<link>{idx:05d}.jpg</link>", f"<link>{s3_link}</link>")
+    understanding = understanding.replace(
+        f"<link>{idx:05d}.jpg</link>", f"<link>{s3_link}</link>"
+    )
+    understanding = understanding.replace(
+        f"<link>{idx:05d}.jpg</link>", f"<link>{s3_link}</link>"
+    )
 
     return understanding, s3_link
 
 
-def process_markdown_images_with_llm(content: str, bucket_name: str, file_name: str) -> str:
+def process_markdown_images_with_llm(
+    content: str, bucket_name: str, file_name: str
+) -> str:
     """Process all images in markdown content and upload them to S3.
 
     This function:
@@ -321,6 +403,15 @@ def process_markdown_images_with_llm(content: str, bucket_name: str, file_name: 
     result = ""
     # Add mapping to track image paths and their S3 objects
     image_s3_mapping = {}
+    model_provider = kwargs.get("model_provider")
+    model_id = kwargs.get("model_id")
+    api_url = kwargs.get("api_url")
+    api_secret_name = kwargs.get("api_secret_name")
+
+    if api_secret_name:
+        api_key = get_api_key(api_secret_name)
+    else:
+        api_key = None
 
     for idx, match in enumerate(re.finditer(image_pattern, content), 1):
         start, end = match.span()
@@ -336,10 +427,17 @@ def process_markdown_images_with_llm(content: str, bucket_name: str, file_name: 
                 try:
                     local_img_path = download_image_from_url(img_path)
                 except Exception as e:
-                    logger.error(f"Error downloading image from URL {img_path}: {e}")
+                    logger.error(
+                        f"Error downloading image from URL {img_path}: {e}"
+                    )
+                    logger.error(
+                        f"Error downloading image from URL {img_path}: {e}"
+                    )
                     result += match.group(1)
                     last_end = end
                     continue
+            elif img_path.startswith("/tmp/doc_images/"):
+                local_img_path = img_path
             else:
                 logger.error(f"Image path {img_path} is not a URL")
                 result += match.group(1)
@@ -363,6 +461,10 @@ def process_markdown_images_with_llm(content: str, bucket_name: str, file_name: 
                 file_name,
                 idx,
                 s3_link,
+                model_provider,
+                model_id,
+                api_url,
+                api_key,
             )
 
             # If this is a new image path, store its S3 object name

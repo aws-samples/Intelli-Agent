@@ -3,16 +3,25 @@
 # Build the docker image and push it to ECR
 
 # The arguments to this script are the docker file, image name, and the tag for the image.
-dockerfile=$1
-image=$2
-tag=$3  # New argument for the tag
-region=$4
+image=$1
+tag=$2  # New argument for the tag
+region=$3
 
-if [ "$image" = "" ] || [ "$dockerfile" = "" ] || [ "$tag" = "" ] || [ "$region" = "" ]
+if [ "$image" = "" ] || [ "$tag" = "" ] || [ "$region" = "" ]
 then
-    echo "Usage: \$0 <docker-file> <image-name> <tag> <aws-region>"
+    echo "Usage: \$0 <image-name> <tag> <aws-region>"
     exit 1
 fi
+
+# Determine which Dockerfile to use based on region
+if [ "$region" = "cn-north-1" ] || [ "$region" = "cn-northwest-1" ]; then
+    dockerfile="./DockerfileCN"
+else
+    dockerfile="./Dockerfile"
+fi
+
+echo "Using Dockerfile: $dockerfile"
+
 # Get the account number associated with the current IAM credentials
 account=$(aws sts get-caller-identity --query Account --output text)
 
@@ -54,7 +63,7 @@ echo "Building the docker image"
 
 # Get the login command from ECR and execute it directly, check the aws-cn for different partition
 if [ "$(aws sts get-caller-identity --query Arn --output text | cut -d':' -f2)" = "aws-cn" ]; then
-    aws ecr get-login-password --region cn-north-1 | docker login --username AWS --password-stdin 727897471807.dkr.ecr.cn-north-1.amazonaws.com.cn
+    aws ecr get-login-password --region cn-northwest-1 | docker login --username AWS --password-stdin 048912060910.dkr.ecr.cn-northwest-1.amazonaws.com.cn
 else
     aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 763104351884.dkr.ecr.us-east-1.amazonaws.com
 fi

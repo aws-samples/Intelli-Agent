@@ -108,6 +108,7 @@ class StreamMessageType(ConstantBase):
     CHUNK = "CHUNK"
     CONTEXT = "CONTEXT"
     MONITOR = "MONITOR"
+    REASON = "REASON"
 
 
 class ChatbotMode(ConstantBase):
@@ -127,6 +128,8 @@ class ModelProvider(ConstantBase):
     BRCONNECTOR_BEDROCK = "Bedrock API"
     OPENAI = "OpenAI API"
     SAGEMAKER = "SageMaker"
+    SILICONFLOW = "siliconflow"
+
 
 
 class LLMModelType(ConstantBase):
@@ -155,7 +158,13 @@ class LLMModelType(ConstantBase):
     QWEN25_INSTRUCT_72B_AWQ = "Qwen2.5-72B-Instruct-AWQ"
     DEEPSEEK_R1_DISTILL_LLAMA_8B = "DeepSeek-R1-Distill-Llama-8B"
     DEEPSEEK_R1_DISTILL_LLAMA_70B = "DeepSeek-R1-Distill-Llama-70B"
+    DEEPSEEK_R1_DISTILL_QWEN_1d5B = "DeepSeek-R1-Distill-Qwen-1.5B"
+    DEEPSEEK_R1_DISTILL_QWEN_7B = "DeepSeek-R1-Distill-Qwen-7B"
+    DEEPSEEK_R1_DISTILL_QWEN_14B = "DeepSeek-R1-Distill-Qwen-14B"
     DEEPSEEK_R1_DISTILL_QWEN_32B = "DeepSeek-R1-Distill-Qwen-32B"
+    DEEPSEEK_R1 = "DeepSeek-R1"
+    DEEPSEEK_V3 = "DeepSeek-V3"
+
     QWEN15INSTRUCT32B = "qwen1_5-32B-instruct"
     LLAMA3_1_70B_INSTRUCT = "meta.llama3-1-70b-instruct-v1:0"
     LLAMA3_2_90B_INSTRUCT = "us.meta.llama3-2-90b-instruct-v1:0"
@@ -253,3 +262,5 @@ class ContextExtendMethod(ConstantBase):
     NONE = "none"
     WHOLE_DOC = "whole_doc"
     NEIGHBOR = "neighbor"
+class WSConnectionSignal(ConstantBase):
+    STOP = "STOP"

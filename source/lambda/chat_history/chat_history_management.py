@@ -19,13 +19,14 @@ from botocore.paginate import TokenEncoder
 # Configure logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+region_name = os.environ.get("AWS_REGION")
 
 
 @dataclass
 class AwsResources:
     """Centralized AWS resource management"""
 
-    dynamodb = boto3.resource("dynamodb")
+    dynamodb = boto3.resource("dynamodb", region_name=region_name)
     dynamodb_client = boto3.client("dynamodb")
 
     def __post_init__(self):

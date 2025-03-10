@@ -68,6 +68,30 @@ const isValidArn = (arn: string): boolean => {
   return arnPattern.test(arn);
 };
 
+const isValidChatbotName = (name: string): { valid: boolean; message: string } => {
+  // Check if name starts with _ or -
+  if (name.startsWith('_') || name.startsWith('-')) {
+    return { valid: false, message: 'validation.noStartWithUnderscoreOrDash' };
+  }
+
+  // Check for uppercase letters
+  if (/[A-Z]/.test(name)) {
+    return { valid: false, message: 'validation.uppercaseNotAllowed' };
+  }
+
+  // Check for invalid characters
+  if (/[ ,:"*+/\\|?#><]/.test(name)) {
+    return { valid: false, message: 'validation.invalidCharacters' };
+  }
+
+  // Check for non-standard English characters (allows a-z, 0-9, underscore, hyphen, and period)
+  if (!/^[a-z0-9_\-\.]+$/.test(name)) {
+    return { valid: false, message: 'validation.onlyStandardEnglishAllowed' };
+  }
+
+  return { valid: true, message: '' };
+};
+
 const ChatbotManagement: React.FC = () => {
   const { t } = useTranslation();
   const INITIAL_INDEX_LIST: INDEX_TYPE[] = [
@@ -205,7 +229,7 @@ const ChatbotManagement: React.FC = () => {
       setModelOption(tempModels[0]);
       setApiEndpoint('')
       setApiKeyArn('')
-    } 
+    }
   }, [modelType]);
 
   const getChatbotList = async () => {
@@ -308,6 +332,13 @@ const ChatbotManagement: React.FC = () => {
       return;
     }
 
+    // Replace the uppercase validation with the new comprehensive validation
+    const nameValidation = isValidChatbotName(chatbotName);
+    if (!nameValidation.valid) {
+      setChatbotNameError(t(nameValidation.message));
+      return;
+    }
+
     if (!apiEndpoint?.trim() && (modelType?.value === 'Bedrock API' || modelType?.value === 'OpenAI API')) {
       setApiEndpointError(t('validation.requireApiEndpoint'));
       return;
@@ -355,12 +386,12 @@ const ChatbotManagement: React.FC = () => {
           prevIndexList.map((item) => {
             return item.name == indexIsValid.item
               ? {
-                  ...item,
-                  errText:
-                    indexIsValid.reason == 1
-                      ? t('validation.repeatIndex')
-                      : t('validation.indexValid'),
-                }
+                ...item,
+                errText:
+                  indexIsValid.reason == 1
+                    ? t('validation.repeatIndex')
+                    : t('validation.indexValid'),
+              }
               : item;
           }),
         );
@@ -495,7 +526,7 @@ const ChatbotManagement: React.FC = () => {
       ]}
     >
       <ContentLayout>
-      <div style={{marginTop: '25px'}} />
+        <div style={{ marginTop: '25px' }} />
         <Table
           selectionType="single"
           resizableColumns
@@ -506,8 +537,7 @@ const ChatbotManagement: React.FC = () => {
           selectedItems={selectedItems}
           ariaLabels={{
             allItemsSelectionLabel: ({ selectedItems }) =>
-              `${selectedItems.length} ${
-                selectedItems.length === 1 ? t('item') : t('items')
+              `${selectedItems.length} ${selectedItems.length === 1 ? t('item') : t('items')
               } ${t('selected')}`,
           }}
           columnDefinitions={[
@@ -695,7 +725,7 @@ const ChatbotManagement: React.FC = () => {
                 />
               </FormField>
               {modelType.value === 'Bedrock API' ||
-              modelType.value === 'OpenAI API' ? (
+                modelType.value === 'OpenAI API' ? (
                 <SpaceBetween size="xs" direction="vertical">
                   <FormField
                     label={t('modelName')}

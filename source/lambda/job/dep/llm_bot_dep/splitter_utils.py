@@ -16,25 +16,31 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def _make_spacy_pipeline_for_splitting(pipeline: str) -> Any:  # avoid importing spacy
+def _make_spacy_pipeline_for_splitting(
+    pipeline: str,
+) -> Any:  # avoid importing spacy
     try:
         import spacy
     except ImportError:
-        raise ImportError("Spacy is not installed, please install it with `pip install spacy`.")
+        raise ImportError(
+            "Spacy is not installed, please install it with `pip install spacy`."
+        )
     if pipeline == "sentencizer":
         from spacy.lang.en import English
 
-        sentencizer = English()
-        sentencizer.add_pipe("sentencizer")
-    else:
-        sentencizer = spacy.load(pipeline, exclude=["ner", "tagger"])
-    return sentencizer
+#         sentencizer = English()
+#         sentencizer.add_pipe("sentencizer")
+#     else:
+#         sentencizer = spacy.load(pipeline, exclude=["ner", "tagger"])
+#     return sentencizer
 
 
-class NLTKTextSplitter(TextSplitter):
-    """Splitting text using NLTK package."""
+# class NLTKTextSplitter(TextSplitter):
+#     """Splitting text using NLTK package."""
 
-    def __init__(self, separator: str = "\n\n", language: str = "english", **kwargs: Any) -> None:
+    def __init__(
+        self, separator: str = "\n\n", language: str = "english", **kwargs: Any
+    ) -> None:
         """Initialize the NLTK splitter."""
         super().__init__(**kwargs)
         try:
@@ -42,37 +48,42 @@ class NLTKTextSplitter(TextSplitter):
 
             self._tokenizer = sent_tokenize
         except ImportError:
-            raise ImportError("NLTK is not installed, please install it with `pip install nltk`.")
+            raise ImportError(
+                "NLTK is not installed, please install it with `pip install nltk`."
+            )
         self._separator = separator
         self._language = language
 
-    def split_text(self, text: str) -> List[str]:
-        """Split incoming text and return chunks."""
-        # First we naively split the large input into a bunch of smaller ones.
-        splits = self._tokenizer(text, language=self._language)
-        return self._merge_splits(splits, self._separator)
+#     def split_text(self, text: str) -> List[str]:
+#         """Split incoming text and return chunks."""
+#         # First we naively split the large input into a bunch of smaller ones.
+#         splits = self._tokenizer(text, language=self._language)
+#         return self._merge_splits(splits, self._separator)
 
 
-class SpacyTextSplitter(TextSplitter):
-    """Splitting text using Spacy package.
+# class SpacyTextSplitter(TextSplitter):
+#     """Splitting text using Spacy package.
 
 
-    Per default, Spacy's `en_core_web_sm` model is used. For a faster, but
-    potentially less accurate splitting, you can use `pipeline='sentencizer'`.
-    """
+#     Per default, Spacy's `en_core_web_sm` model is used. For a faster, but
+#     potentially less accurate splitting, you can use `pipeline='sentencizer'`.
+#     """
 
     def __init__(
-        self, separator: str = "\n\n", pipeline: str = "en_core_web_sm", **kwargs: Any
+        self,
+        separator: str = "\n\n",
+        pipeline: str = "en_core_web_sm",
+        **kwargs: Any,
     ) -> None:
         """Initialize the spacy text splitter."""
         super().__init__(**kwargs)
         self._tokenizer = _make_spacy_pipeline_for_splitting(pipeline)
         self._separator = separator
 
-    def split_text(self, text: str) -> List[str]:
-        """Split incoming text and return chunks."""
-        splits = (s.text for s in self._tokenizer(text).sents)
-        return self._merge_splits(splits, self._separator)
+#     def split_text(self, text: str) -> List[str]:
+#         """Split incoming text and return chunks."""
+#         splits = (s.text for s in self._tokenizer(text).sents)
+#         return self._merge_splits(splits, self._separator)
 
 
 def find_parent(headers: dict, level: int):
@@ -130,7 +141,16 @@ def find_child(headers: dict, header_id: str):
     level = headers[header_id]["level"]
 
     for id, header in headers.items():
-        if header["level"] == level + 1 and id not in children and header["parent"] == header_id:
+        if (
+            header["level"] == level + 1
+            and id not in children
+            and header["parent"] == header_id
+        ):
+        if (
+            header["level"] == level + 1
+            and id not in children
+            and header["parent"] == header_id
+        ):
             children.append(id)
 
     return children
@@ -138,7 +158,10 @@ def find_child(headers: dict, header_id: str):
 
 def parse_string_to_xml_node(xml_string):
     try:
-        xml_node = etree.fromstring(xml_string.replace("&", "&amp;"))
+        parser = etree.XMLParser(recover=True)
+        xml_node = etree.fromstring(xml_string.replace("&", "&amp;"), parser)
+        parser = etree.XMLParser(recover=True)
+        xml_node = etree.fromstring(xml_string.replace("&", "&amp;"), parser)
         return xml_node
     except etree.XMLSyntaxError as e:
         logger.error(f"Error parsing XML: {e}")
@@ -181,7 +204,12 @@ def extract_headings(md_content: str):
 
     for header_obj in headers:
         headers[header_obj]["child"] = find_child(headers, header_obj)
-        headers[header_obj]["next"] = find_next_with_same_level(headers, header_obj)
+        headers[header_obj]["next"] = find_next_with_same_level(
+            headers, header_obj
+        )
+        headers[header_obj]["next"] = find_next_with_same_level(
+            headers, header_obj
+        )
 
     return headers, id_index_dict
 
@@ -232,7 +260,14 @@ class MarkdownHeaderTextSplitter:
             else:
                 # Move one step to get the next chunk_id
                 same_heading_dict[current_heading] += 1
-                if len(id_index_dict[current_heading]) > same_heading_dict[current_heading]:
+                if (
+                    len(id_index_dict[current_heading])
+                    > same_heading_dict[current_heading]
+                ):
+                if (
+                    len(id_index_dict[current_heading])
+                    > same_heading_dict[current_heading]
+                ):
                     metadata["chunk_id"] = id_index_dict[current_heading][
                         same_heading_dict[current_heading]
                     ]
@@ -240,7 +275,12 @@ class MarkdownHeaderTextSplitter:
                     id_prefix = str(uuid.uuid4())[:8]
                     metadata["chunk_id"] = f"$0-{id_prefix}"
 
-    def _get_current_heading_list(self, current_heading, current_heading_level_map):
+    def _get_current_heading_list(
+        self, current_heading, current_heading_level_map
+    ):
+    def _get_current_heading_list(
+        self, current_heading, current_heading_level_map
+    ):
         try:
             title_symble_count = 0
             for char in current_heading:
@@ -263,9 +303,19 @@ class MarkdownHeaderTextSplitter:
 
     def split_text(self, text: Document) -> List[Document]:
         if self.res_bucket is not None:
-            save_content_to_s3(s3, text, self.res_bucket, SplittingType.BEFORE.value)
+            save_content_to_s3(
+                s3, text, self.res_bucket, SplittingType.BEFORE.value
+            )
+            save_content_to_s3(
+                s3, text, self.res_bucket, SplittingType.BEFORE.value
+            )
         else:
-            logger.warning("No resource bucket is defined, skip saving content into S3 bucket")
+            logger.warning(
+                "No resource bucket is defined, skip saving content into S3 bucket"
+            )
+            logger.warning(
+                "No resource bucket is defined, skip saving content into S3 bucket"
+            )
 
         lines = text.page_content.strip().split("\n")
         chunks = []
@@ -275,7 +325,12 @@ class MarkdownHeaderTextSplitter:
         inside_figure = False
         have_figure = False
         figure_metadata = []
-        heading_hierarchy, id_index_dict = extract_headings(text.page_content.strip())
+        heading_hierarchy, id_index_dict = extract_headings(
+            text.page_content.strip()
+        )
+        heading_hierarchy, id_index_dict = extract_headings(
+            text.page_content.strip()
+        )
         if len(lines) > 0:
             current_heading = lines[0]
 
@@ -299,7 +354,14 @@ class MarkdownHeaderTextSplitter:
 
                     try:
                         self._set_chunk_id(
-                            id_index_dict, current_heading, metadata, same_heading_dict
+                            id_index_dict,
+                            current_heading,
+                            metadata,
+                            same_heading_dict,
+                            id_index_dict,
+                            current_heading,
+                            metadata,
+                            same_heading_dict,
                         )
                     except KeyError:
                         logger.info(
@@ -308,7 +370,12 @@ class MarkdownHeaderTextSplitter:
                         id_prefix = str(uuid.uuid4())[:8]
                         metadata["chunk_id"] = f"$0-{id_prefix}"
                     if metadata["chunk_id"] in heading_hierarchy:
-                        metadata["heading_hierarchy"] = heading_hierarchy[metadata["chunk_id"]]
+                        metadata["heading_hierarchy"] = heading_hierarchy[
+                            metadata["chunk_id"]
+                        ]
+                        metadata["heading_hierarchy"] = heading_hierarchy[
+                            metadata["chunk_id"]
+                        ]
                     page_content = "\n".join(current_chunk_content)
                     metadata["complete_heading"] = current_heading_list
                     if have_figure:
@@ -340,9 +407,12 @@ class MarkdownHeaderTextSplitter:
                 figure_description = xml_node.find(FigureNode.DESCRIPTION.value)
                 figure_value = xml_node.find(FigureNode.VALUE.value)
                 figure_s3_link = xml_node.findtext(FigureNode.LINK.value)
-                chunk_figure_content = etree.tostring(figure_description, encoding="utf-8").decode(
-                    "utf-8"
-                )
+                chunk_figure_content = etree.tostring(
+                    figure_description, encoding="utf-8"
+                ).decode("utf-8")
+                chunk_figure_content = etree.tostring(
+                    figure_description, encoding="utf-8"
+                ).decode("utf-8")
                 if figure_value is not None:
                     chunk_figure_content += "\n" + etree.tostring(
                         figure_value, encoding="utf-8"
@@ -370,13 +440,23 @@ class MarkdownHeaderTextSplitter:
             )
             current_heading = current_heading.replace("#", "").strip()
             try:
-                self._set_chunk_id(id_index_dict, current_heading, metadata, same_heading_dict)
+                self._set_chunk_id(
+                    id_index_dict, current_heading, metadata, same_heading_dict
+                )
+                self._set_chunk_id(
+                    id_index_dict, current_heading, metadata, same_heading_dict
+                )
             except KeyError:
                 logger.info(f"No standard heading found")
                 id_prefix = str(uuid.uuid4())[:8]
                 metadata["chunk_id"] = f"$0-{id_prefix}"
             if metadata["chunk_id"] in heading_hierarchy:
-                metadata["heading_hierarchy"] = heading_hierarchy[metadata["chunk_id"]]
+                metadata["heading_hierarchy"] = heading_hierarchy[
+                    metadata["chunk_id"]
+                ]
+                metadata["heading_hierarchy"] = heading_hierarchy[
+                    metadata["chunk_id"]
+                ]
             page_content = "\n".join(current_chunk_content)
             metadata["complete_heading"] = current_heading_list
             if have_figure:

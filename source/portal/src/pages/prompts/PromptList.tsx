@@ -120,8 +120,8 @@ const PromptList: React.FC = () => {
       const items: string[] = data.chatbot_ids;
       const getChatbots = items.map((item) => {
         return {
-          label: item.toLowerCase(),
-          value: item.toLowerCase(),
+          label: item,
+          value: item,
         };
       });
       setChatbotList(getChatbots);
@@ -141,8 +141,8 @@ const PromptList: React.FC = () => {
         value: selectedItems[0].ModelId,
       });
       setChatbotOption({
-        label: selectedItems[0].ChatbotId.toLowerCase(),
-        value: selectedItems[0].ChatbotId.toLowerCase(),
+        label: selectedItems[0].ChatbotId,
+        value: selectedItems[0].ChatbotId,
       });
     }
     try {
@@ -245,7 +245,7 @@ const PromptList: React.FC = () => {
       ]}
     >
       <ContentLayout>
-        <div style={{marginTop: '25px'}} />
+        <div style={{ marginTop: '25px' }} />
         <Table
           selectionType="single"
           resizableColumns
@@ -256,8 +256,7 @@ const PromptList: React.FC = () => {
           selectedItems={selectedItems}
           ariaLabels={{
             allItemsSelectionLabel: ({ selectedItems }) =>
-              `${selectedItems.length} ${
-                selectedItems.length === 1 ? t('item') : t('items')
+              `${selectedItems.length} ${selectedItems.length === 1 ? t('item') : t('items')
               } ${t('selected')}`,
           }}
           columnDefinitions={[
@@ -467,34 +466,34 @@ const PromptList: React.FC = () => {
                   tabs={
                     currentPrompt?.Prompt
                       ? Object.keys(currentPrompt?.Prompt).map((key) => ({
-                          label: key,
-                          id: key,
-                          content: (
-                            <>
-                              {Object.keys(currentPrompt?.Prompt[key]).map(
-                                (subKey) => (
-                                  <FormField key={subKey} label={subKey}>
-                                    <Textarea
-                                      rows={5}
-                                      placeholder={t(
-                                        'validation.requirePrompt',
-                                      )}
-                                      value={currentPrompt.Prompt[key][subKey]}
-                                      onChange={({ detail }) => {
-                                        setPromptError('');
-                                        handlePromptChange(
-                                          key,
-                                          subKey,
-                                          detail.value,
-                                        );
-                                      }}
-                                    />
-                                  </FormField>
-                                ),
-                              )}
-                            </>
-                          ),
-                        }))
+                        label: key,
+                        id: key,
+                        content: (
+                          <>
+                            {Object.keys(currentPrompt?.Prompt[key]).map(
+                              (subKey) => (
+                                <FormField key={subKey} label={subKey}>
+                                  <Textarea
+                                    rows={5}
+                                    placeholder={t(
+                                      'validation.requirePrompt',
+                                    )}
+                                    value={currentPrompt.Prompt[key][subKey]}
+                                    onChange={({ detail }) => {
+                                      setPromptError('');
+                                      handlePromptChange(
+                                        key,
+                                        subKey,
+                                        detail.value,
+                                      );
+                                    }}
+                                  />
+                                </FormField>
+                              ),
+                            )}
+                          </>
+                        ),
+                      }))
                       : []
                   }
                 />

@@ -139,6 +139,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
     // Deploy Embedding and Reranker model
     let embeddingAndRerankerModelPrefix = props.config.model.embeddingsModels[0].name ?? "";
     let embeddingAndRerankerModelVersion = props.config.model.embeddingsModels[0].commitId ?? "";
+    let embeddingAndRerankerEndpointInstanceType = "ml.g4dn.4xlarge";
     let embeddingAndRerankerModelName = embeddingAndRerankerModelPrefix + "-" + embeddingAndRerankerModelVersion.slice(0, 5)
     let embeddingAndRerankerImageUrl = this.modelPublicEcrAccount + this.modelRegion + this.modelImageUrlDomain + "djl-inference:0.21.0-deepspeed0.8.3-cu117";
     let embeddingAndRerankerModelDataUrl = `s3://${props.config.model.modelConfig.modelAssetsBucket}/${embeddingAndRerankerModelPrefix}_deploy_code/`;
@@ -166,7 +167,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
             variantName: this.modelVariantName || "",
             containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
             initialInstanceCount: 1,
-            instanceType: "ml.g4dn.4xlarge",
+            instanceType: embeddingAndRerankerEndpointInstanceType,
           },
         ],
       },
@@ -187,9 +188,10 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
 
   private deployKnowledgeBaseEndpoint(props: ModelConstructProps) {
     // Deploy Knowledge Base model
-    let knowledgeBaseModelName = "knowledge-base-model";
+    let knowledgeBaseModelInstanceType = "ml.g4dn.2xlarge";
     let knowledgeBaseModelEcrRepository = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
     let knowledgeBaseModelEcrImageTag = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
+    let knowledgeBaseModelName = "knowledge-base-model" + "-" + knowledgeBaseModelEcrImageTag;
     let knowledgeBaseModelImageUrl = this.modelAccount + ".dkr.ecr." + this.modelRegion + this.modelImageUrlDomain + knowledgeBaseModelEcrRepository + ":" + knowledgeBaseModelEcrImageTag;
 
     const knowledgeBaseModelResources = this.deploySagemakerEndpoint({
@@ -209,7 +211,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
             variantName: this.modelVariantName || "",
             containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
             initialInstanceCount: 1,
-            instanceType: "ml.g4dn.2xlarge",
+            instanceType: knowledgeBaseModelInstanceType,
           },
         ],
         asyncInferenceConfig: {
@@ -217,7 +219,8 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
             maxConcurrentInvocationsPerInstance: 1,
           },
           outputConfig: {
-            s3OutputPath: `s3://${props.sharedConstructOutputs.resultBucket.bucketName}/${knowledgeBaseModelName}/`,
+            s3OutputPath: `s3://${props.sharedConstructOutputs.resultBucket.bucketName}/${knowledgeBaseModelName}/output`,
+            s3FailurePath: `s3://${props.sharedConstructOutputs.resultBucket.bucketName}/${knowledgeBaseModelName}/failure`,
           },
         },
       },
@@ -287,7 +290,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
     executionRole.addToPolicy(this.modelIamHelper.stsStatement);
     executionRole.addToPolicy(this.modelIamHelper.ecrStatement);
     executionRole.addToPolicy(this.modelIamHelper.llmStatement);
-
+    executionRole.addToPolicy(this.modelIamHelper.secretsManagerStatement);
     this.modelExecutionRole = executionRole;
   }
 
