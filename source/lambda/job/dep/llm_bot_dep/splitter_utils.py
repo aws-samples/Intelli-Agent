@@ -16,17 +16,17 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def _make_spacy_pipeline_for_splitting(
-    pipeline: str,
-) -> Any:  # avoid importing spacy
-    try:
-        import spacy
-    except ImportError:
-        raise ImportError(
-            "Spacy is not installed, please install it with `pip install spacy`."
-        )
-    if pipeline == "sentencizer":
-        from spacy.lang.en import English
+# def _make_spacy_pipeline_for_splitting(
+#     pipeline: str,
+# ) -> Any:  # avoid importing spacy
+#     try:
+#         import spacy
+#     except ImportError:
+#         raise ImportError(
+#             "Spacy is not installed, please install it with `pip install spacy`."
+#         )
+#     if pipeline == "sentencizer":
+#         from spacy.lang.en import English
 
 #         sentencizer = English()
 #         sentencizer.add_pipe("sentencizer")
@@ -38,21 +38,21 @@ def _make_spacy_pipeline_for_splitting(
 # class NLTKTextSplitter(TextSplitter):
 #     """Splitting text using NLTK package."""
 
-    def __init__(
-        self, separator: str = "\n\n", language: str = "english", **kwargs: Any
-    ) -> None:
-        """Initialize the NLTK splitter."""
-        super().__init__(**kwargs)
-        try:
-            from nltk.tokenize import sent_tokenize
+#     def __init__(
+#         self, separator: str = "\n\n", language: str = "english", **kwargs: Any
+#     ) -> None:
+#         """Initialize the NLTK splitter."""
+#         super().__init__(**kwargs)
+#         try:
+#             from nltk.tokenize import sent_tokenize
 
-            self._tokenizer = sent_tokenize
-        except ImportError:
-            raise ImportError(
-                "NLTK is not installed, please install it with `pip install nltk`."
-            )
-        self._separator = separator
-        self._language = language
+#             self._tokenizer = sent_tokenize
+#         except ImportError:
+#             raise ImportError(
+#                 "NLTK is not installed, please install it with `pip install nltk`."
+#             )
+#         self._separator = separator
+#         self._language = language
 
 #     def split_text(self, text: str) -> List[str]:
 #         """Split incoming text and return chunks."""
@@ -69,16 +69,16 @@ def _make_spacy_pipeline_for_splitting(
 #     potentially less accurate splitting, you can use `pipeline='sentencizer'`.
 #     """
 
-    def __init__(
-        self,
-        separator: str = "\n\n",
-        pipeline: str = "en_core_web_sm",
-        **kwargs: Any,
-    ) -> None:
-        """Initialize the spacy text splitter."""
-        super().__init__(**kwargs)
-        self._tokenizer = _make_spacy_pipeline_for_splitting(pipeline)
-        self._separator = separator
+#     def __init__(
+#         self,
+#         separator: str = "\n\n",
+#         pipeline: str = "en_core_web_sm",
+#         **kwargs: Any,
+#     ) -> None:
+#         """Initialize the spacy text splitter."""
+#         super().__init__(**kwargs)
+#         self._tokenizer = _make_spacy_pipeline_for_splitting(pipeline)
+#         self._separator = separator
 
 #     def split_text(self, text: str) -> List[str]:
 #         """Split incoming text and return chunks."""
@@ -146,11 +146,6 @@ def find_child(headers: dict, header_id: str):
             and id not in children
             and header["parent"] == header_id
         ):
-        if (
-            header["level"] == level + 1
-            and id not in children
-            and header["parent"] == header_id
-        ):
             children.append(id)
 
     return children
@@ -158,8 +153,6 @@ def find_child(headers: dict, header_id: str):
 
 def parse_string_to_xml_node(xml_string):
     try:
-        parser = etree.XMLParser(recover=True)
-        xml_node = etree.fromstring(xml_string.replace("&", "&amp;"), parser)
         parser = etree.XMLParser(recover=True)
         xml_node = etree.fromstring(xml_string.replace("&", "&amp;"), parser)
         return xml_node
@@ -204,9 +197,6 @@ def extract_headings(md_content: str):
 
     for header_obj in headers:
         headers[header_obj]["child"] = find_child(headers, header_obj)
-        headers[header_obj]["next"] = find_next_with_same_level(
-            headers, header_obj
-        )
         headers[header_obj]["next"] = find_next_with_same_level(
             headers, header_obj
         )
@@ -264,10 +254,6 @@ class MarkdownHeaderTextSplitter:
                     len(id_index_dict[current_heading])
                     > same_heading_dict[current_heading]
                 ):
-                if (
-                    len(id_index_dict[current_heading])
-                    > same_heading_dict[current_heading]
-                ):
                     metadata["chunk_id"] = id_index_dict[current_heading][
                         same_heading_dict[current_heading]
                     ]
@@ -275,9 +261,6 @@ class MarkdownHeaderTextSplitter:
                     id_prefix = str(uuid.uuid4())[:8]
                     metadata["chunk_id"] = f"$0-{id_prefix}"
 
-    def _get_current_heading_list(
-        self, current_heading, current_heading_level_map
-    ):
     def _get_current_heading_list(
         self, current_heading, current_heading_level_map
     ):
@@ -306,13 +289,7 @@ class MarkdownHeaderTextSplitter:
             save_content_to_s3(
                 s3, text, self.res_bucket, SplittingType.BEFORE.value
             )
-            save_content_to_s3(
-                s3, text, self.res_bucket, SplittingType.BEFORE.value
-            )
         else:
-            logger.warning(
-                "No resource bucket is defined, skip saving content into S3 bucket"
-            )
             logger.warning(
                 "No resource bucket is defined, skip saving content into S3 bucket"
             )
@@ -325,9 +302,6 @@ class MarkdownHeaderTextSplitter:
         inside_figure = False
         have_figure = False
         figure_metadata = []
-        heading_hierarchy, id_index_dict = extract_headings(
-            text.page_content.strip()
-        )
         heading_hierarchy, id_index_dict = extract_headings(
             text.page_content.strip()
         )
@@ -358,10 +332,6 @@ class MarkdownHeaderTextSplitter:
                             current_heading,
                             metadata,
                             same_heading_dict,
-                            id_index_dict,
-                            current_heading,
-                            metadata,
-                            same_heading_dict,
                         )
                     except KeyError:
                         logger.info(
@@ -370,9 +340,6 @@ class MarkdownHeaderTextSplitter:
                         id_prefix = str(uuid.uuid4())[:8]
                         metadata["chunk_id"] = f"$0-{id_prefix}"
                     if metadata["chunk_id"] in heading_hierarchy:
-                        metadata["heading_hierarchy"] = heading_hierarchy[
-                            metadata["chunk_id"]
-                        ]
                         metadata["heading_hierarchy"] = heading_hierarchy[
                             metadata["chunk_id"]
                         ]
@@ -410,9 +377,6 @@ class MarkdownHeaderTextSplitter:
                 chunk_figure_content = etree.tostring(
                     figure_description, encoding="utf-8"
                 ).decode("utf-8")
-                chunk_figure_content = etree.tostring(
-                    figure_description, encoding="utf-8"
-                ).decode("utf-8")
                 if figure_value is not None:
                     chunk_figure_content += "\n" + etree.tostring(
                         figure_value, encoding="utf-8"
@@ -443,17 +407,11 @@ class MarkdownHeaderTextSplitter:
                 self._set_chunk_id(
                     id_index_dict, current_heading, metadata, same_heading_dict
                 )
-                self._set_chunk_id(
-                    id_index_dict, current_heading, metadata, same_heading_dict
-                )
             except KeyError:
                 logger.info(f"No standard heading found")
                 id_prefix = str(uuid.uuid4())[:8]
                 metadata["chunk_id"] = f"$0-{id_prefix}"
             if metadata["chunk_id"] in heading_hierarchy:
-                metadata["heading_hierarchy"] = heading_hierarchy[
-                    metadata["chunk_id"]
-                ]
                 metadata["heading_hierarchy"] = heading_hierarchy[
                     metadata["chunk_id"]
                 ]

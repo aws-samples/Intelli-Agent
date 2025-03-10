@@ -1,33 +1,24 @@
 # tool calling chain
 import json
-from typing import List, Dict, Any
 from collections import defaultdict
+from typing import Any, Dict, List
 
-from ...utils.prompt_utils import get_prompt_template
-from langchain_core.messages import (
-    AIMessage,
-    SystemMessage
-)
 from langchain.prompts import ChatPromptTemplate
-from langchain_core.messages import AIMessage, SystemMessage
 from langchain.tools.base import BaseTool
 from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import AIMessage, SystemMessage
+from shared.constant import LLMModelType, LLMTaskType, MessageType
 
-from shared.constant import (
-    LLMTaskType,
-    LLMModelType,
-    MessageType
-)
+from ...utils.prompt_utils import get_prompt_template
 from ...utils.time_utils import get_china_now
-
-from . import LLMChain
 from ..models import ChatModel
 from ..models.model_config import (
     BEDROCK_MODEL_CONFIGS,
     OPENAI_MODEL_CONFIGS,
     QWEN25_MODEL_CONFIGS,
-    SILICONFLOW_DEEPSEEK_MODEL_CONFIGS
+    SILICONFLOW_DEEPSEEK_MODEL_CONFIGS,
 )
+from . import LLMChain
 
 
 class ToolCallingBaseChain(LLMChain):

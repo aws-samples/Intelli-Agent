@@ -1,10 +1,7 @@
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, Union
-from ...constant import (
-    LLMModelType, 
-    RerankModelType,
-    EmbeddingModelType
-)
+from typing import Any, Dict, Optional, Union
+
+from ...constant import EmbeddingModelType, LLMModelType, RerankModelType
 
 
 @dataclass

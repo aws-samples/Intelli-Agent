@@ -241,8 +241,6 @@
       "requireApiEndpoint": "请输入API端点",
       "requireApiModelName": "请输入API模型名称",
       "noStartWithUnderscoreOrDash": "名称不能以下划线或破折号开头",
-      "uppercaseNotAllowed": "名称不能包含大写字母",
-      "invalidCharacters": "名称包含无效字符",
       "onlyStandardEnglishAllowed": "名称只能包含英文小写字母、数字、下划线、破折号和句点"
     },
     "tour": {

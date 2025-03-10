@@ -12,9 +12,7 @@ from langchain_community.embeddings import (
     SagemakerEndpointEmbeddings,
 )
 from langchain_community.embeddings.openai import OpenAIEmbeddings
-from langchain_community.embeddings.sagemaker_endpoint import (
-    EmbeddingsContentHandler,
-)
+from langchain_community.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 from langchain_community.llms import SagemakerEndpoint
 from langchain_community.llms.sagemaker_endpoint import LLMContentHandler
 from langchain_community.llms.utils import enforce_stop_tokens
@@ -25,8 +23,8 @@ from langchain_core.pydantic_v1 import Extra, root_validator
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-aws_region = os.getenv("AWS_REGION", "cn-northwest-1")
-session = boto3.session.Session(region_name=aws_region)
+
+session = boto3.session.Session()
 secret_manager_client = session.client(service_name="secretsmanager")
 
 
