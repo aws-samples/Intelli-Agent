@@ -892,141 +892,60 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                       {modelType.value === 'Bedrock API' || modelType.value === 'OpenAI API' || modelType.value === 'siliconflow' ? (
                         <SpaceBetween size="xs" direction="vertical">
                           <FormField
-                            label={t('modelName')}
+                            label={t('maxTokens')}
                             stretch={true}
-                            errorText={t(modelError)}
-                            description={t('modelNameDesc')}
+                            errorText={t(maxTokenError)}
+                            description={t('maxTokenDesc')}
                           >
-                            <Autosuggest
+                            <Input
+                              type="number"
+                              value={maxToken}
                               onChange={({ detail }) => {
-                                setModelError('');
-                                setModelOption(detail.value);
+                                setMaxTokenError('');
+                                setMaxToken(detail.value);
                               }}
-                              value={modelOption}
-                              options={modelList}
-                              enteredTextLabel={value => `Use: "${value}"`}
-                              placeholder={t('validation.requireModel')}
-                              empty={t('noModelFound')}
                             />
                           </FormField>
                           <FormField
-                            label={t('apiEndpoint')}
+                            label={t('maxRounds')}
                             stretch={true}
-                            errorText={t(apiEndpointError)}
-                            description={t('apiEndpointDesc')}
+                            errorText={t(maxRoundsError)}
+                            description={t('maxRoundsDesc')}
                           >
                             <Input
-                              value={apiEndpoint}
+                              type="number"
+                              value={maxRounds}
                               onChange={({ detail }) => {
-                                const value = detail.value;
-                                if (value === '' || isValidUrl(value)) {
-                                  setApiEndpointError('');
-                                } else {
-                                  setApiEndpointError('Invalid url, please type in a valid HTTPS or HTTP url');
+                                if (parseInt(detail.value) < 0 || parseInt(detail.value) > 100) {
+                                  return
                                 }
-                                setApiEndpoint(value);
+                                setMaxRoundsError('');
+                                setMaxRounds(detail.value);
                               }}
-                              placeholder="https://api.example.com/v1"
                             />
                           </FormField>
-                          <FormField
-                            label={t('apiKeyArn')}
-                            stretch={true}
-                            errorText={t(apiKeyArnError)}
-                            description={t('apiKeyArnDesc')}
-                          >
-                            <Input
-                              value={apiKeyArn}
-                              onChange={({ detail }) => {
-                                const value = detail.value;
-                                if (value === '' || isValidArn(value)) {
-                                  setApiKeyArnError('');
-                                } else {
-                                  setApiKeyArnError('Invalid ARN, please type in a valid secret ARN from AWS Secrets Manager');
-                                }
-                                setApiKeyArn(value);
-                              }}
-                              placeholder="arn:aws:secretsmanager:region:account:secret:name"
-                            />
-                          </FormField>
-                        </SpaceBetween>
-                      ) : (
-                        <FormField
-                          label={t('modelName')}
-                          stretch={true}
-                          errorText={t(modelError)}
-                          description={t('modelNameDesc')}
-                        >
-                          <Autosuggest
-                            onChange={({ detail }) => {
-                              setModelError('');
-                              setModelOption(detail.value);
-                            }}
-                            value={modelOption}
-                            options={modelList}
-                            placeholder={t('validation.requireModel')}
-                            empty={t('noModelFound')}
-                            enteredTextLabel={value => `Use: "${value}"`}
-                          />
-                        </FormField>
-                      )}
-                    </Grid>
-                    <Grid gridDefinition={[{ colspan: 5 }, { colspan: 6 }]}>
-                      <FormField
-                        label={t('maxTokens')}
-                        stretch={true}
-                        errorText={t(maxTokenError)}
-                        description={t('maxTokenDesc')}
-                      >
-                        <Input
-                          type="number"
-                          value={maxToken}
-                          onChange={({ detail }) => {
-                            setMaxTokenError('');
-                            setMaxToken(detail.value);
-                          }}
-                        />
-                      </FormField>
-                      <FormField
-                        label={t('maxRounds')}
-                        stretch={true}
-                        errorText={t(maxRoundsError)}
-                        description={t('maxRoundsDesc')}
-                      >
-                        <Input
-                          type="number"
-                          value={maxRounds}
-                          onChange={({ detail }) => {
-                            if (parseInt(detail.value) < 0 || parseInt(detail.value) > 100) {
-                              return
-                            }
-                            setMaxRoundsError('');
-                            setMaxRounds(detail.value);
-                          }}
-                        />
-                      </FormField>
-                    </Grid>
+                        </Grid>
 
                     {showEndpoint && (
-                      <Grid gridDefinition={[{ colspan: 11 }]}>
-                        <FormField
-                          label={t('endPoint')}
-                          stretch={true}
-                          errorText={t(endPointError)}
-                          description={t('endPointDesc')}
-                        >
-                          <Input
-                            onChange={({ detail }) => {
-                              setEndPointError('');
-                              setEndPoint(detail.value);
-                            }}
-                            value={endPoint}
-                            placeholder="QWen2-72B-XXXXX"
-                          />
-                        </FormField>
-                      </Grid>
-                    )
-                    }
+                        <Grid gridDefinition={[{ colspan: 11 }]}>
+                          <FormField
+                            label={t('endPoint')}
+                            stretch={true}
+                            errorText={t(endPointError)}
+                            description={t('endPointDesc')}
+                          >
+                            <Input
+                              onChange={({ detail }) => {
+                                setEndPointError('');
+                                setEndPoint(detail.value);
+                              }}
+                              value={endPoint}
+                              placeholder="QWen2-72B-XXXXX"
+                            />
+                          </FormField>
+                        </Grid>
+                      )
+                      }
 
                   </SpaceBetween>
                   <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 15, marginTop: 35 }}>{t('rad')}</div>

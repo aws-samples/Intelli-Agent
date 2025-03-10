@@ -5,7 +5,7 @@ import logging
 
 import boto3
 from botocore.paginate import TokenEncoder
-from common_logic.common_utils.prompt_utils import (
+from shared.utils.prompt_utils import (
     EXPORT_MODEL_IDS,
     EXPORT_SCENES,
     get_all_templates,

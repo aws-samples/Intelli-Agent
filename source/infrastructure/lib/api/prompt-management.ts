@@ -50,7 +50,16 @@ export class PromptApi extends Construct {
     const promptManagementLambda = new LambdaFunction(scope, "PromptManagementLambda", {
       runtime: Runtime.PYTHON_3_12,
       handler: "prompt_management.lambda_handler",
-      code: Code.fromAsset(join(__dirname, '../../../lambda/deployment_assets/lambda_assets/prompt_management.zip')),
+      code: Code.fromCustomCommand(
+        "/tmp/prompt_management_lambda_function_codes",
+        ['bash', '-c', [
+          "mkdir -p /tmp/prompt_management_lambda_function_codes",
+          `cp -r ${join(__dirname, "../../../lambda/prompt_management/*")} /tmp/prompt_management_lambda_function_codes`,
+          `cp -r ${join(__dirname, "../../../lambda/shared")} /tmp/prompt_management_lambda_function_codes/`,
+        ].join(' && ')
+        ]
+      ),
+      // code: Code.fromAsset(join(__dirname, '../../../lambda/deployment_assets/lambda_assets/prompt_management.zip')),
       environment: {
         PROMPT_TABLE_NAME: this.promptTableName,
       },
