@@ -6,6 +6,32 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
+class VLLMParameters(BaseModel):
+    """
+    Parameters for VLLM model configuration.
+    
+    This class encapsulates all parameters related to VLLM model configuration,
+    allowing them to be passed around as a single unit.
+    """
+    model_provider: str = Field(
+        description="The provider of the model (e.g., 'openai', 'anthropic')"
+    )
+    model_id: str = Field(
+        description="The identifier for the specific model"
+    )
+    model_api_url: str = Field(
+        description="The API URL endpoint for the model"
+    )
+    model_secret_name: str = Field(
+        description="The name of the secret containing model credentials"
+    )
+    
+    class Config:
+        """Configuration for the VLLMParameters model."""
+        validate_assignment = True
+        extra = "forbid"  # Prevent additional fields not defined in the schema
+
+
 class ProcessingParameters(BaseModel):
     """
     Parameters for ETL document processing operations.
@@ -44,6 +70,12 @@ class ProcessingParameters(BaseModel):
     xlsx_rows_per_document: Optional[int] = Field(
         default=1,
         description="Number of rows to process for Excel files"
+    )
+    
+    # VLLM parameters as a nested model
+    vllm_parameters: Optional[VLLMParameters] = Field(
+        default=None,
+        description="Optional VLLM model parameters"
     )
     
     class Config:

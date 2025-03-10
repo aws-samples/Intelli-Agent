@@ -160,7 +160,6 @@ class StructureSystem(object):
 
 
 structure_engine = StructureSystem()
-figure_understand = figureUnderstand()
 s3 = boto3.client("s3")
 
 
@@ -217,7 +216,7 @@ def remove_symbols(text):
     return cleaned_text
 
 
-def process_figure(figure_data, doc, figure_idx):
+def process_figure(figure_data, doc, figure_idx, figure_understand):
     k, v = figure_data
     image, region_text = v[0], v[1] if v[1] is not None else ""
     start_pos = doc.index(k)
@@ -227,7 +226,7 @@ def process_figure(figure_data, doc, figure_idx):
     )
 
 
-def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
+def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec, figure_understand) -> str:
     """
     Extracts structured information from images in the given file path and returns a formatted document.
 
@@ -322,7 +321,7 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
         max_workers = int(os.environ.get("FIGURE_UNDERSTANDING_MAX_WORKERS", 4))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_figure = {
-                executor.submit(process_figure, (k, v), doc, figure_idx): (
+                executor.submit(process_figure, (k, v), doc, figure_idx, figure_understand): (
                     figure_idx,
                     k,
                     v,
@@ -384,6 +383,19 @@ def process_pdf_pipeline(request_body):
     lang = request_body.get("lang", "zh")
     auto_dpi = bool(request_body.get("auto_dpi", True))
     figure_rec = bool(request_body.get("figure_recognition", True))
+    model_provider = request_body.get("model_provider", "bedrock")
+    model_id = request_body.get("model_id", "us.anthropic.claude-3-5-sonnet-20241022-v2:0")
+    model_api_url = request_body.get("model_api_url", None)
+    model_secret_name = request_body.get("model_secret_name", None)
+    logging.info(f"model_provider: {model_provider}, model_id: {model_id}, model_api_url: {model_api_url}, model_secret_name: {model_secret_name}")
+    figure_understand = figureUnderstand(
+        model_provider=model_provider,
+        model_id=model_id,
+        model_api_url=model_api_url,
+        model_secret_name=model_secret_name
+    )
+
+
     logging.info("Processing bucket: %s, object_key: %s", bucket, object_key)
     local_path = str(os.path.basename(object_key))
     local_path = f"/tmp/{local_path}"
@@ -391,7 +403,7 @@ def process_pdf_pipeline(request_body):
     logger.info("Downloading %s to %s", object_key, local_path)
     s3.download_file(Bucket=bucket, Key=object_key, Filename=local_path)
 
-    content, images = structure_predict(local_path, lang, auto_dpi, figure_rec)
+    content, images = structure_predict(local_path, lang, auto_dpi, figure_rec, figure_understand)
     filename = file_path.stem
     name_s3path = upload_images_to_s3(images, portal_bucket, filename, "image")
     for key, s3_path in name_s3path.items():

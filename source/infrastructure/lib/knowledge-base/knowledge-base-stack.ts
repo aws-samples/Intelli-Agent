@@ -288,6 +288,10 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
             "embeddingEndpoint.$": "$.Payload.embeddingEndpoint",
             "tableItemId.$": "$.Payload.tableItemId",
             "documentLanguage.$": "$.Payload.documentLanguage",
+            "modelProvider.$": "$.Payload.modelProvider",
+            "modelId.$": "$.Payload.modelId",
+            "modelApiUrl.$": "$.Payload.modelApiUrl",
+            "modelSecretName.$": "$.Payload.modelSecretName",
           },
         },
         // Original input
@@ -325,6 +329,10 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
         "--INDEX_ID.$": "$.indexId",
         "--EMBEDDING_MODEL_TYPE.$": "$.embeddingModelType",
         "--job-language": "python",
+        "--MODEL_PROVIDER.$": "$.modelProvider",
+        "--MODEL_ID.$": "$.modelId",
+        "--MODEL_API_URL.$": "$.modelApiUrl",
+        "--MODEL_SECRET_NAME.$": "$.modelSecretName",
       }),
     });
 
@@ -354,6 +362,10 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
         "embeddingEndpoint.$": "$.embeddingEndpoint",
         "tableItemId.$": "$.tableItemId",
         "documentLanguage.$": "$.documentLanguage",
+        "modelProvider.$": "$.modelProvider",
+        "modelId.$": "$.modelId",
+        "modelApiUrl.$": "$.modelApiUrl",
+        "modelSecretName.$": "$.modelSecretName",
       },
       resultPath: "$.mapResults",
     });

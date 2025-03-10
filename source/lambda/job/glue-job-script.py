@@ -53,13 +53,20 @@ args = getResolvedOptions(
         "BEDROCK_REGION",
         "MODEL_TABLE",
         "GROUP_NAME",
+        "MODEL_PROVIDER",
+        "MODEL_ID",
+        "MODEL_API_URL",
+        "MODEL_SECRET_NAME",
     ],
 )
 
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
 from llm_bot_dep.loaders.auto import process_object
-from llm_bot_dep.schemas.processing_parameters import ProcessingParameters
+from llm_bot_dep.schemas.processing_parameters import (
+    ProcessingParameters,
+    VLLMParameters,
+)
 from llm_bot_dep.storage_utils import save_content_to_s3
 
 # Adaption to allow nougat to run in AWS Glue with writable /tmp
@@ -96,6 +103,10 @@ index_type = args["INDEX_TYPE"]
 # Valid Operation types: "create", "delete", "update", "extract_only"
 operation_type = args["OPERATION_TYPE"]
 aos_secret = args.get("AOS_SECRET_NAME", "opensearch-master-user")
+model_provider = args["MODEL_PROVIDER"]
+model_id = args["MODEL_ID"]
+model_api_url = args["MODEL_API_URL"]
+model_secret_name = args["MODEL_SECRET_NAME"]
 
 
 s3_client = boto3.client("s3")
@@ -193,7 +204,15 @@ class S3FileIterator:
                     logger.info("Processing object: %s", key)
                     current_indice += 1
 
-                    # For operations that don't need file content (like delete)
+                    # Create VLLM parameters
+                    vllm_params = VLLMParameters(
+                        model_provider=model_provider,
+                        model_id=model_id,
+                        model_api_url=model_api_url,
+                        model_secret_name=model_secret_name
+                    )
+
+                    # Create processing parameters with VLLM parameters
                     processing_params = ProcessingParameters(
                         source_bucket_name=self.bucket,
                         source_object_key=key,
@@ -202,6 +221,7 @@ class S3FileIterator:
                         portal_bucket_name=portal_bucket_name,
                         document_language=document_language,
                         file_type=file_type,
+                        vllm_parameters=vllm_params
                     )
 
                     update_etl_object_table(processing_params, "RUNNING")

@@ -12,7 +12,10 @@ import boto3
 import botocore
 from botocore.exceptions import ClientError
 from langchain.docstore.document import Document
-from llm_bot_dep.schemas.processing_parameters import ProcessingParameters
+from llm_bot_dep.schemas.processing_parameters import (
+    ProcessingParameters,
+    VLLMParameters,
+)
 from llm_bot_dep.utils.s3_utils import (
     download_file_from_s3,
     load_content_from_s3,
@@ -59,7 +62,7 @@ class SageMakerPdfLoader:
         processing_mode="ppstructure",
         language_code="zh",
         chunk_size=PDF_CHUNK_SIZE,
-        sagemaker_runtime_client=None,
+        vllm_params: VLLMParameters = None
     ):
         """
         Initialize the SageMakerPdfLoader with configuration parameters.
@@ -72,7 +75,7 @@ class SageMakerPdfLoader:
             processing_mode (str): Processing mode (default: "ppstructure")
             language_code (str): Language code (default: "zh")
             chunk_size (int): Maximum pages per chunk (default: PDF_CHUNK_SIZE)
-            sagemaker_runtime_client: Boto3 SageMaker Runtime client (optional)
+            vllm_params: VLLMParameters (optional)
         """
         self.etl_endpoint_name = etl_endpoint_name
         self.source_bucket_name = source_bucket_name
@@ -81,12 +84,9 @@ class SageMakerPdfLoader:
         self.processing_mode = processing_mode
         self.language_code = language_code
         self.chunk_size = chunk_size
-
+        self.vllm_params = vllm_params
         # Initialize clients if not provided
-        self.sagemaker_runtime_client = (
-            sagemaker_runtime_client
-            or boto3.client("sagemaker-runtime")
-        )
+        self.sagemaker_runtime_client = boto3.client("sagemaker-runtime")
 
     def split_pdf(self, local_pdf_path, temp_dir):
         """
@@ -172,6 +172,10 @@ class SageMakerPdfLoader:
             "portal_bucket": self.portal_bucket_name,
             "mode": self.processing_mode,
             "lang": self.language_code,
+            "model_provider": self.vllm_params.model_provider,
+            "model_id": self.vllm_params.model_id,
+            "model_api_url": self.vllm_params.model_api_url,
+            "model_secret_name": self.vllm_params.model_secret_name,
         }
 
         # Create unique filename for the request
@@ -536,6 +540,7 @@ def process_pdf(processing_params: ProcessingParameters):
     result_bucket_name = processing_params.result_bucket_name
     portal_bucket_name = processing_params.portal_bucket_name
     language_code = processing_params.document_language or "zh"
+    vllm_params = processing_params.vllm_parameters
 
     pdf_loader = SageMakerPdfLoader(
         etl_endpoint_name=etl_endpoint_name,
@@ -544,6 +549,7 @@ def process_pdf(processing_params: ProcessingParameters):
         portal_bucket_name=portal_bucket_name,
         processing_mode="ppstructure",
         language_code=language_code,
+        vllm_params=vllm_params
     )
 
     content = pdf_loader.process(source_object_key)

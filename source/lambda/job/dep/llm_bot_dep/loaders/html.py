@@ -9,7 +9,10 @@ import markdownify
 from langchain.docstore.document import Document
 from langchain_community.document_loaders.base import BaseLoader
 from llm_bot_dep.figure_llm import process_markdown_images_with_llm
-from llm_bot_dep.schemas.processing_parameters import ProcessingParameters
+from llm_bot_dep.schemas.processing_parameters import (
+    ProcessingParameters,
+    VLLMParameters,
+)
 from llm_bot_dep.utils.s3_utils import (
     download_file_from_s3,
     load_content_from_file,
@@ -68,7 +71,7 @@ class CustomHtmlLoader(BaseLoader):
 
         return s.strip()
 
-    def load(self, image_result_bucket_name: str, file_content: Optional[str] = None):
+    def load(self, image_result_bucket_name: str, file_content: Optional[str] = None, vllm_params: VLLMParameters = None):
         if file_content is None:
             file_content = load_content_from_file(self.file_path)
         html_content = self.clean_html(file_content)
@@ -85,7 +88,7 @@ class CustomHtmlLoader(BaseLoader):
         _, object_key = parse_s3_uri(self.s3_uri)
         file_name = Path(object_key).stem
         file_content = process_markdown_images_with_llm(
-            file_content, image_result_bucket_name, file_name
+            file_content, image_result_bucket_name, file_name, vllm_params
         )
         doc = Document(
             page_content=file_content,
@@ -106,6 +109,7 @@ def process_html(processing_params: ProcessingParameters):
     """
     bucket = processing_params.source_bucket_name
     key = processing_params.source_object_key
+    vllm_params = processing_params.vllm_parameters
     suffix = Path(key).suffix
     
     # Create a temporary file with .html suffix
@@ -117,7 +121,7 @@ def process_html(processing_params: ProcessingParameters):
     
     # Use the loader with the local file path
     loader = CustomHtmlLoader(file_path=local_path, s3_uri=f"s3://{bucket}/{key}")
-    doc = loader.load(image_result_bucket_name=processing_params.portal_bucket_name)
+    doc = loader.load(image_result_bucket_name=processing_params.portal_bucket_name, vllm_params=vllm_params)
     doc_list = [doc]
     # Clean up the temporary file
     Path(local_path).unlink(missing_ok=True)

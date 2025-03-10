@@ -13,6 +13,7 @@ from typing import Union
 import boto3
 import openai
 import requests
+from llm_bot_dep.schemas.processing_parameters import VLLMParameters
 from llm_bot_dep.utils.s3_utils import upload_file_to_s3
 from llm_bot_dep.utils.secrets_manager_utils import get_api_key
 from PIL import Image
@@ -93,12 +94,14 @@ class figureUnderstand:
     classify them, and generate appropriate descriptions or representations.
     """
 
-    def __init__(self, model_provider="bedrock", api_secret_name=None):
+    def __init__(self, model_provider="bedrock", model_id="us.anthropic.claude-3-5-sonnet-20241022-v2:0", model_api_url=None, model_secret_name=None):
         """Initialize the figureUnderstand class with appropriate client.
 
         Args:
             model_provider (str): The LLM provider to use ('bedrock' or 'openai')
-            api_secret_name (str): Secret name for OpenAI API key (required for OpenAI)
+            model_id (str): The model ID to use
+            model_api_url (str): The API URL for OpenAI
+            model_secret_name (str): Secret name for OpenAI API key (required for OpenAI)
         """
         self.model_provider = model_provider
         if model_provider == "bedrock":
@@ -111,31 +114,25 @@ class figureUnderstand:
                     f"Bedrock is not supported in region {bedrock_region}"
                 )
 
-            model_prefix = bedrock_region.split("-")[0] + "."
-
             # Initialize Bedrock client and model ID
             self.bedrock_runtime = boto3.client(service_name="bedrock-runtime")
-            self.model_id = (
-                model_prefix + "anthropic.claude-3-5-sonnet-20241022-v2:0"
-            )
+
+            # Add model prefix if not provided
+            model_prefix = bedrock_region.split("-")[0] + "."
+            if not model_id.startswith(model_prefix):
+                model_id = model_prefix + model_id
+            self.model_id = model_id
         elif model_provider == "openai":
-            self.openai_api_key = get_api_key(api_secret_name)
+            self.openai_api_key = get_api_key(model_secret_name)
             if not self.openai_api_key:
                 raise ValueError(
                     "Failed to retrieve OpenAI API key from Secrets Manager"
                 )
 
             openai.api_key = self.openai_api_key
+            openai.base_url = model_api_url
+            self.model_id = model_id
 
-            # Set OpenAI base URL from environment variable if provided
-            base_url = os.environ.get("OPENAI_API_BASE")
-            if base_url:
-                openai.base_url = base_url
-
-            # Set model ID from environment variable or use default
-            self.model_id = os.environ.get(
-                "OPENAI_MODEL_ID", "gpt-4o-2024-08-06"
-            )
             self.openai_client = openai
         else:
             raise ValueError(
@@ -394,10 +391,7 @@ def process_single_image(
     file_name: str,
     idx: int,
     s3_link: str = None,
-    model_provider: str = "bedrock",
-    model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0",
-    api_url: str = None,
-    api_key: str = None,
+    vllm_params: VLLMParameters = None
 ) -> str:
     """Process a single image and return its understanding text.
 
@@ -424,7 +418,12 @@ def process_single_image(
             return None
 
     image_base64 = encode_image_to_base64(img_path)
-    figure_llm = figureUnderstand()
+    figure_llm = figureUnderstand(
+        model_provider=vllm_params.model_provider,
+        model_id=vllm_params.model_id,
+        model_api_url=vllm_params.model_api_url,
+        model_secret_name=vllm_params.model_secret_name,
+    )
 
     # Get image understanding
     understanding = figure_llm.figure_understand(
@@ -445,7 +444,7 @@ def process_single_image(
 
 
 def process_markdown_images_with_llm(
-    content: str, bucket_name: str, file_name: str
+    content: str, bucket_name: str, file_name: str, vllm_params: VLLMParameters
 ) -> str:
     """Process all images in markdown content and upload them to S3.
 
@@ -516,6 +515,7 @@ def process_markdown_images_with_llm(
                 file_name,
                 idx,
                 s3_link,
+                vllm_params
             )
 
             # If this is a new image path, store its S3 object name
