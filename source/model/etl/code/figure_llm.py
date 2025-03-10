@@ -21,7 +21,15 @@ BEDROCK_CROSS_REGION_SUPPORTED_REGIONS = [
 ]
 
 class figureUnderstand:
-    def __init__(self, model_provider="bedrock", api_secret_name=None):
+    def __init__(self, model_provider="bedrock", model_id="us.anthropic.claude-3-5-sonnet-20241022-v2:0", model_api_url=None, model_secret_name=None):
+        """Initialize the figureUnderstand class with appropriate client.
+
+        Args:
+            model_provider (str): The LLM provider to use ('bedrock' or 'openai')
+            model_id (str): The model ID to use
+            model_api_url (str): The API URL for OpenAI
+            model_secret_name (str): Secret name for OpenAI API key (required for OpenAI)
+        """
         self.model_provider = model_provider
         if model_provider == "bedrock":
             session = boto3.session.Session()
@@ -33,28 +41,26 @@ class figureUnderstand:
                     f"Bedrock is not supported in region {bedrock_region}"
                 )
 
-            model_prefix = bedrock_region.split("-")[0] + "."
-
             # Initialize Bedrock client and model ID
             self.bedrock_runtime = boto3.client(service_name="bedrock-runtime")
-            self.model_id = (
-                model_prefix + "anthropic.claude-3-5-sonnet-20241022-v2:0"
-            )
+
+            # Add model prefix if not provided
+            model_prefix = bedrock_region.split("-")[0] + "."
+            if not model_id.startswith(model_prefix):
+                model_id = model_prefix + model_id
+            self.model_id = model_id
         elif model_provider == "openai":
-            self.openai_api_key = self._get_api_key(api_secret_name)
+            self.openai_api_key = self._get_api_key(model_secret_name)
             if not self.openai_api_key:
                 raise ValueError(
                     "Failed to retrieve OpenAI API key from Secrets Manager"
                 )
+
             openai.api_key = self.openai_api_key
-            
-            # Set OpenAI base URL from environment variable if provided
-            base_url = os.environ.get("OPENAI_API_BASE")
-            if base_url:
-                openai.base_url = base_url
-            
-            # Set model ID from environment variable or use default
-            self.model_id = os.environ.get("OPENAI_MODEL_ID", "gpt-4o-2024-08-06")
+            openai.base_url = model_api_url
+            self.model_id = model_id
+
+            self.openai_client = openai
         else:
             raise ValueError(
                 "Unsupported model provider. Choose 'bedrock' or 'openai'"

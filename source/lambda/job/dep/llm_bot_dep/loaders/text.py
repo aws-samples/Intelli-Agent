@@ -1,62 +1,78 @@
 import logging
-import re
-from typing import List, Optional
+import tempfile
+from pathlib import Path
+from typing import Iterator, List, Optional, Union
 
-from langchain.docstore.document import Document
-from langchain.document_loaders.text import TextLoader
-
-from ..splitter_utils import MarkdownHeaderTextSplitter
+from langchain_community.document_loaders.text import TextLoader
+from langchain_core.documents import Document
+from llm_bot_dep.schemas.processing_parameters import ProcessingParameters
+from llm_bot_dep.utils.s3_utils import download_file_from_s3
 
 logger = logging.getLogger(__name__)
 
 
 class CustomTextLoader(TextLoader):
-    """Load text file.
+    """Load text from a file path.
 
     Args:
-        file_content: Text file content.
-
-        encoding: File encoding to use. If `None`, the file will be loaded
-        with the default system encoding.
-
-        autodetect_encoding: Whether to try to autodetect the file encoding
-            if the specified encoding fails.
+        file_path: Path to the file to load.
+        s3_uri: S3 URI of the file to load.
+        encoding: File encoding to use. If `None`, the file will be loaded with the default system encoding.
+        autodetect_encoding: Whether to try to autodetect the file encoding if the specified encoding fails.
     """
 
     def __init__(
         self,
-        file_path: str,
+        file_path: Union[str, Path],
+        s3_uri: str,
         encoding: Optional[str] = None,
         autodetect_encoding: bool = False,
     ):
         """Initialize with file path."""
-        self.file_path = file_path
-        self.encoding = encoding
-        self.autodetect_encoding = autodetect_encoding
+        super().__init__(file_path, encoding, autodetect_encoding)
 
-    def load(self, text_content: str) -> List[Document]:
+    def lazy_load(self) -> Iterator[Document]:
         """Load from file path."""
-        metadata = {"file_path": self.file_path, "file_type": "txt"}
+        # Load from file using parent class's implementation
+        for doc in super().lazy_load():
+            doc.metadata = {"file_path": self.s3_uri, "file_type": "txt"}
+            yield doc
 
-        return Document(page_content=text_content, metadata=metadata)
+    def load(self) -> List[Document]:
+        """Load from file path.
+        
+        Returns:
+            List of Document objects.
+        """
+        return list(self.lazy_load())
 
 
-def pre_process_text(text_content: str) -> str:
-    # Clean up text content
-    text_content = re.sub(r"[^\S\n]+", " ", text_content)
-    text_content = re.sub(r"\n+", "\n", text_content)
+def process_text(processing_params: ProcessingParameters):
+    """Process text content and split into documents.
+    
+    Args:
+        processing_params: ProcessingParameters object containing the bucket and key
+        
+    Returns:
+        List of processed documents.
+    """
+    bucket = processing_params.source_bucket_name
+    key = processing_params.source_object_key
+    suffix = Path(key).suffix
+    
+    # Create a temporary file with .txt suffix
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
+        local_path = temp_file.name
+    
+    # Download the file locally
+    download_file_from_s3(bucket, key, local_path)
+    
+    # Use the loader with the local file path
+    loader = CustomTextLoader(file_path=local_path, s3_uri=f"s3://{bucket}/{key}")
+    doc = loader.load()
+    
+    # Clean up the temporary file
+    Path(local_path).unlink(missing_ok=True)
 
-    return text_content.strip()
-
-
-def process_text(file_content: str, **kwargs):
-    clean_text = pre_process_text(file_content)
-    bucket = kwargs["bucket"]
-    key = kwargs["key"]
-    loader = CustomTextLoader(file_path=f"s3://{bucket}/{key}")
-    doc = loader.load(clean_text)
-
-    splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
-    doc_list = splitter.split_text(doc)
-
+    doc_list = [doc]
     return doc_list

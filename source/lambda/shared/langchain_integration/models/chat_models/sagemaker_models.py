@@ -1,14 +1,10 @@
 import os
 
 import boto3
-from shared.constant import (
-    LLMModelType,
-    MessageType,
-    ModelProvider,
-)
 from emd.integrations.langchain_clients import (
     SageMakerVllmChatModel as _SageMakerVllmChatModel,
 )
+from shared.constant import LLMModelType, MessageType, ModelProvider
 
 from . import ChatModel
 

@@ -248,8 +248,6 @@
       "requireApiEndpoint": "API endpoint is required",
       "requireApiModelName": "API model name is required",
       "noStartWithUnderscoreOrDash": "Name cannot start with underscore or dash",
-      "uppercaseNotAllowed": "Name cannot contain uppercase letters",
-      "invalidCharacters": "Name contains invalid characters",
       "onlyStandardEnglishAllowed": "Name can only contain English lowercase letters, numbers, underscores, dashes, and periods"
     },
     "tour": {

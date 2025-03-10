@@ -1,12 +1,16 @@
 import csv
+import tempfile
 import uuid
 from datetime import datetime
 from io import TextIOWrapper
+from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
 from langchain.docstore.document import Document
-from langchain.document_loaders.csv_loader import CSVLoader
-from langchain.document_loaders.helpers import detect_file_encodings
+from langchain_community.document_loaders.csv_loader import CSVLoader
+from langchain_community.document_loaders.helpers import detect_file_encodings
+from llm_bot_dep.schemas.processing_parameters import ProcessingParameters
+from llm_bot_dep.utils.s3_utils import download_file_from_s3
 
 
 class CustomCSVLoader(CSVLoader):
@@ -43,16 +47,14 @@ class CustomCSVLoader(CSVLoader):
     def __init__(
         self,
         file_path: str,
-        aws_path: str,
+        s3_uri: str,
         source_column: Optional[str] = None,
         metadata_columns: Sequence[str] = (),
         csv_args: Optional[Dict] = None,
         encoding: Optional[str] = None,
         autodetect_encoding: bool = False,
-        row_count: int = 1,
     ):
         """
-
         Args:
             file_path: The path to the CSV file.
             source_column: The name of the column in the CSV file to use as the source. Optional. Defaults to None.
@@ -60,10 +62,8 @@ class CustomCSVLoader(CSVLoader):
             csv_args: A dictionary of arguments to pass to the csv.DictReader. Optional. Defaults to None.
             encoding: The encoding of the CSV file. Optional. Defaults to None.
             autodetect_encoding: Whether to try to autodetect the file encoding.
-            row_count: How many row in a page document.
         """
-        self.row_number = row_count
-        self.aws_path = aws_path
+        self.s3_uri = s3_uri
         super().__init__(
             file_path,
             source_column,
@@ -73,25 +73,15 @@ class CustomCSVLoader(CSVLoader):
             autodetect_encoding,
         )
 
-    def __read_file(self, csvfile: TextIOWrapper) -> List[Document]:
-        docs = []
+    def __read_file(self, csvfile: TextIOWrapper, rows_per_document: int = 1) -> List[Document]:
+        doc_list = []
 
         csv_reader = csv.DictReader(csvfile, **self.csv_args)
         counter = 0
         for i, row in enumerate(csv_reader):
-            try:
-                source = (
-                    row[self.source_column]
-                    if self.source_column is not None
-                    else self.file_path
-                )
-            except KeyError:
-                raise ValueError(
-                    f"Source column '{self.source_column}' not found in CSV file."
-                )
             counter += 1
 
-            if counter % self.row_number == 1:
+            if counter % rows_per_document == 1:
                 # First row with header and separator
                 header = "|"
                 md_separator = "|"
@@ -101,8 +91,8 @@ class CustomCSVLoader(CSVLoader):
                     md_separator += "-|"
                     row_content += v + "|"
                 row_content += "\n"
-            elif counter % self.row_number == 0:
-                if 1 == self.row_number:
+            elif counter % rows_per_document == 0:
+                if rows_per_document == 1:
                     header = "|"
                     md_separator = "|"
                     row_content = "|"
@@ -115,7 +105,11 @@ class CustomCSVLoader(CSVLoader):
                         row_content += v + "|"
                 content = header + "\n" + md_separator + "\n" + row_content
 
-                metadata = {"source": source, "row": i, "file_path": self.aws_path}
+                metadata = {
+                    "row": i,
+                    "file_path": self.s3_uri,
+                    "file_type": "csv"
+                }
                 for col in self.metadata_columns:
                     try:
                         metadata[col] = row[col]
@@ -124,31 +118,35 @@ class CustomCSVLoader(CSVLoader):
                             f"Metadata column '{col}' not found in CSV file."
                         )
                 doc = Document(page_content=content, metadata=metadata)
-                docs.append(doc)
+                doc_list.append(doc)
                 counter = 0
             else:
                 for k, v in row.items():
                     row_content += v + "|"
                 row_content += "\n"
 
-        return docs
+        return doc_list
 
-    def load(self) -> List[Document]:
+    def load(self, rows_per_document: int = 1) -> List[Document]:
         """Load data into document objects."""
 
-        docs = []
+        doc_list = []
         try:
-            with open(self.file_path, newline="", encoding=self.encoding) as csvfile:
-                docs = self.__read_file(csvfile)
+            with open(
+                self.file_path, newline="", encoding=self.encoding
+            ) as csvfile:
+                doc_list = self.__read_file(csvfile, rows_per_document)
         except UnicodeDecodeError as e:
             if self.autodetect_encoding:
                 detected_encodings = detect_file_encodings(self.file_path)
                 for encoding in detected_encodings:
                     try:
                         with open(
-                            self.file_path, newline="", encoding=encoding.encoding
+                            self.file_path,
+                            newline="",
+                            encoding=encoding.encoding,
                         ) as csvfile:
-                            docs = self.__read_file(csvfile)
+                            doc_list = self.__read_file(csvfile)
                             break
                     except UnicodeDecodeError:
                         continue
@@ -157,22 +155,25 @@ class CustomCSVLoader(CSVLoader):
         except Exception as e:
             raise RuntimeError(f"Error loading {self.file_path}") from e
 
-        return docs
+        return doc_list
 
 
-def process_csv(s3, csv_content: str, **kwargs):
-    now = datetime.now()
-    timestamp_str = now.strftime("%Y%m%d%H%M%S")
-    random_uuid = str(uuid.uuid4())[:8]
-    bucket_name = kwargs["bucket"]
-    key = kwargs["key"]
-    row_count = kwargs["csv_row_count"]
-    local_path = f"/tmp/csv-{timestamp_str}-{random_uuid}.csv"
+def process_csv(processing_params: ProcessingParameters):
+    bucket = processing_params.source_bucket_name
+    key = processing_params.source_object_key
+    suffix = Path(key).suffix
+    
+    # Create a temporary file with .csv suffix
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
+        local_path = temp_file.name
+    
+    # Download the file locally
+    download_file_from_s3(bucket, key, local_path)
 
-    s3.download_file(bucket_name, key, local_path)
-    loader = CustomCSVLoader(
-        file_path=local_path, aws_path=f"s3://{bucket_name}/{key}", row_count=row_count
-    )
-    data = loader.load()
+    # Use the loader with the local file path
+    loader = CustomCSVLoader(file_path=local_path, s3_uri=f"s3://{bucket}/{key}")
+    doc_list = loader.load(rows_per_document=processing_params.csv_rows_per_document)
 
-    return data
+    # Clean up the temporary file
+    Path(local_path).unlink(missing_ok=True)
+    return doc_list
