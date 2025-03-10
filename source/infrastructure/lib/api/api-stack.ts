@@ -203,7 +203,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
     });
 
     new S3Deployment.BucketDeployment(this, 'IntentionCorpusTemplate', {
-      memoryLimit: 5
+      memoryLimit: 5,
       ephemeralStorageSize: Size.mebibytes(512),
       sources: [S3Deployment.Source.asset('lib/api/asset')],
       destinationBucket: s3Bucket,
