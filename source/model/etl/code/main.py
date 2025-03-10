@@ -23,6 +23,10 @@ import io
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+MIN_TEXT_COUNT = 2  # 最小文本行数量阈值
+MAX_SCALE = 4.0  # 最大放大倍数
+MAX_PIXELS = 2000 * 3000  # 最大像素数
+
 class StructureSystem(object):
     def __init__(self):
         self.mode = 'structure'
@@ -54,19 +58,45 @@ class StructureSystem(object):
         final_s = None
         if auto_dpi:
             final_s = 0
-            height_limit =  18 if lang=='ch' else 15
+            height_limit = 18 if lang == "ch" else 15
+            original_h, original_w = img.shape[:2]
+            
             for scale_base in [1, 0.66, 0.33]:
-                img_cur_scale = cv2.resize(img, (None, None), fx=scale_base, fy=scale_base)
-                temp_result = self.text_system.text_detector[lang](img_cur_scale, scale=1)
-                height_list = [max(text_line[:, 1]) - min(text_line[:, 1]) for text_line in temp_result]
+                img_cur_scale = cv2.resize(
+                    img, (None, None), fx=scale_base, fy=scale_base
+                )
+                temp_result = self.text_system.text_detector[lang](
+                    img_cur_scale, scale=1
+                )
+                
+                # 确保有足够的文本行
+                if len(temp_result) < MIN_TEXT_COUNT:
+                    continue
+                    
+                height_list = [
+                    max(text_line[:, 1]) - min(text_line[:, 1])
+                    for text_line in temp_result
+                ]
                 height_list.sort()
-                if len(height_list) == 0:
-                    min_text_line_h = 2*height_limit
-                else:
-                    min_text_line_h = height_list[int(len(height_list)*0.05)]
-                min_s = (height_limit/min_text_line_h)*scale_base
-                if min_s>final_s:
-                    final_s = min_s
+                
+                # 使用95%分位数而不是中位数
+                percentile_95_idx = int(len(height_list) * 0.05)
+                min_text_line_h = max(
+                    height_list[percentile_95_idx],  # 取文本行高度的一半作为下限，避免异常值影响
+                    height_limit / MAX_SCALE  # 限制最大缩放比例
+                )
+                # 计算初始缩放比例
+                scale = min((height_limit / min_text_line_h) * scale_base, MAX_SCALE)
+                
+                # 检查放大后的总像素数是否超过限制
+                scaled_pixels = int(original_h * scale) * int(original_w * scale)
+                if scaled_pixels > MAX_PIXELS:
+                    # 如果超过限制，调整缩放比例
+                    max_allowed_scale = np.sqrt(MAX_PIXELS / (original_h * original_w))
+                    scale = min(scale, max_allowed_scale)
+                
+                if scale > final_s:
+                    final_s = scale
         time_dict['layout'] += elapse
         res_list = []
         for region in layout_res:
