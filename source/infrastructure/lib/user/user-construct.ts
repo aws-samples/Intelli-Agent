@@ -41,7 +41,7 @@ export class UserConstruct extends Construct implements UserConstructOutputs {
     const domainPrefix = props.domainPrefix || `${Constants.SOLUTION_NAME.toLowerCase()}-${Aws.ACCOUNT_ID}`
     const isChinaRegion = props.deployRegion.startsWith('cn-');
 
-    // TODO: In ths future we will change the condition from config
+    // TODO: Change the condition from config
     if (isChinaRegion) {
       this.setupCustomOidcResources();
     } else {
