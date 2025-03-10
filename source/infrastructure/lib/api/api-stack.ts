@@ -45,7 +45,6 @@ interface ApiStackProps extends StackProps {
   chatStackOutputs: ChatStackOutputs;
   userPoolId: string;
   oidcClientId: string;
-  // userConstructOutputs: UserConstructOutputs;
 }
 
 export interface ApiConstructOutputs {
@@ -79,7 +78,6 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
     }
     return {
       authorizer: auth,
-      // apiKeyRequired: true,
       methodResponses: [
         {
           statusCode: '200',
@@ -308,121 +306,26 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         apiKBExecution.addMethod(
           "POST",
           new apigw.LambdaIntegration(sfnLambda.function),
-          {
-            ...this.genMethodOption(this.api, this.auth, null),
-            requestModels: this.genRequestModel(this.api, {
-              "chatbotId": { "type": JsonSchemaType.STRING },
-              "indexType": { "type": JsonSchemaType.STRING },
-              "offline": { "type": JsonSchemaType.STRING },
-              "operationType": { "type": JsonSchemaType.STRING },
-              "qaEnhance": { "type": JsonSchemaType.STRING },
-              "s3Bucket": { "type": JsonSchemaType.STRING },
-              "s3Prefix": { "type": JsonSchemaType.STRING }
-            })
-          }
+          this.genMethodOption(this.api, this.auth, null),
         );
       }
+      
       apiKBExecution.addMethod(
         "GET",
         new apigw.LambdaIntegration(executionManagementLambda.function),
-        {
-          ...this.genMethodOption(this.api, this.auth, {
-            Items: {
-              type: JsonSchemaType.ARRAY, items: {
-                type: JsonSchemaType.OBJECT,
-                properties: {
-                  s3Prefix: { type: JsonSchemaType.STRING },
-                  offline: { type: JsonSchemaType.STRING },
-                  s3Bucket: { type: JsonSchemaType.STRING },
-                  executionId: { type: JsonSchemaType.STRING },
-                  executionStatus: { type: JsonSchemaType.STRING },
-                  qaEnhance: { type: JsonSchemaType.STRING },
-                  operationType: { type: JsonSchemaType.STRING },
-                  uiStatus: { type: JsonSchemaType.STRING },
-                  createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'
-                  sfnExecutionId: { type: JsonSchemaType.STRING },
-                  embeddingModelType: { type: JsonSchemaType.STRING },
-                  groupName: { type: JsonSchemaType.STRING },
-                  chatbotId: { type: JsonSchemaType.STRING },
-                  indexType: { type: JsonSchemaType.STRING },
-                  indexId: { type: JsonSchemaType.STRING },
-                },
-                required: ['s3Prefix',
-                  'offline',
-                  's3Bucket',
-                  'executionId',
-                  'executionStatus',
-                  'qaEnhance',
-                  'operationType',
-                  'uiStatus',
-                  'createTime',
-                  'sfnExecutionId',
-                  'embeddingModelType',
-                  'groupName',
-                  'chatbotId',
-                  'indexType',
-                  'indexId'],
-              }
-            },
-            Count: { type: JsonSchemaType.INTEGER },
-            Config: {
-              type: JsonSchemaType.OBJECT,
-              properties: {
-                MaxItems: { type: JsonSchemaType.INTEGER },
-                PageSize: { type: JsonSchemaType.INTEGER },
-                StartingToken: { type: JsonSchemaType.NULL }
-              }
-            }
-          }),
-          requestParameters: {
-            'method.request.querystring.max_items': false,
-            'method.request.querystring.page_size': false
-          }
-        }
+        this.genMethodOption(this.api, this.auth, null),
       );
       apiKBExecution.addMethod(
         "DELETE",
         new apigw.LambdaIntegration(executionManagementLambda.function),
-        {
-          ...this.genMethodOption(this.api, this.auth, {
-            ExecutionIds: { type: JsonSchemaType.ARRAY, items: { type: JsonSchemaType.STRING } },
-            Message: { type: JsonSchemaType.STRING }
-          }),
-          requestModels: this.genRequestModel(this.api, {
-            "executionId": { "type": JsonSchemaType.ARRAY, "items": { "type": JsonSchemaType.STRING } },
-          })
-        }
+        this.genMethodOption(this.api, this.auth, null),
       );
 
       const apiGetExecutionById = apiKBExecution.addResource("{executionId}");
       apiGetExecutionById.addMethod(
         "GET",
         new apigw.LambdaIntegration(executionManagementLambda.function),
-        {
-          ...this.genMethodOption(this.api, this.auth, {
-            Items: {
-              type: JsonSchemaType.ARRAY, items: {
-                type: JsonSchemaType.OBJECT,
-                properties: {
-                  s3Prefix: { type: JsonSchemaType.STRING },
-                  s3Bucket: { type: JsonSchemaType.STRING },
-                  createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'
-                  executionId: { type: JsonSchemaType.STRING },
-                  s3Path: { type: JsonSchemaType.STRING },
-                  status: { type: JsonSchemaType.STRING },
-                },
-                required: ['s3Prefix', 's3Bucket', 'createTime', 's3Path', 'status', 'executionId'],
-              }
-            },
-            Count: { type: JsonSchemaType.INTEGER }
-          }),
-          requestParameters: {
-            'method.request.path.executionId': true
-          },
-          // requestModels: this.genRequestModel(api, {
-          //   "executionId": { "type": JsonSchemaType.ARRAY, "items": {"type": JsonSchemaType.STRING}},
-          // })
-        }
+        this.genMethodOption(this.api, this.auth, null),
       );
       apiGetExecutionById.addMethod("PUT", new apigw.LambdaIntegration(executionManagementLambda.function), this.genMethodOption(this.api, this.auth, null));
 
@@ -431,24 +334,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
       apiUploadDoc.addMethod(
         "POST",
         new apigw.LambdaIntegration(uploadDocLambda.function),
-        {
-          ...
-          this.genMethodOption(this.api, this.auth, {
-            data: {
-              type: JsonSchemaType.OBJECT,
-              properties: {
-                s3Bucket: { type: JsonSchemaType.STRING },
-                s3Prefix: { type: JsonSchemaType.STRING },
-                url: { type: JsonSchemaType.STRING }
-              }
-            },
-            message: { type: JsonSchemaType.STRING }
-          }),
-          requestModels: this.genRequestModel(this.api, {
-            "content_type": { "type": JsonSchemaType.STRING },
-            "file_name": { "type": JsonSchemaType.STRING },
-          })
-        }
+        this.genMethodOption(this.api, this.auth, null),
       );
       apiResourceStepFunction.node.addDependency(kbDelay);
     }
@@ -468,7 +354,6 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         sharedLayer: sharedLayer,
         iamHelper: this.iamHelper,
         genMethodOption: this.genMethodOption,
-        genRequestModel: this.genRequestModel,
       });
       chatbotManagementApi.node.addDependency(chatDelay);
 
@@ -511,7 +396,6 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         sharedLayer: sharedLayer,
         iamHelper: this.iamHelper,
         genMethodOption: this.genMethodOption,
-        genRequestModel: this.genRequestModel,
       });
       intentionApi.node.addDependency(promptApi);
 
@@ -577,20 +461,5 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
     // Set final outputs
     this.apiEndpoint = this.api.url;
     this.documentBucket = s3Bucket.bucketName;
-  }
-
-  genRequestModel = (api: apigw.RestApi, properties: any) => {
-    return {
-      'application/json': new Model(this, `PostModel-${Math.random().toString(36).substr(2, 9)}`, {
-        restApi: api,
-        schema: {
-          schema: JsonSchemaVersion.DRAFT4,
-          title: 'PostPayload',
-          type: JsonSchemaType.OBJECT,
-          properties,
-          required: Object.keys(properties),
-        },
-      })
-    }
   }
 }
