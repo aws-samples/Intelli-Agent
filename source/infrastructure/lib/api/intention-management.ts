@@ -37,6 +37,7 @@ export interface IntentionApiProps {
   domainEndpoint: string;
   config: SystemConfig;
   sharedLayer: pyLambda.PythonLayerVersion;
+  intentionLayer: pyLambda.PythonLayerVersion;
   iamHelper: IAMHelper;
   genMethodOption: any;
   genRequestModel: any;
@@ -48,6 +49,7 @@ export class IntentionApi extends Construct {
   private readonly vpc: Vpc;
   private readonly securityGroups: [SecurityGroup];
   private readonly sharedLayer: pyLambda.PythonLayerVersion;
+  private readonly intentionLayer: pyLambda.PythonLayerVersion;
   private readonly iamHelper: IAMHelper;
   private readonly intentionTableName: string;
   private readonly indexTable: string;
@@ -76,6 +78,7 @@ export class IntentionApi extends Construct {
     this.domainEndpoint = props.domainEndpoint;
     this.config = props.config;
     this.sharedLayer = props.sharedLayer;
+    this.intentionLayer = props.intentionLayer;
     this.iamHelper = props.iamHelper;
     this.genMethodOption = props.genMethodOption;
     this.genRequestModel = props.genRequestModel;
@@ -107,7 +110,7 @@ export class IntentionApi extends Construct {
         KNOWLEDGE_BASE_TYPE: JSON.stringify(this.config.knowledgeBase.knowledgeBaseType || {}),
         BEDROCK_REGION: this.config.chat.bedrockRegion,
       },
-      layers: [this.sharedLayer],
+      layers: [this.sharedLayer, this.intentionLayer],
     });
     const intentionLambdaFunction = intentionLambda.function;
     intentionLambdaFunction.addToRolePolicy(this.iamHelper.dynamodbStatement);

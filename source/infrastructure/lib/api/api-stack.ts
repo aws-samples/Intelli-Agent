@@ -179,6 +179,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
 
     const lambdaLayers = new LambdaLayers(this);
     const sharedLayer = lambdaLayers.createSharedLayer();
+    const intentionLayer = lambdaLayers.createIntentionLayer();
     const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
 
     // S3 bucket for storing documents
@@ -525,6 +526,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         domainEndpoint: domainEndpoint,
         config: props.config,
         sharedLayer: sharedLayer,
+        intentionLayer: intentionLayer,
         iamHelper: this.iamHelper,
         genMethodOption: this.genMethodOption,
         genRequestModel: this.genRequestModel,

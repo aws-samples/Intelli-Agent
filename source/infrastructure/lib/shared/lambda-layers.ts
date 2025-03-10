@@ -119,4 +119,30 @@ export class LambdaLayers {
     );
     return authorizerLayer;
   }
+
+  createIntentionLayer() {
+    const intentionLayer = new pyLambda.PythonLayerVersion(
+      this.scope,
+      "AICSIntentionLayer",
+      {
+        entry: path.join(__dirname, "../../../lambda/intention"),
+        compatibleRuntimes: [Runtime.PYTHON_3_12],
+        description: `AI-Customer-Service - Intention Source layer`,
+        bundling: {
+          "command": [
+            "bash", "-c", "pip install -r requirements.txt -t /asset-output/python"],
+          "assetExcludes": [
+            // "**/*"
+            "*.pyc", "*/__pycache__/*",
+            "*.xls", "*.xlsx", "*.csv",
+            "*.png",
+            "*.md",
+            "*.zip",
+            "lambda_main/retail/size/*"],
+          
+          }
+      },
+    );
+    return intentionLayer;
+  }
 }
