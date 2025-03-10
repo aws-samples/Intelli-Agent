@@ -10,8 +10,7 @@
  *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions    *
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
-
-import { Code, Runtime } from "aws-cdk-lib/aws-lambda";
+import { Runtime, Code } from "aws-cdk-lib/aws-lambda";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 import { join } from "path";
@@ -20,7 +19,6 @@ import { IAMHelper } from "../shared/iam-helper";
 import { Vpc, SecurityGroup } from 'aws-cdk-lib/aws-ec2';
 import { SystemConfig } from "../shared/types";
 import { LambdaFunction } from "../shared/lambda-helper";
-
 
 export interface IntentionApiProps {
   api: apigw.RestApi;
@@ -81,16 +79,17 @@ export class IntentionApi extends Construct {
 
     const intentionLambda = new LambdaFunction(scope, "IntentionLambda", {
       runtime: Runtime.PYTHON_3_12,
-      code: Code.fromCustomCommand(
-        "/tmp/intention_lambda_function_codes",
-        ['bash', '-c', [
-          "mkdir -p /tmp/intention_lambda_function_codes",
-          `cp -r ${join(__dirname, "../../../lambda/intention/*")} /tmp/intention_lambda_function_codes`,
-          `cp -r ${join(__dirname, "../../../lambda/shared")} /tmp/intention_lambda_function_codes/`,
-        ].join(' && ')
-        ]
-      ),
+      memorySize: 1024,
       handler: "intention.lambda_handler",
+      code: Code.fromCustomCommand(
+              "/tmp/intention_lambda_function_codes",
+              ['bash', '-c', [
+                "mkdir -p /tmp/intention_lambda_function_codes",
+                `cp -r ${join(__dirname, "../../../lambda/intention/*")} /tmp/intention_lambda_function_codes`,
+                `cp -r ${join(__dirname, "../../../lambda/shared")} /tmp/intention_lambda_function_codes/`,
+              ].join(' && ')
+              ]
+      ),
       vpc: this.vpc,
       securityGroups: this.securityGroups,
       environment: {
