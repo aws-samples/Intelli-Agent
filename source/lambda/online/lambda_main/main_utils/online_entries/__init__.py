@@ -1,4 +1,4 @@
-from common_logic.common_utils.constant import EntryType
+from shared.constant import EntryType
 
 def get_common_entry():
     from .common_entry import main_chain_entry

@@ -1,10 +1,10 @@
 from langchain.schema.runnable import (
     RunnableLambda
 )
-from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
+from source.lambda.shared.utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.lambda_invoke_utils import invoke_lambda, chatbot_lambda_call_wrapper
-from common_logic.common_utils.constant import LLMTaskType
+from shared.constant import LLMTaskType
 from functions import get_tool_by_name
 
 logger = get_logger("agent")

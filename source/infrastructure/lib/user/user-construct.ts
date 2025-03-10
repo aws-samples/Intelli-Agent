@@ -40,7 +40,6 @@ export class UserConstruct extends Construct implements UserConstructOutputs {
 
   constructor(scope: Construct, id: string, props: UserProps) {
     super(scope, id);
-
     const userPoolName = props.userPoolName || `${Constants.SOLUTION_NAME}_UserPool`;
     const domainPrefix = props.domainPrefix || `${Constants.SOLUTION_NAME.toLowerCase()}-${Aws.ACCOUNT_ID}`;
     this.setupCognitoResources(props, userPoolName, domainPrefix);

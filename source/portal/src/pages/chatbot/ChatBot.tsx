@@ -682,7 +682,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       optionList=SILICON_FLOW_API_MODEL_LIST;
       setModelList(SILICON_FLOW_API_MODEL_LIST);
       setModelOption(SILICON_FLOW_API_MODEL_LIST[0].options[0].value);    
-    } else if (modelType.value === 'dmaa') {
+    } else if (modelType.value === 'emd') {
       optionList=CUSTOM_DEPLOYMENT_MODEL_LIST;
       setModelList(CUSTOM_DEPLOYMENT_MODEL_LIST);
       setModelOption(CUSTOM_DEPLOYMENT_MODEL_LIST[0].options[0].value);
@@ -884,7 +884,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         const selectedChatbotId = chatbotOption.value ?? "defaultId";
                         const expectedModelProvider = chatbotModelProvider[selectedChatbotId];
 
-                        if (expectedModelProvider !== detail.selectedOption.value && (detail.selectedOption.value !== 'dmaa' && detail.selectedOption.value !== 'siliconflow')) {
+                        if (expectedModelProvider !== detail.selectedOption.value && detail.selectedOption.value !== 'emd') {
                           setModelProviderHint(t('chatbotModelProviderError'));
                         } else {
                           setModelProviderHint(''); // Clear hint if the selection is valid

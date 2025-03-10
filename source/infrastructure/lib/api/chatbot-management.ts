@@ -18,7 +18,6 @@ import { join } from "path";
 import { LambdaFunction } from "../shared/lambda-helper";
 import * as pyLambda from "@aws-cdk/aws-lambda-python-alpha";
 import { IAMHelper } from "../shared/iam-helper";
-import { JsonSchemaType } from "aws-cdk-lib/aws-apigateway";
 
 export interface ChatbotManagementApiProps {
     api: apigw.RestApi;
@@ -30,7 +29,6 @@ export interface ChatbotManagementApiProps {
     sharedLayer: pyLambda.PythonLayerVersion;
     iamHelper: IAMHelper;
     genMethodOption: any;
-    genRequestModel: any;
 }
 
 export class ChatbotManagementApi extends Construct {
@@ -73,13 +71,7 @@ export class ChatbotManagementApi extends Construct {
         apiResourceCheckDefaultChatbot.addMethod(
             "GET",
             lambdaIntegration,
-            props.genMethodOption(props.api, props.auth, {
-                chatbot_id: { type: JsonSchemaType.STRING },
-                chatbot_name: { type: JsonSchemaType.STRING },
-                model_name: { type: JsonSchemaType.STRING },
-                model_id: { type: JsonSchemaType.STRING },
-                last_modified_time: { type: JsonSchemaType.STRING }
-            })
+            props.genMethodOption(props.api, props.auth, null)
         );
 
         apiResourceCheckChatbot.addMethod(
@@ -97,20 +89,7 @@ export class ChatbotManagementApi extends Construct {
         apiResourceListIndex.addMethod(
             "GET",
             lambdaIntegration,
-            props.genMethodOption(props.api, props.auth, {
-                Items: {
-                    type: JsonSchemaType.ARRAY,
-                    items: {
-                        type: JsonSchemaType.OBJECT,
-                        properties: {
-                            IndexId: { type: JsonSchemaType.STRING },
-                            ChatbotId: { type: JsonSchemaType.STRING },
-                            Status: { type: JsonSchemaType.STRING },
-                            LastModifiedTime: { type: JsonSchemaType.STRING }
-                        }
-                    }
-                }
-            })
+            props.genMethodOption(props.api, props.auth, null)
         );
 
         apiResourceEditChatBot.addMethod(
@@ -123,37 +102,7 @@ export class ChatbotManagementApi extends Construct {
             "GET",
             lambdaIntegration,
             {
-                ...props.genMethodOption(props.api, props.auth, {
-                    Items: {
-                        type: JsonSchemaType.ARRAY, items: {
-                            type: JsonSchemaType.OBJECT,
-                            properties: {
-                                ChatbotId: { type: JsonSchemaType.STRING },
-                                ModelName: { type: JsonSchemaType.STRING },
-                                ModelId: { type: JsonSchemaType.STRING },
-                                LastModifiedTime: { type: JsonSchemaType.STRING }
-                            },
-                            required: ['ChatbotId',
-                                'ModelName',
-                                'ModelId',
-                                'LastModifiedTime'],
-                        }
-                    },
-                    Count: { type: JsonSchemaType.INTEGER },
-                    Config: {
-                        type: JsonSchemaType.OBJECT,
-                        properties: {
-                            MaxItems: { type: JsonSchemaType.INTEGER },
-                            PageSize: { type: JsonSchemaType.INTEGER },
-                            StartingToken: { type: JsonSchemaType.NULL }
-                        }
-                    },
-                    chatbot_ids: {
-                        type: JsonSchemaType.ARRAY, items: {
-                            type: JsonSchemaType.STRING,
-                        }
-                    }
-                }),
+                ...props.genMethodOption(props.api, props.auth, null),
                 requestParameters: {
                     'method.request.querystring.max_items': false,
                     'method.request.querystring.page_size': false
@@ -170,13 +119,7 @@ export class ChatbotManagementApi extends Construct {
         apiResourceChatbotProxy.addMethod(
             "GET",
             lambdaIntegration,
-            props.genMethodOption(props.api, props.auth, {
-                chatbot_id: { type: JsonSchemaType.STRING },
-                chatbot_name: { type: JsonSchemaType.STRING },
-                model_name: { type: JsonSchemaType.STRING },
-                model_id: { type: JsonSchemaType.STRING },
-                last_modified_time: { type: JsonSchemaType.STRING }
-            })
+            props.genMethodOption(props.api, props.auth, null)
         );
 
         apiResourceChatbotProxy.addMethod(
@@ -188,19 +131,7 @@ export class ChatbotManagementApi extends Construct {
         apiResourceEmbeddings.addMethod(
             "GET",
             lambdaIntegration,
-            props.genMethodOption(props.api, props.auth, {
-                Items: {
-                    type: JsonSchemaType.ARRAY,
-                    items: {
-                        type: JsonSchemaType.OBJECT,
-                        properties: {
-                            ModelName: { type: JsonSchemaType.STRING },
-                            ModelId: { type: JsonSchemaType.STRING },
-                            Status: { type: JsonSchemaType.STRING }
-                        }
-                    }
-                }
-            })
+            props.genMethodOption(props.api, props.auth, null)
         );
     }
 } 

@@ -48,49 +48,49 @@ export class UIStack extends Stack implements UIStackOutputs {
       responseHeadersPolicyName: `SecHdr${Aws.REGION}${Aws.STACK_NAME}-client`
     });
     if (!props.config.deployRegion.startsWith("cn-")) {
-    const userConstruct = new UserConstruct(this, "User", {
-      deployRegion: props.config.deployRegion,
-      adminEmail: props.config.email,
-      callbackUrls: [
-        `https://${clientPortalConstruct.portalUrl}/signin`,
-        `https://${mainPortalConstruct.portalUrl}/signin`
-      ],
-      logoutUrls: [
-        `https://${clientPortalConstruct.portalUrl}`,
-        `https://${mainPortalConstruct.portalUrl}`
-      ],
+      const userConstruct = new UserConstruct(this, "User", {
+        deployRegion: props.config.deployRegion,
+        adminEmail: props.config.email,
+        callbackUrls: [
+          `https://${clientPortalConstruct.portalUrl}/signin`,
+          `https://${mainPortalConstruct.portalUrl}/signin`
+        ],
+        logoutUrls: [
+          `https://${clientPortalConstruct.portalUrl}`,
+          `https://${mainPortalConstruct.portalUrl}`
+        ],
       // userPoolName: `${Constants.SOLUTION_NAME}-workspace_UserPool`,
       // domainPrefix: `${Constants.SOLUTION_NAME.toLowerCase()}-workspace-${Aws.ACCOUNT_ID}`,
-    });
-    this.userConstruct = userConstruct;
-    // Add CfnOutputs to export values
-    new CfnOutput(this, 'UserPoolId', {
-      value: userConstruct.userPoolId,
-      exportName: `${id}-user-pool-id`
-    });
+      });
+      this.userConstruct = userConstruct;
+      // Add CfnOutputs to export values
+      new CfnOutput(this, 'UserPoolId', {
+        value: userConstruct.userPoolId,
+        exportName: `${id}-user-pool-id`
+      });
 
-    new CfnOutput(this, 'OidcClientId', {
-      value: userConstruct.oidcClientId,
-      exportName: `${id}-oidc-client-id`
-    });
+      new CfnOutput(this, 'OidcClientId', {
+        value: userConstruct.oidcClientId,
+        exportName: `${id}-oidc-client-id`
+      });
 
-    new CfnOutput(this, 'OidcIssuer', {
-      value: userConstruct.oidcIssuer,
-      exportName: `${id}-oidc-issuer`
-    });
+      new CfnOutput(this, 'OidcIssuer', {
+        value: userConstruct.oidcIssuer,
+        exportName: `${id}-oidc-issuer`
+      });
 
-    new CfnOutput(this, 'OidcLogoutUrl', {
-      value: userConstruct.oidcLogoutUrl,
-      exportName: `${id}-oidc-logout-url`
-    });
-    new CfnOutput(this, 'OidcRegion', {
-      value: userConstruct.oidcRegion ,
-      exportName: `${id}-oidc-region`
-    });
-    new CfnOutput(this, 'OidcDomain', {
-      value: userConstruct.oidcDomain,
-      exportName: `${id}-oidc-domain`
-    });
+      new CfnOutput(this, 'OidcLogoutUrl', {
+        value: userConstruct.oidcLogoutUrl,
+        exportName: `${id}-oidc-logout-url`
+      });
+      new CfnOutput(this, 'OidcRegion', {
+        value: userConstruct.oidcRegion ,
+        exportName: `${id}-oidc-region`
+      });
+      new CfnOutput(this, 'OidcDomain', {
+        value: userConstruct.oidcDomain,
+        exportName: `${id}-oidc-domain`
+      });
     }
     this.mainPortalConstruct = mainPortalConstruct;
     this.clientPortalConstruct = clientPortalConstruct;
