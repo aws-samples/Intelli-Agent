@@ -6,7 +6,10 @@ setup(
     version="0.1.0",
     packages=find_packages(exclude=[]),
     package_data={
-        "": ["*.txt", "*.json"],  # include all .txt and .json files in any package
+        "": [
+            "*.txt",
+            "*.json",
+        ],  # include all .txt and .json files in any package
         # Or if you want to be more specific:
         # "your_package_name": ["data/*.txt", "config/*.json"]
     },
@@ -26,6 +29,6 @@ setup(
         "pdfminer.six==20221105",
         "smart-open==7.0.4",
         "pillow==10.0.1",
-        "tiktoken==0.8.0"
+        "tiktoken==0.8.0",
     ],
 )

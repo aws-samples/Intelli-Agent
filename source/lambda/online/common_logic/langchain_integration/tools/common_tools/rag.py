@@ -29,7 +29,7 @@ def filter_response(res: Iterable, state: dict):
     references = []
     tag_start = "<reference>"
     tag_end = "</reference>"
-
+    
     for char in res:
         char_strip = char.strip()
         if not buffer and char_strip not in ["<", "<reference"]:
@@ -138,6 +138,19 @@ def rag_tool(retriever_config: dict, query=None):
     )
     output = chain.invoke(llm_input)
 
-    filtered_output = filter_response(output, state)
+    if not state["stream"]:
+        output = str(output)
+        filtered_output = filter_response(output, state)
+        return filtered_output, filtered_output
+    else:
+        output.content_stream = filter_response(
+            output.content_stream,
+            state
+        )
+        output.new_stream = filter_response(
+            output.generate_stream(output.message_stream),
+            state
+        )
 
-    return filtered_output, filtered_output
+        return output, output
+

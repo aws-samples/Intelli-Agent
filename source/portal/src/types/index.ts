@@ -181,7 +181,7 @@ export interface MessageDataType {
   ddb_additional_kwargs: {
     figure: AdditionalImageType[];
   };
-  message_type: 'START' | 'CHUNK' | 'END' | 'MONITOR' | 'CONTEXT'; // START CHUNK END MONITORING
+  message_type: 'START' | 'CHUNK' | 'END' | 'MONITOR' | 'CONTEXT' | 'REASON'; // START CHUNK END MONITORING
   message: {
     role: string;
     content: string;

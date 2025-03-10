@@ -46,7 +46,8 @@ import {
   SHOW_FIGURES,
   API_ENDPOINT,
   API_KEY_ARN,
-  CUSTOM_DEPLOYMENT_MODEL_LIST
+  CUSTOM_DEPLOYMENT_MODEL_LIST,
+  SILICON_FLOW_API_MODEL_LIST
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';
@@ -397,7 +398,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   }, [apiKeyArn]);
 
   const handleAIMessage = (message: MessageDataType) => {
-    console.info('handleAIMessage:', message);
+    // console.info('handleAIMessage:', message);
     if (message.message_type === 'START') {
       console.info('message started');
     } else if (message.message_type === 'CHUNK') {
@@ -427,7 +428,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         });
       }
     } else if (message.message_type === 'END') {
+      console.info('message ended');
       setCurrentAIMessageId(message.message_id);
+      setAiSpeaking(false)
       setIsMessageEnd(true);
     }
   };
@@ -491,7 +494,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       return;
     }
     // validate model settings
-    if (modelType.value === 'Bedrock API' || modelType.value === 'OpenAI API') {
+    if (modelType.value === 'Bedrock API' || modelType.value === 'OpenAI API' || modelType.value === 'siliconflow') {
       if (!apiEndpoint.trim()) {
         setApiEndpointError('validation.requireApiEndpoint');
         setModelSettingExpand(true);
@@ -605,8 +608,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           model_id: modelOption,
           endpoint_name: modelOption === 'qwen2-72B-instruct' ? endPoint.trim() : '',
           provider: modelType.value,
-          base_url: (modelType.value === 'Bedrock API' || 'OpenAI API') ? apiEndpoint.trim() : '',
-          api_key_arn: (modelType.value === 'Bedrock API' || 'OpenAI API') ? apiKeyArn.trim() : '',
+          base_url: (modelType.value === 'Bedrock API' || modelType.value === 'OpenAI API' || modelType.value === 'siliconflow') ? apiEndpoint.trim() : '',
+          api_key_arn: (modelType.value === 'Bedrock API' || modelType.value === 'OpenAI API' || modelType.value === 'siliconflow') ? apiKeyArn.trim() : '',
           model_kwargs: {
             temperature: parseFloat(temperature),
             max_tokens: parseInt(maxToken),
@@ -672,6 +675,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       optionList=OPENAI_API_MODEL_LIST;
       setModelList(OPENAI_API_MODEL_LIST);
       setModelOption(OPENAI_API_MODEL_LIST[0].options[0].value);
+    } else if (modelType.value === 'siliconflow') {
+      optionList=SILICON_FLOW_API_MODEL_LIST;
+      setModelList(SILICON_FLOW_API_MODEL_LIST);
+      setModelOption(SILICON_FLOW_API_MODEL_LIST[0].options[0].value);    
     } else if (modelType.value === 'dmaa') {
       optionList=CUSTOM_DEPLOYMENT_MODEL_LIST;
       setModelList(CUSTOM_DEPLOYMENT_MODEL_LIST);
@@ -755,10 +762,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
 
     console.info('Send stop message:', message);
     sendMessage(JSON.stringify(message));
-    
-    // Reset states to stop generation
-    setAiSpeaking(false);
-    setIsMessageEnd(true);
   };
 
   // Update the render send button section
@@ -878,7 +881,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         const selectedChatbotId = chatbotOption.value ?? "defaultId";
                         const expectedModelProvider = chatbotModelProvider[selectedChatbotId];
 
-                        if (expectedModelProvider !== detail.selectedOption.value && detail.selectedOption.value !== 'dmaa') {
+                        if (expectedModelProvider !== detail.selectedOption.value && (detail.selectedOption.value !== 'dmaa' && detail.selectedOption.value !== 'siliconflow')) {
                           setModelProviderHint(t('chatbotModelProviderError'));
                         } else {
                           setModelProviderHint(''); // Clear hint if the selection is valid
@@ -886,7 +889,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                       }}
                     />
                   </FormField>
-                  {modelType.value === 'Bedrock API' || modelType.value === 'OpenAI API' ? (
+                  {modelType.value === 'Bedrock API' || modelType.value === 'OpenAI API' || modelType.value === 'siliconflow' ? (
                     <SpaceBetween size="xs" direction="vertical">
                       <FormField
                         label={t('modelName')}

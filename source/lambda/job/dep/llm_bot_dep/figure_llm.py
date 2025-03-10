@@ -394,6 +394,10 @@ def process_single_image(
     file_name: str,
     idx: int,
     s3_link: str = None,
+    model_provider: str = "bedrock",
+    model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0",
+    api_url: str = None,
+    api_key: str = None,
 ) -> str:
     """Process a single image and return its understanding text.
 

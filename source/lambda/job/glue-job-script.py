@@ -475,8 +475,12 @@ def ingestion_pipeline(
                     SplittingType.SEMANTIC.value,
                 )
 
-            gen_chunk_flag = False if processing_params.file_type in ["csv", "xlsx", "xls"] else True
-            batches = batch_chunk_processor.batch_generator(documents, gen_chunk_flag)
+            gen_chunk_flag = (
+                False if processing_params.file_type in ["csv", "xlsx", "xls"] else True
+            )
+            batches = batch_chunk_processor.batch_generator(
+                documents, gen_chunk_flag
+            )
 
             for batch in batches:
                 if len(batch) == 0:
@@ -621,7 +625,7 @@ def main():
             model_type=embedding_model_type,
             group_name=group_name,
             chatbot_id=chatbot_id,
-            model_table=model_table
+            model_table=model_table,
         )
         aws_auth = get_aws_auth()
         docsearch = OpenSearchVectorSearch(

@@ -119,8 +119,8 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
             // Handle CREATE and UPDATE events
             if (event.RequestType === 'Create' || event.RequestType === 'Update') {
               try {
-                // Wait for 5 seconds
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                // Wait for 20 seconds
+                await new Promise(resolve => setTimeout(resolve, 20000));
                 
                 return {
                   Status: 'SUCCESS',
@@ -140,7 +140,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
             };
           };
         `),
-        timeout: Duration.seconds(10),
+        timeout: Duration.seconds(30),
       });
 
       // Create the provider that will handle the custom resource
