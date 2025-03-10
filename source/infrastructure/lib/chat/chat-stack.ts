@@ -113,7 +113,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         ['bash', '-c', [
           "mkdir -p /tmp/online_lambda_function_codes",
           `cp -r ${join(__dirname, "../../../lambda/online/*")} /tmp/online_lambda_function_codes`,
-          `cp ${join(__dirname, "../../../lambda/shared")} /tmp/online_lambda_function_codes/`,
+          `cp -r ${join(__dirname, "../../../lambda/shared")} /tmp/online_lambda_function_codes/`,
         ].join(' && ')
         ]
       ),

@@ -485,6 +485,7 @@ class OpenSearchHybridSearch(OpenSearceBase):
             bulk_size: int = 500,
             **kwargs: Any
         ):
+    
         self._validate_embeddings_and_bulk_size(len(embeddings), bulk_size)
         self._validate_aoss_with_engines(self.is_aoss, self.engine)
         

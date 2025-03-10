@@ -4,6 +4,7 @@ from shared.constant import (
     LLMTaskType,
     Threshold
 )
+import asyncio
 from shared.utils.lambda_invoke_utils import send_trace
 from shared.langchain_integration.retrievers import OpensearchHybridQueryDocumentRetriever
 from shared.langchain_integration.chains import LLMChain
@@ -111,7 +112,9 @@ def rag_tool(retriever_config: dict, query=None):
     qd_retriever = OpensearchHybridQueryDocumentRetriever.from_config(
         **retriever_params
     )
-    retrieved_contexts:List[Document] = qd_retriever.invoke(retriever_params["query"])
+    retrieved_contexts:List[Document] = asyncio.run(
+        qd_retriever.ainvoke(retriever_params["query"])
+    )
 
     # output = retrieve_fn(retriever_params)
     # top_k = retriever_config.get("top_k", Threshold.TOP_K_RETRIEVALS)

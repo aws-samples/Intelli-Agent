@@ -588,7 +588,6 @@ class OpensearchHybridQueryDocumentRetriever(OpensearchHybridRetrieverBase):
         )
 
 
-
 class OpensearchHybridQueryQuestionRetriever(OpensearchHybridRetrieverBase):
     
     async def aget_faq_answer(self,file_path):

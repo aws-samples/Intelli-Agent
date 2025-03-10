@@ -32,7 +32,10 @@ from common_logic.common_utils.serialization_utils import JSONEncoder
 from common_logic.common_utils.ddb_utils import custom_index_desc
 from lambda_main.main_utils.parse_config import CommonConfigParser
 from langgraph.graph import END, StateGraph
-from shared.langchain_integration.retrievers import OpensearchHybridQueryQuestionRetriever
+from shared.langchain_integration.retrievers import (
+    OpensearchHybridQueryQuestionRetriever,
+    OpensearchHybridQueryDocumentRetriever
+)
 from shared.utils.monitor_utils import (
     format_preprocess_output,
     format_qq_data,
@@ -42,7 +45,7 @@ from lambda_intention_detection.intention import get_intention_results
 from lambda_query_preprocess.query_preprocess import conversation_query_rewrite
 from shared.langchain_integration.chains import LLMChain
 from common_logic.common_utils.serialization_utils import JSONEncoder
-
+import asyncio
 
 logger = get_logger("common_entry")
 
@@ -164,7 +167,7 @@ def intention_detection(state: ChatbotState):
     qq_retriever = OpensearchHybridQueryQuestionRetriever.from_config(
         **retriever_params
     )
-    qq_retrievered:List[Document] = qq_retriever.invoke(retriever_params["query"])
+    qq_retrievered:List[Document] = asyncio.run(qq_retriever.ainvoke(retriever_params["query"]))
 
     # output = retrieve_fn(retriever_params)
     # context_list = []
@@ -268,15 +271,34 @@ def intention_detection(state: ChatbotState):
             retriever_params.get("retriever_config", {}).get(
                 "query_key", "query")
         ]
-        output = retrieve_fn(retriever_params)
+        qd_retriever = OpensearchHybridQueryDocumentRetriever.from_config(
+            **retriever_params
+        )
+        qd_retrievered:List[Document] = asyncio.run(
+            qd_retriever.ainvoke(retriever_params["query"])
+        )
+        # output = retrieve_fn(retriever_params)
 
         info_to_log = []
         all_knowledge_retrieved_list = []
-        for doc in output["result"]["docs"]:
-            if doc['score'] >= all_knowledge_in_agent_threshold:
-                all_knowledge_retrieved_list.append(doc["page_content"])
+        # for doc in output["result"]["docs"]:
+        #     if doc['score'] >= all_knowledge_in_agent_threshold:
+        #         all_knowledge_retrieved_list.append(doc["page_content"])
+        #     info_to_log.append(
+        #         f"score: {doc['score']}, page_content: {doc['page_content'][:200]}")
+        for doc in qd_retrievered:
+            if doc.metadata['score'] >= all_knowledge_in_agent_threshold:
+                all_knowledge_retrieved_list.append(
+                    Document(
+                        page_content=doc.page_content,
+                        metadata={
+                            **doc.metadata
+                        }
+                    )
+                    # doc["page_content"]
+                )
             info_to_log.append(
-                f"score: {doc['score']}, page_content: {doc['page_content'][:200]}")
+                f"score: {doc['score']}, page_content: {doc.page_content[:200]}")
 
         send_trace(
             f"all knowledge retrieved:\n{chr(10).join(info_to_log)}",
@@ -301,8 +323,8 @@ def intention_detection(state: ChatbotState):
         "intent_fewshot_examples": intent_fewshot_examples,
         "intent_fewshot_tools": intent_fewshot_tools,
         "all_knowledge_retrieved_list": all_knowledge_retrieved_list,
-        "qq_match_results": context_list,
-        "qq_match_contexts": qq_match_contexts,
+        "qq_match_results": qq_match_results,
+        # "qq_match_contexts": qq_match_contexts,
         "intent_type": "intention detected"
     }
 
