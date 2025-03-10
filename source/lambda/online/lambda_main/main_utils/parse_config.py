@@ -1,15 +1,15 @@
 import copy
 import os
 
-from common_logic.common_utils.constant import IndexType
-from common_logic.common_utils.logger_utils import get_logger
+from shared.constant import IndexType
+from shared.utils.logger_utils import get_logger
 from common_logic.common_utils.pydantic_models import (
     ChatbotConfig,
     LLMConfig,
     PrivateKnowledgeRetrieverConfig,
-    RagToolConfig,
+    RagToolConfig
 )
-from common_logic.common_utils.python_utils import update_nest_dict
+from shared.utils.python_utils import update_nest_dict
 
 logger = get_logger("parse_config")
 
@@ -99,34 +99,3 @@ class CommonConfigParser(ConfigParserBase):
 
         logger.info(chatbot_config)
         return chatbot_config
-
-
-# class RetailConfigParser(ConfigParserBase):
-#     @classmethod
-#     def from_chatbot_config(cls, chatbot_config: dict):
-#         # get index_infos
-#         index_infos = ChatbotConfig.get_index_infos_from_ddb(
-#             chatbot_config["group_name"], chatbot_config["chatbot_id"]
-#         )
-#         default_llm_config = cls.parse_default_llm_config(chatbot_config)
-#         # add retail tools
-#         default_tools_config = {}
-#         rag_goods_exchange_config = RagToolConfig(
-#             retrievers=[
-#                 PrivateKnowledgeRetrieverConfig(
-#                     top_k=5,
-#                     **ChatbotConfig.get_index_info(
-#                         index_infos,
-#                         index_type=IndexType.QQ,
-#                         index_name="retail-quick-reply",
-#                     )
-#                 )
-#             ],
-#             llm_config=LLMConfig(**default_llm_config),
-#         )
-#         default_tools_config["rag_goods_exchange_config"] = rag_goods_exchange_config
-#         #
-
-#         chatbot_config["tools_config"] = default_tools_config
-#         chatbot_config = super().from_chatbot_config(chatbot_config)
-#         return chatbot_config

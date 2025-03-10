@@ -2,9 +2,9 @@ import json
 import os
 import boto3
 from datetime import datetime, timezone
-from dmaa import deploy, destroy
-from dmaa.models import Model
-from dmaa.sdk.status import get_model_status
+from emd import deploy, destroy
+from emd.models import Model
+from emd.sdk.status import get_model_status
 import logging
 
 logger = logging.getLogger()
@@ -106,6 +106,7 @@ def __deploy(event, group_name):
 
     extra_params = body.get("extra_params")
     model_tag = group_name
+    
     ret = deploy(
         model_id=model_id,
         instance_type=instance_type,
@@ -152,7 +153,7 @@ def __destroy(event, group_name):
             Item=item
         )
         return item
-
+    
     destroy(
         model_id=model_id,
         model_tag=group_name,

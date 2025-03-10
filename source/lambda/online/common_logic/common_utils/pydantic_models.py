@@ -2,7 +2,7 @@ import copy
 from typing import Any, Union, Dict
 
 from common_logic.common_utils.chatbot_utils import ChatbotManager
-from common_logic.common_utils.constant import (
+from shared.constant import (
     ChatbotMode,
     IndexType,
     LLMModelType,
@@ -10,13 +10,15 @@ from common_logic.common_utils.constant import (
     Threshold,
     ModelProvider,
     EmbeddingModelType,
-    KBType
+    KBType,
+    RerankModelType,
+    ContextExtendMethod
 )
 
-from common_logic.common_utils.logger_utils import get_logger
-from common_logic.common_utils.python_utils import update_nest_dict
+from shared.utils.logger_utils import get_logger
+from shared.utils.python_utils import update_nest_dict
 from pydantic import BaseModel, ConfigDict, Field
-from sm_utils import get_secret_value
+from shared.utils.secret_utils import get_secret_value
 
 
 logger = get_logger("pydantic_models")
@@ -55,58 +57,71 @@ class QueryProcessConfig(ForbidBaseModel):
         default_factory=QueryRewriteConfig)
 
 
-class EmbeddingModelConfig(AllowBaseModel):
+
+##### model config ##############
+class ModelConfig(AllowBaseModel):
     provider: ModelProvider
-    model_id: EmbeddingModelType
+    model_id: Union[EmbeddingModelType,LLMModelType,RerankModelType]
     base_url: Union[str, None] = None
     api_key_arn: Union[str, None] = None
     api_key: Union[str, None] = None
-    dimension: Union[int, None] = None
     target_model: Union[str, None] = None
     model_endpoint: Union[str, None] = None
-
-    # endpoint_kwargs: Union[dict,None] = None
+    model_kwargs: Union[dict, None] = None
 
     def model_post_init(self, __context: Any) -> None:
         if self.api_key_arn and not self.api_key:
             self.api_key = get_secret_value(self.api_key_arn)
 
+class EmbeddingModelConfig(ModelConfig):
+    dimension: Union[int, None] = None
 
-class RetrieverConfigBase(AllowBaseModel):
-    index_type: str
+
+class RerankConfig(ModelConfig):
+    pass
+
+
+####### retriever config  ###########
+
+class HybridSearchConfig(AllowBaseModel):
+    bm25_search_context_extend_method: ContextExtendMethod = ContextExtendMethod.WHOLE_DOC
+    bm25_search_whole_doc_max_size:int = 100
+    bm25_search_chunk_window_size: int = 10
+    bm25_search_top_k:int = 5
+    enable_bm25_search:bool = True
+
+    vector_search_context_extend_method: ContextExtendMethod = ContextExtendMethod.WHOLE_DOC
+    vector_search_chunk_window_size: int = 10
+    vector_search_top_k:int = 5 
+    vector_search_whole_doc_max_size:int = 100
+    enable_vector_search:bool = True
+    
+class RetrieverConfigBase(HybridSearchConfig):
+    database: dict = Field(default_factory=dict)
+    index_name: str
+    index_type: IndexType
+    query_key: str = "query"
     kb_type: KBType = KBType.AOS
     embedding_config: Union[EmbeddingModelConfig, None] = None
-
+    rerank_config: Union[RerankConfig, None] = None
+    
 
 class IntentionRetrieverConfig(RetrieverConfigBase):
-    top_k: int = 5
-    query_key: str = "query"
-    index_name: str
-
+    index_type = IndexType.INTENTION
+    
 
 class QQMatchRetrieverConfig(RetrieverConfigBase):
-    top_k: int = 5
-    query_key: str = "query"
-    index_name: str
-
+    index_type = IndexType.QQ
+    
 
 class PrivateKnowledgeRetrieverConfig(RetrieverConfigBase):
-    top_k: int = 5
-    context_num: int = 1
-    using_whole_doc: bool = False
-    query_key: str = "query"
-    index_name: str
-
+    index_type = IndexType.QD
+    
 
 class IntentionConfig(ForbidBaseModel):
     retrievers: list[IntentionRetrieverConfig] = Field(default_factory=list)
     intent_threshold: float = Threshold.INTENTION_THRESHOLD
     all_knowledge_in_agent_threshold: float = Threshold.ALL_KNOWLEDGE_IN_AGENT_THRESHOLD
-
-
-class RerankConfig(AllowBaseModel):
-    endpoint_name: str = None
-    target_model: str = None
 
 
 class QQMatchConfig(ForbidBaseModel):
@@ -119,7 +134,7 @@ class QQMatchConfig(ForbidBaseModel):
 class RagToolConfig(AllowBaseModel):
     retrievers: list[PrivateKnowledgeRetrieverConfig] = Field(
         default_factory=list)
-    rerankers: list[RerankConfig] = Field(default_factory=list)
+    # rerankers: list[RerankConfig] = Field(default_factory=list)
     llm_config: LLMConfig = Field(default_factory=LLMConfig)
 
 

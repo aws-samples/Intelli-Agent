@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 from langchain.schema import BaseChatMessageHistory
 from langchain.schema.messages import BaseMessage
 from common_logic.common_utils.chatbot_utils import ChatbotManager
-from .constant import MessageType, IndexType, INDEX_DESC
+from shared.constant import MessageType, IndexType, INDEX_DESC
 
 client = boto3.resource("dynamodb")
 

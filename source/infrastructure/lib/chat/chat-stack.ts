@@ -114,7 +114,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         ['bash', '-c', [
           "mkdir -p /tmp/online_lambda_function_codes",
           `cp -r ${join(__dirname, "../../../lambda/online/*")} /tmp/online_lambda_function_codes`,
-          `cp ${join(__dirname, "../../../lambda/job/dep/llm_bot_dep/sm_utils.py")} /tmp/online_lambda_function_codes/`,
+          `cp -r ${join(__dirname, "../../../lambda/shared")} /tmp/online_lambda_function_codes/`,
         ].join(' && ')
         ]
       ),
@@ -143,7 +143,8 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         BEDROCK_AWS_ACCESS_KEY_ID: props.config.chat.bedrockAk || "",
         BEDROCK_AWS_SECRET_ACCESS_KEY: props.config.chat.bedrockSk || ""
       },
-      layers: [apiLambdaOnlineSourceLayer, modelLayer],
+      // layers: [apiLambdaOnlineSourceLayer, modelLayer],
+      layers: [apiLambdaOnlineSourceLayer],
     });
     this.lambdaOnlineMain = lambdaOnlineMain.function;
 
