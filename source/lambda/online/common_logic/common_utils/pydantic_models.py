@@ -127,7 +127,7 @@ class QQMatchRetrieverConfig(RetrieverConfigBase):
 
 class PrivateKnowledgeRetrieverConfig(RetrieverConfigBase):
     index_type: IndexType = IndexType.QD
-    vector_field: str = "vector"
+    vector_field: str = "vector_field"
     
 
 class IntentionConfig(ForbidBaseModel):
