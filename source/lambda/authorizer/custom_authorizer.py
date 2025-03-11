@@ -65,8 +65,6 @@ def lambda_handler(event, context):
             }
         headers = jwt.get_unverified_header(token)
         kid = headers["kid"]
-
-        oidc_info = json.loads(event["headers"].get("oidc-info"))
         if oidc_info.get("provider") == "authing":
             issuer = f"{oidc_info.get('redirectUri')}/oidc"
             keys_url = f"{oidc_info.get('redirectUri')}/oidc/.well-known/jwks.json"
