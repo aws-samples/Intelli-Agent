@@ -290,6 +290,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
             "modelId.$": "$.Payload.modelId",
             "modelApiUrl.$": "$.Payload.modelApiUrl",
             "modelSecretName.$": "$.Payload.modelSecretName",
+            "modelSagemakerEndpointName.$": "$.Payload.modelSagemakerEndpointName",
           },
         },
         // Original input
@@ -331,6 +332,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
         "--MODEL_ID.$": "$.modelId",
         "--MODEL_API_URL.$": "$.modelApiUrl",
         "--MODEL_SECRET_NAME.$": "$.modelSecretName",
+        "--MODEL_SAGEMAKER_ENDPOINT_NAME.$": "$.modelSagemakerEndpointName",
       }),
     });
 
@@ -364,6 +366,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
         "modelId.$": "$.modelId",
         "modelApiUrl.$": "$.modelApiUrl",
         "modelSecretName.$": "$.modelSecretName",
+        "modelSagemakerEndpointName.$": "$.modelSagemakerEndpointName",
       },
       resultPath: "$.mapResults",
     });

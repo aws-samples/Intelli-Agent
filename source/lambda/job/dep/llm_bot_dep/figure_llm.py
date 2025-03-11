@@ -94,7 +94,14 @@ class figureUnderstand:
     classify them, and generate appropriate descriptions or representations.
     """
 
-    def __init__(self, model_provider="bedrock", model_id="us.anthropic.claude-3-5-sonnet-20241022-v2:0", model_api_url=None, model_secret_name=None):
+    def __init__(
+        self,
+        model_provider="bedrock",
+        model_id="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        model_api_url=None,
+        model_secret_name=None,
+        model_sagemaker_endpoint_name=None,
+    ):
         """Initialize the figureUnderstand class with appropriate client.
 
         Args:
@@ -126,7 +133,7 @@ class figureUnderstand:
             self.openai_api_key = get_api_key(model_secret_name)
             if not self.openai_api_key:
                 raise ValueError(
-                    "Failed to retrieve OpenAI API key from Secrets Manager"
+                    f"Failed to retrieve OpenAI API key from Secrets Manager. Please check the secret name: {model_secret_name}"
                 )
 
             openai.api_key = self.openai_api_key
@@ -134,6 +141,16 @@ class figureUnderstand:
             self.model_id = model_id
 
             self.openai_client = openai
+        elif model_provider == "sagemaker":
+            if (
+                not model_sagemaker_endpoint_name
+                or model_sagemaker_endpoint_name == "-"
+            ):
+                raise ValueError(
+                    "SageMaker endpoint name is required when using SageMaker model"
+                )
+            self.sagemaker_client = boto3.client("sagemaker-runtime")
+            self.model_sagemaker_endpoint_name = model_sagemaker_endpoint_name
         else:
             raise ValueError(
                 "Unsupported model provider. Choose 'bedrock' or 'openai'"
@@ -161,6 +178,8 @@ class figureUnderstand:
             return self._invoke_bedrock(img, prompt, prefix, stop)
         elif self.model_provider == "openai":
             return self._invoke_openai(img, prompt, prefix, stop)
+        elif self.model_provider == "sagemaker":
+            return self._invoke_sagemaker(img, prompt, prefix, stop)
 
     def _invoke_bedrock(self, img, prompt, prefix="<output>", stop="</output>"):
         """Invoke Bedrock model with image and prompt."""
@@ -244,6 +263,54 @@ class figureUnderstand:
         )
 
         result = prefix + response.choices[0].message.content + stop
+        return result
+
+    def _invoke_sagemaker(
+        self, img, prompt, prefix="<output>", stop="</output>"
+    ):
+        """Invoke SageMaker model with image and prompt."""
+        # If img is already a base64 string, use it directly
+        if isinstance(img, str):
+            base64_encoded = img
+        else:
+            # If img is a PIL Image, convert it to base64
+            image_stream = io.BytesIO()
+            img.save(image_stream, format="JPEG")
+            base64_encoded = base64.b64encode(image_stream.getvalue()).decode(
+                "utf-8"
+            )
+
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_encoded}"
+                        },
+                    },
+                ],
+            },
+            {"role": "assistant", "content": prefix},
+        ]
+
+        payload = {
+            "messages": messages,
+            "stream": False,
+        }
+
+        response = self.sagemaker_client.invoke_endpoint(
+            EndpointName=self.model_sagemaker_endpoint_name,
+            Body=json.dumps(payload),
+            ContentType="application/json",
+        )
+        response_body = response["Body"].read().decode("utf-8")
+        response_json = json.loads(response_body)
+        result = (
+            prefix + response_json["choices"][0]["message"]["content"] + stop
+        )
         return result
 
     def get_classification(self, img):
@@ -391,7 +458,7 @@ def process_single_image(
     file_name: str,
     idx: int,
     s3_link: str = None,
-    vllm_params: VLLMParameters = None
+    vllm_params: VLLMParameters = None,
 ) -> str:
     """Process a single image and return its understanding text.
 
@@ -423,6 +490,7 @@ def process_single_image(
         model_id=vllm_params.model_id,
         model_api_url=vllm_params.model_api_url,
         model_secret_name=vllm_params.model_secret_name,
+        model_sagemaker_endpoint_name=vllm_params.model_sagemaker_endpoint_name,
     )
 
     # Get image understanding
@@ -515,7 +583,7 @@ def process_markdown_images_with_llm(
                 file_name,
                 idx,
                 s3_link,
-                vllm_params
+                vllm_params,
             )
 
             # If this is a new image path, store its S3 object name

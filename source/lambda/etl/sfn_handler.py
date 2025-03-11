@@ -118,12 +118,19 @@ def handler(event: Dict, context) -> Dict:
                 "body": f"Invalid indexType, valid values are {', '.join([t.value for t in IndexType])}",
             }
             
-        # Validate OpenAI model provider requirements
-        if input_body.get("modelProvider") == "openai":
-            required_fields = ["modelId", "modelSecretName", "modelApiUrl"]
+        # Validate model provider requirements
+        provider_required_fields = {
+            "bedrock": ["modelId"],
+            "openai": ["modelId", "modelSecretName", "modelApiUrl"],
+            "sagemaker": ["modelSagemakerEndpointName"]
+        }
+        
+        model_provider = input_body.get("modelProvider")
+        if model_provider in provider_required_fields:
+            required_fields = provider_required_fields[model_provider]
             missing_fields = [field for field in required_fields if not input_body.get(field)]
             if missing_fields:
-                raise ValueError(f"When using OpenAI provider, the following fields are required: {', '.join(missing_fields)}")
+                raise ValueError(f"When using {model_provider.capitalize()} provider, the following fields are required: {', '.join(missing_fields)}")
 
         group_name = input_body.get("groupName") or (
             "Admin"
