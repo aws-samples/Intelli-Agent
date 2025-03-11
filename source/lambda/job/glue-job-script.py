@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 from typing import Generator, Iterable, List
 
 import boto3
-import chardet
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import OpenSearchVectorSearch
@@ -57,6 +56,7 @@ args = getResolvedOptions(
         "MODEL_ID",
         "MODEL_API_URL",
         "MODEL_SECRET_NAME",
+        "MODEL_SAGEMAKER_ENDPOINT_NAME",
     ],
 )
 
@@ -107,7 +107,7 @@ model_provider = args["MODEL_PROVIDER"]
 model_id = args["MODEL_ID"]
 model_api_url = args["MODEL_API_URL"]
 model_secret_name = args["MODEL_SECRET_NAME"]
-
+model_sagemaker_endpoint_name = args["MODEL_SAGEMAKER_ENDPOINT_NAME"]
 
 s3_client = boto3.client("s3")
 sm_client = boto3.client("secretsmanager")
@@ -209,7 +209,8 @@ class S3FileIterator:
                         model_provider=model_provider,
                         model_id=model_id,
                         model_api_url=model_api_url,
-                        model_secret_name=model_secret_name
+                        model_secret_name=model_secret_name,
+                        model_sagemaker_endpoint_name=model_sagemaker_endpoint_name
                     )
 
                     # Create processing parameters with VLLM parameters
