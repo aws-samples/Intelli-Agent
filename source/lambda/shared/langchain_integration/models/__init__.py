@@ -1,5 +1,3 @@
-from .chat_models import ChatModel
-from .embedding_models import EmbeddingModel
 from ...constant import ModelProvider
 
 class ModelMeta(type):
@@ -7,7 +5,7 @@ class ModelMeta(type):
         new_cls = type.__new__(cls, name, bases, attrs)
         if (
             name == "Model"
-            or new_cls.model_id is None
+            # or new_cls.model_id is None
             or name.endswith(("ModelBase","BaseModel","ModelCreator"))
             or name.lower().endswith("basemodel")
         ):
@@ -76,3 +74,9 @@ class ModelBase(metaclass=ModelMeta):
     def create_for_models(cls, configs):
         for config in configs:
             cls.create_for_model(config)
+
+
+
+from .chat_models import ChatModel
+from .embedding_models import EmbeddingModel
+from .rerank_models import RerankModel

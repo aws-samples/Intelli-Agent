@@ -1,11 +1,11 @@
 import json
 import os
 import boto3
-from common_logic.common_utils.constant import (
+from shared.constant import (
     ModelProvider
 )
-from common_logic.common_utils.logger_utils import get_logger, llm_messages_print_decorator
-from . import Model
+from shared.utils.logger_utils import get_logger, llm_messages_print_decorator
+from . import ChatModel
 from langchain_deepseek import ChatDeepSeek as _ChatDeepSeek
 from ..model_config import SILICONFLOW_DEEPSEEK_MODEL_CONFIGS
 
@@ -18,7 +18,7 @@ class ChatDeepSeekR1(_ChatDeepSeek):
     is_reasoning_model: bool = True
 
 
-class DeepSeekR1BaseModel(Model):
+class DeepSeekR1BaseModel(ChatModel):
     default_model_kwargs = {"max_tokens": 2000,
                             "temperature": 0.6, "top_p": 0.9}
     enable_any_tool_choice: bool = False

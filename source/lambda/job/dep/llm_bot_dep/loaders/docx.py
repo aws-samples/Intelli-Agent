@@ -1,16 +1,20 @@
 import logging
 import os
+import tempfile
 import uuid
-from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import mammoth
 from docx import Document as pyDocument
 from langchain.docstore.document import Document
-from langchain.document_loaders.base import BaseLoader
+from langchain_community.document_loaders.base import BaseLoader
 from llm_bot_dep.loaders.html import CustomHtmlLoader
-from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
+from llm_bot_dep.schemas.processing_parameters import (
+    ProcessingParameters,
+    VLLMParameters,
+)
+from llm_bot_dep.utils.s3_utils import download_file_from_s3
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -20,27 +24,18 @@ class CustomDocLoader(BaseLoader):
     """Load docx file.
 
     Args:
-        file_content: File content in docx file.
-
-        encoding: File encoding to use. If `None`, the file will be loaded
-        with the default system encoding.
-
-        autodetect_encoding: Whether to try to autodetect the file encoding
-            if the specified encoding fails.
+        file_path: File path of the docx file.
+        s3_uri: S3 URI of the docx file.
     """
 
     def __init__(
         self,
         file_path: str,
-        aws_path: str,
-        encoding: Optional[str] = None,
-        autodetect_encoding: bool = False,
+        s3_uri: str,
     ):
         """Initialize with file path."""
         self.file_path = file_path
-        self.aws_path = aws_path
-        self.encoding = encoding
-        self.autodetect_encoding = autodetect_encoding
+        self.s3_uri = s3_uri
 
     def clean_document(self, doc: pyDocument):
         """Clean document including removing header and footer for each page
@@ -58,11 +53,8 @@ class CustomDocLoader(BaseLoader):
                 for paragraph in section.footer.paragraphs:
                     paragraph.clear()
 
-    def load(
-        self, bucket_name: str, file_name: str, **kwargs
-    ) -> List[Document]:
+    def load(self, image_result_bucket_name: str, vllm_params: VLLMParameters) -> List[Document]:
         """Load from file path."""
-        metadata = {"file_path": self.aws_path, "file_type": "docx"}
 
         # Create a directory for images if it doesn't exist
         image_dir = "/tmp/doc_images"
@@ -94,30 +86,41 @@ class CustomDocLoader(BaseLoader):
                 convert_image=mammoth.images.img_element(_convert_image),
             )
             html_content = result.value
-            loader = CustomHtmlLoader(aws_path=self.aws_path)
-            doc = loader.load(html_content, bucket_name, file_name, **kwargs)
+            loader = CustomHtmlLoader(file_path=self.file_path, s3_uri=self.s3_uri)
+            metadata = {"file_path": self.s3_uri, "file_type": "docx"}
+            doc = loader.load(image_result_bucket_name, file_content=html_content, vllm_params=vllm_params)
             doc.metadata = metadata
 
         return doc
 
 
-def process_doc(s3, **kwargs):
-    now = datetime.now()
-    timestamp_str = now.strftime("%Y%m%d%H%M%S")
-    random_uuid = str(uuid.uuid4())[:8]
-    bucket_name = kwargs["bucket"]
-    key = kwargs["key"]
-    portal_bucket_name = kwargs["portal_bucket_name"]
-    file_name = Path(key).stem
-    local_path = f"/tmp/doc-{timestamp_str}-{random_uuid}.docx"
-
-    s3.download_file(bucket_name, key, local_path)
-
-    loader = CustomDocLoader(
-        file_path=local_path, aws_path=f"s3://{bucket_name}/{key}"
-    )
-    doc = loader.load(portal_bucket_name, file_name, **kwargs)
-    splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
-    doc_list = splitter.split_text(doc)
+def process_doc(processing_params: ProcessingParameters):
+    """Process text content and split into documents.
+    
+    Args:
+        processing_params: ProcessingParameters object containing the bucket and key
+        
+    Returns:
+        List of processed documents.
+    """
+    bucket = processing_params.source_bucket_name
+    key = processing_params.source_object_key
+    vllm_params = processing_params.vllm_parameters
+    suffix = Path(key).suffix
+    
+    # Create a temporary file with .docx suffix
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
+        local_path = temp_file.name
+    
+    # Download the file locally
+    download_file_from_s3(bucket, key, local_path)
+    
+    # Use the loader with the local file path
+    loader = CustomDocLoader(file_path=local_path, s3_uri=f"s3://{bucket}/{key}")
+    doc = loader.load(image_result_bucket_name=processing_params.portal_bucket_name, vllm_params=vllm_params)
+    doc_list = [doc]
+    
+    # Clean up the temporary file
+    Path(local_path).unlink(missing_ok=True)
 
     return doc_list

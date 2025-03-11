@@ -13,10 +13,10 @@ from langchain.callbacks.manager import (
     AsyncCallbackManagerForRetrieverRun
 )
 import traceback
-from ....shared.utils.logger_utils import get_logger
-from ....shared.constant import ContextExtendMethod
+from shared.utils.logger_utils import get_logger
+from shared.constant import ContextExtendMethod
 import asyncio
-from ....shared.utils.asyncio_utils import run_coroutine_task
+from shared.utils.asyncio_utils import run_coroutine_task
 from langchain.retrievers.multi_query import MultiQueryRetriever
 
 logger = get_logger(__name__)

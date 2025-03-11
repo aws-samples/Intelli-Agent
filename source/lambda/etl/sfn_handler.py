@@ -117,6 +117,13 @@ def handler(event: Dict, context) -> Dict:
                 "headers": CORS_HEADERS,
                 "body": f"Invalid indexType, valid values are {', '.join([t.value for t in IndexType])}",
             }
+            
+        # Validate OpenAI model provider requirements
+        if input_body.get("modelProvider") == "openai":
+            required_fields = ["modelId", "modelSecretName", "modelApiUrl"]
+            missing_fields = [field for field in required_fields if not input_body.get(field)]
+            if missing_fields:
+                raise ValueError(f"When using OpenAI provider, the following fields are required: {', '.join(missing_fields)}")
 
         group_name = input_body.get("groupName") or (
             "Admin"

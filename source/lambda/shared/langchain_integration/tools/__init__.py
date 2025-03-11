@@ -12,7 +12,7 @@ from datamodel_code_generator.model import get_data_model_types
 from datamodel_code_generator.parser.jsonschema import JsonSchemaParser
 from langchain.tools.base import StructuredTool as _StructuredTool, BaseTool
 from shared.constant import SceneType
-from common_logic.common_utils.lambda_invoke_utils import invoke_with_lambda
+from shared.utils.lambda_invoke_utils import invoke_with_lambda
 from functools import partial
 
 

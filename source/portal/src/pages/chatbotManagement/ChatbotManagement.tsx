@@ -75,16 +75,6 @@ const isValidChatbotName = (name: string): { valid: boolean; message: string } =
     return { valid: false, message: 'validation.noStartWithUnderscoreOrDash' };
   }
 
-  // Check for uppercase letters
-  if (/[A-Z]/.test(name)) {
-    return { valid: false, message: 'validation.uppercaseNotAllowed' };
-  }
-
-  // Check for invalid characters
-  if (/[ ,:"*+/\\|?#><]/.test(name)) {
-    return { valid: false, message: 'validation.invalidCharacters' };
-  }
-
   // Check for non-standard English characters (allows a-z, 0-9, underscore, hyphen, and period)
   if (!/^[a-z0-9_\-\.]+$/.test(name)) {
     return { valid: false, message: 'validation.onlyStandardEnglishAllowed' };

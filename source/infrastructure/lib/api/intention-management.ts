@@ -59,7 +59,7 @@ export class IntentionApi extends Construct {
 
   constructor(scope: Construct, id: string, props: IntentionApiProps) {
     super(scope, id);
-    
+
     this.api = props.api;
     this.auth = props.auth;
     this.vpc = props.vpc;
@@ -82,13 +82,13 @@ export class IntentionApi extends Construct {
       memorySize: 1024,
       handler: "intention.lambda_handler",
       code: Code.fromCustomCommand(
-              "/tmp/intention_lambda_function_codes",
-              ['bash', '-c', [
-                "mkdir -p /tmp/intention_lambda_function_codes",
-                `cp -r ${join(__dirname, "../../../lambda/intention/*")} /tmp/intention_lambda_function_codes`,
-                `cp -r ${join(__dirname, "../../../lambda/shared")} /tmp/intention_lambda_function_codes/`,
-              ].join(' && ')
-              ]
+        "/tmp/intention_lambda_function_codes",
+        ['bash', '-c', [
+          "mkdir -p /tmp/intention_lambda_function_codes",
+          `cp -r ${join(__dirname, "../../../lambda/intention/*")} /tmp/intention_lambda_function_codes`,
+          `cp -r ${join(__dirname, "../../../lambda/shared")} /tmp/intention_lambda_function_codes/`,
+        ].join(' && ')
+        ]
       ),
       vpc: this.vpc,
       securityGroups: this.securityGroups,
