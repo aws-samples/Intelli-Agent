@@ -48,7 +48,8 @@ import {
   API_KEY_ARN,
   CUSTOM_DEPLOYMENT_MODEL_LIST,
   ROUTES,
-  SILICON_FLOW_API_MODEL_LIST
+  SILICON_FLOW_API_MODEL_LIST,
+  OIDC_STORAGE
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';
@@ -110,10 +111,13 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     },
   ]);
   const [userMessage, setUserMessage] = useState('');
-
-
+  const oidc = JSON.parse(localStorage.getItem(OIDC_STORAGE) || '')
+  let wsUrl = `${config?.websocket}?idToken=${getCredentials().idToken}&provider=${oidc.provider}&clientId=${config?.oidcClientId}&poolId=${config?.oidcPoolId}`
+  if(oidc.provider === "authing"){
+    wsUrl = `${config?.websocket}?idToken=${getCredentials().access_token}&provider=${oidc.provider}&clientId=${oidc.clientId}&redirectUri=${oidc.redirectUri}`
+  }
   const { lastMessage, sendMessage, readyState } = useWebSocket(
-    `${config?.websocket}?idToken=${getCredentials().id_token}`,
+    wsUrl,
     {
       onOpen: () => console.log('opened'),
       shouldReconnect: () => true,

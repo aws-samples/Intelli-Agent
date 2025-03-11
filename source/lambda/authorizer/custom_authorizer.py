@@ -47,6 +47,7 @@ def lambda_handler(event, context):
     try:
         if event.get("httpMethod"):
             # REST API
+            oidc_info = json.loads(event["headers"].get("oidc-info"))
             if event["headers"].get("authorization"):
                 # Browser will change the Authorization header to lowercase
                 token = event["headers"]["authorization"].replace("Bearer", "").strip()
@@ -56,7 +57,12 @@ def lambda_handler(event, context):
         else:
             # WebSocket API
             token = event["queryStringParameters"]["idToken"]
-
+            oidc_info={
+                "provider": event["queryStringParameters"].get("provider"),
+                "clientId": event["queryStringParameters"].get("clientId"),
+                "redirectUri": event["queryStringParameters"].get("redirectUri"),
+                "poolId": event["queryStringParameters"].get("poolId")
+            }
         headers = jwt.get_unverified_header(token)
         kid = headers["kid"]
 
