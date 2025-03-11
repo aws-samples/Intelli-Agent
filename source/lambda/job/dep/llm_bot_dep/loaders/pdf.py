@@ -1,16 +1,13 @@
 import json
 import logging
 import os
-import re
 import tempfile
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from urllib.parse import urlparse
 
 import boto3
-import botocore
-from botocore.exceptions import ClientError
 from langchain.docstore.document import Document
 from llm_bot_dep.schemas.processing_parameters import (
     ProcessingParameters,
@@ -62,7 +59,7 @@ class SageMakerPdfLoader:
         processing_mode="ppstructure",
         language_code="zh",
         chunk_size=PDF_CHUNK_SIZE,
-        vllm_params: VLLMParameters = None
+        vllm_params: VLLMParameters = None,
     ):
         """
         Initialize the SageMakerPdfLoader with configuration parameters.
@@ -176,6 +173,7 @@ class SageMakerPdfLoader:
             "model_id": self.vllm_params.model_id,
             "model_api_url": self.vllm_params.model_api_url,
             "model_secret_name": self.vllm_params.model_secret_name,
+            "model_sagemaker_endpoint_name": self.vllm_params.model_sagemaker_endpoint_name,
         }
 
         # Create unique filename for the request
@@ -184,7 +182,9 @@ class SageMakerPdfLoader:
         request_filename = f"data_{timestamp}_{unique_id}.json"
 
         # Create a temporary file
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix=".json") as temp_file:
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".json"
+        ) as temp_file:
             json.dump(request_data, temp_file)
             temp_file_path = temp_file.name
 
@@ -222,12 +222,12 @@ class SageMakerPdfLoader:
             if os.path.exists(temp_file_path):
                 os.remove(temp_file_path)
 
-    def wait_for_async_inference_results(self, inference_results):
+    def wait_for_async_inference_results(self, inference_responses):
         """
         Wait for all ETL inference results to complete.
 
         Args:
-            inference_results (list): List of dictionaries containing output_location,
+            inference_responses (list): List of dictionaries containing output_location,
                                      failure_location, and chunk information
 
         Returns:
@@ -236,7 +236,7 @@ class SageMakerPdfLoader:
         """
         successful_chunks = []
         failed_chunks = []
-        pending_inferences = inference_results.copy()
+        pending_inferences = inference_responses.copy()
 
         for attempt in range(S3_FETCH_MAX_RETRY):
             if not pending_inferences:
@@ -347,11 +347,15 @@ class SageMakerPdfLoader:
             output_location = chunk["output_location"]
 
             # Parse the S3 URI
-            inference_output_bucket_name, inference_output_key = parse_s3_uri(output_location)
+            inference_output_bucket_name, inference_output_key = parse_s3_uri(
+                output_location
+            )
 
             try:
                 # Get the content from the output location
-                async_inference_result = load_content_from_s3(inference_output_bucket_name, inference_output_key)
+                async_inference_result = load_content_from_s3(
+                    inference_output_bucket_name, inference_output_key
+                )
                 destination_key = json.loads(async_inference_result)[
                     "destination_prefix"
                 ]
@@ -373,64 +377,72 @@ class SageMakerPdfLoader:
     def process_small_pdf(self, source_object_key):
         """
         Process a small PDF file directly without splitting.
-        
+
         Args:
             source_object_key (str): Source S3 key of the PDF
-            
+
         Returns:
             str: Extracted text from the PDF
-            
+
         Raises:
             Exception: If processing fails
         """
         logger.info(f"Processing small PDF directly: {source_object_key}")
-        inference_result = self.invoke_etl_model(source_object_key)
-        
+        inference_response = self.invoke_etl_model(source_object_key)
+
         # Wait for the inference to complete
-        inference_results = [{
-            "chunk_key": source_object_key,
-            "output_location": inference_result["output_location"],
-            "failure_location": inference_result["failure_location"],
-            "inference_id": inference_result["inference_id"],
-        }]
-        
-        successful_chunks, failed_chunks = self.wait_for_async_inference_results(inference_results)
-        
+        inference_responses = [
+            {
+                "chunk_key": source_object_key,
+                "output_location": inference_response["output_location"],
+                "failure_location": inference_response["failure_location"],
+                "inference_id": inference_response["inference_id"],
+            }
+        ]
+
+        successful_chunks, failed_chunks = (
+            self.wait_for_async_inference_results(inference_responses)
+        )
+
         if not successful_chunks:
             raise Exception("PDF processing failed")
-            
+
         # Get the content from the output location
         output_location = successful_chunks[0]["output_location"]
         parsed_uri = urlparse(output_location)
         bucket_name = parsed_uri.netloc
         key = parsed_uri.path.lstrip("/")
-        
+
         async_inference_result = load_content_from_s3(bucket_name, key)
-        destination_key = json.loads(async_inference_result)["destination_prefix"]
-        
-        all_text = load_content_from_s3(self.result_bucket_name, destination_key)
+        destination_key = json.loads(async_inference_result)[
+            "destination_prefix"
+        ]
+
+        all_text = load_content_from_s3(
+            self.result_bucket_name, destination_key
+        )
         return all_text
 
     def process_large_pdf(self, local_pdf_path, temp_dir):
         """
         Process a large PDF by splitting it into chunks, processing each chunk in parallel,
         and merging the results.
-        
+
         Args:
             source_object_key (str): Source S3 key of the PDF
             local_pdf_path (str, optional): Path to already downloaded PDF file
             temp_dir (str, optional): Path to temporary directory
-            
+
         Returns:
             str: Extracted text from the merged chunks
-            
+
         Raises:
             Exception: If all chunks fail processing
         """
-        
+
         # Split the PDF into chunks
         chunks = self.split_pdf(local_pdf_path, temp_dir)
-        
+
         # Upload chunks to S3
         chunk_prefix = f"{ETL_INFERENCE_PREFIX}chunks/{os.path.splitext(os.path.basename(local_pdf_path))[0]}/"
         chunk_keys = []
@@ -440,23 +452,27 @@ class SageMakerPdfLoader:
             chunk_keys.append(chunk_key)
 
         # Submit all chunks for processing asynchronously
-        inference_results = []
+        inference_responses = []
 
         for chunk_key in chunk_keys:
             logger.info(f"Submitting chunk {chunk_key} for processing")
-            inference_result = self.invoke_etl_model(
+            inference_response = self.invoke_etl_model(
                 chunk_key,
                 source_bucket_name=self.result_bucket_name,  # Use destination bucket as source for chunks
             )
-            inference_results.append({
-                "chunk_key": chunk_key,
-                "output_location": inference_result["output_location"],
-                "failure_location": inference_result["failure_location"],
-                "inference_id": inference_result["inference_id"],
-            })
+            inference_responses.append(
+                {
+                    "chunk_key": chunk_key,
+                    "output_location": inference_response["output_location"],
+                    "failure_location": inference_response["failure_location"],
+                    "inference_id": inference_response["inference_id"],
+                }
+            )
 
         # Wait for all inferences to complete
-        successful_chunks, failed_chunks = self.wait_for_async_inference_results(inference_results)
+        successful_chunks, failed_chunks = (
+            self.wait_for_async_inference_results(inference_responses)
+        )
 
         # Check if we have any successful results
         if not successful_chunks:
@@ -464,47 +480,60 @@ class SageMakerPdfLoader:
 
         # Log any failed chunks
         if failed_chunks:
-            logger.warning(f"{len(failed_chunks)} out of {len(chunk_keys)} chunks failed processing")
+            logger.warning(
+                f"{len(failed_chunks)} out of {len(chunk_keys)} chunks failed processing"
+            )
 
         # Merge results from successful chunks
         all_text = self.merge_etl_results(successful_chunks)
 
         return all_text
-        
-    
-    def process(self, source_object_key):
+
+    def load(self, source_object_key):
         """
         Process a PDF file, automatically choosing the appropriate method based on size.
-        
+
         Args:
             source_object_key (str): Source S3 key of the PDF
-            
+
         Returns:
             str: Extracted text from the PDF
-            
+
         Raises:
             Exception: If processing fails
         """
         # Download the PDF to check its size first
         temp_dir = tempfile.mkdtemp()
-        local_pdf_path = os.path.join(temp_dir, os.path.basename(source_object_key))
-        
+        local_pdf_path = os.path.join(
+            temp_dir, os.path.basename(source_object_key)
+        )
+
         try:
-            download_file_from_s3(self.source_bucket_name, source_object_key, local_pdf_path)
+            download_file_from_s3(
+                self.source_bucket_name, source_object_key, local_pdf_path
+            )
             pdf = PdfReader(local_pdf_path)
             total_pages = len(pdf.pages)
-            
+
             # Choose processing method based on PDF size
             if total_pages <= self.chunk_size:
-                logger.info(f"PDF {source_object_key} has {total_pages} pages, processing the PDF directly")
+                logger.info(
+                    f"PDF {source_object_key} has {total_pages} pages, processing the PDF directly"
+                )
                 return self.process_small_pdf(source_object_key)
             else:
-                logger.info(f"PDF {source_object_key} has {total_pages} pages, processing the PDF with chunking")
+                logger.info(
+                    f"PDF {source_object_key} has {total_pages} pages, processing the PDF with chunking"
+                )
                 return self.process_large_pdf(local_pdf_path, temp_dir)
-        
+        except Exception as e:
+            logger.error(f"Error processing PDF: {str(e)}")
+            return ""
+
         finally:
             # Clean up temporary files
             import shutil
+
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
 
@@ -549,10 +578,10 @@ def process_pdf(processing_params: ProcessingParameters):
         portal_bucket_name=portal_bucket_name,
         processing_mode="ppstructure",
         language_code=language_code,
-        vllm_params=vllm_params
+        vllm_params=vllm_params,
     )
 
-    content = pdf_loader.process(source_object_key)
+    content = pdf_loader.load(source_object_key)
 
     metadata = {
         "file_path": f"s3://{source_bucket_name}/{source_object_key}",
