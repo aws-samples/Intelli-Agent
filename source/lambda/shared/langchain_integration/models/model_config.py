@@ -157,8 +157,20 @@ CORHERE_MODEL_CONFIGS = [
     ),
 ]
 
+DEEPSEEK_MODEL_CONFIGS = [
+    ModelConfig(
+        model_id=LLMModelType.BEDROCK_DEEPSEEK_R1,
+        model=LLMModelType.BEDROCK_DEEPSEEK_R1,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_any_tool_choice=False,
+        enable_prefill=False,
+        is_reasoning_model=True
+    )
+]
+
+
 BEDROCK_MODEL_CONFIGS = CLAUDE_MODEL_CONFIG + NOVA_MODEL_CONFIGS + \
-    MISTRAL_MODEL_CONFIGS + LLAMA_MODEL_CONFIGS + CORHERE_MODEL_CONFIGS
+    MISTRAL_MODEL_CONFIGS + LLAMA_MODEL_CONFIGS + CORHERE_MODEL_CONFIGS + DEEPSEEK_MODEL_CONFIGS
 
 
 
