@@ -37,13 +37,17 @@ import AutoLogout from './secure/auto-logout';
 import { OIDC_PREFIX, ROUTES } from './utils/const';
 import ConfigProvider from './context/config-provider';
 import { hasPrefixKeyInLocalStorage } from './utils/utils';
+import { Provider } from 'react-redux';
+import { store } from './app/store.ts';
 // import LayoutHeader from 'common/layout-header';
 const AppBody = () => {
   return (
     <Suspense fallback={null}>
       {/* <BrowserRouter> */}
         <ConfigProvider>
+        <Provider store={store}>
           <AppRouter/>
+          </Provider>
         </ConfigProvider>
       {/* </BrowserRouter> */}
     </Suspense>
