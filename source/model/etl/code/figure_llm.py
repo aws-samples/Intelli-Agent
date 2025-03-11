@@ -58,10 +58,6 @@ class figureUnderstand:
             self.model_id = model_id
         elif model_provider == "openai":
             self.openai_api_key = self._get_api_key(model_secret_name)
-            if not self.openai_api_key:
-                raise ValueError(
-                    "Failed to retrieve OpenAI API key from Secrets Manager"
-                )
 
             openai.api_key = self.openai_api_key
             openai.base_url = model_api_url
@@ -70,7 +66,7 @@ class figureUnderstand:
             self.openai_client = openai
 
         elif model_provider == "sagemaker":
-            self.sagemaker_client = boto3.client("sagemaker")
+            self.sagemaker_client = boto3.client("sagemaker-runtime")
             self.model_sagemaker_endpoint_name = model_sagemaker_endpoint_name
         else:
             raise ValueError(
@@ -88,10 +84,10 @@ class figureUnderstand:
             str: The API key.
         """
         if not api_secret_name:
-            raise ValueError(
-                "api_secret_name must be provided when using OpenAI"
+            logger.error(
+                "API secret name is required for OpenAI integration. Multimodal image processing will be unavailable."
             )
-
+            return None
         try:
             secrets_client = boto3.client("secretsmanager")
             secret_response = secrets_client.get_secret_value(
@@ -99,15 +95,16 @@ class figureUnderstand:
             )
             if "SecretString" in secret_response:
                 secret_data = json.loads(secret_response["SecretString"])
-                api_key = secret_data.get("api_key")
+                api_key = secret_data.get("key")
                 logger.info(
-                    f"Successfully retrieved API key from secret: {api_secret_name}"
+                    f"Successfully retrieved API credentials from secret: {api_secret_name}"
                 )
                 return api_key
         except Exception as e:
-            logger.error(f"Error retrieving secret {api_secret_name}: {str(e)}")
-            raise
-        return None
+            logger.error(
+                f"Failed to retrieve secret '{api_secret_name}': {str(e)}. Multimodal image processing will be unavailable."
+            )
+            return None
 
     def _image_to_base64(self, img):
         """Convert PIL Image to base64 encoded string"""
@@ -158,6 +155,10 @@ class figureUnderstand:
         return result
 
     def _invoke_openai(self, img, prompt, prefix="<output>", stop="</output>"):
+        if not self.openai_api_key:
+            raise ValueError(
+                "OpenAI API key not configured. Please provide a valid API secret name."
+            )
         base64_encoded = self._image_to_base64(img)
 
         messages = [
