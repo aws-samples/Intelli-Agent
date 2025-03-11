@@ -1,5 +1,5 @@
 import copy
-from typing import Any, Union, Dict
+from typing import Any, Union, Dict,List
 
 from common_logic.common_utils.chatbot_utils import ChatbotManager
 from shared.constant import (
@@ -36,12 +36,14 @@ class AllowBaseModel(BaseModel):
 
 
 class LLMConfig(AllowBaseModel):
+    model_config  = ConfigDict(protected_namespaces=())
     provider: ModelProvider = ModelProvider.BEDROCK
     model_id: LLMModelType = LLMModelType.CLAUDE_3_5_HAIKU
     base_url: Union[str, None] = None
     api_key_arn: Union[str, None] = None
     api_key: Union[str, None] = None
     model_kwargs: dict = {"temperature": 0.01, "max_tokens": 4096}
+   
 
     def model_post_init(self, __context: Any) -> None:
         if self.api_key_arn and not self.api_key:
@@ -132,7 +134,7 @@ class QQMatchConfig(ForbidBaseModel):
 
 
 class RagToolConfig(AllowBaseModel):
-    retrievers: list[PrivateKnowledgeRetrieverConfig] = Field(
+    retrievers: List[PrivateKnowledgeRetrieverConfig] = Field(
         default_factory=list)
     # rerankers: list[RerankConfig] = Field(default_factory=list)
     llm_config: LLMConfig = Field(default_factory=LLMConfig)

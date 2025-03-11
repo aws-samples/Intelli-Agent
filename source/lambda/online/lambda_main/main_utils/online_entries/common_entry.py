@@ -653,9 +653,9 @@ def register_rag_tool_from_config(event_body: dict):
                         if retriever["index_name"] == index_content["indexId"]:
                             break
                     assert retriever is not None, retrievers
-                    rerankers = event_body["chatbot_config"]["private_knowledge_config"]['rerankers']
-                    if rerankers:
-                        rerankers = [rerankers[0]]
+                    # rerankers = event_body["chatbot_config"]["private_knowledge_config"]['rerankers']
+                    # if rerankers:
+                    #     rerankers = [rerankers[0]]
                     # index_name = index_content["indexId"]
                     index_name = tool_rename(index_content["indexId"])
                     description = index_content["description"]
@@ -663,7 +663,7 @@ def register_rag_tool_from_config(event_body: dict):
                     ToolManager.register_common_rag_tool(
                         retriever_config={
                             "retrievers": [retriever],
-                            "rerankers": rerankers,
+                            # "rerankers": rerankers,
                             "llm_config": event_body["chatbot_config"]["private_knowledge_config"]['llm_config']
                         },
                         name=index_name,
