@@ -80,9 +80,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     });
 
     new s3Deployment.BucketDeployment(this, "DeployGlueLibs", {
-      sources: [s3Deployment.Source.asset(join(__dirname, "../../../lambda/job/dep/dist"), {
-        exclude: ["*", "!llm_bot_dep-0.1.0-py3-none-any.whl"]
-      })],
+      sources: [s3Deployment.Source.asset(join(__dirname, "../../../lambda/job/dep/dist"))],
       destinationBucket: this.glueLibS3Bucket,
     });
 
