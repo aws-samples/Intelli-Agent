@@ -1,5 +1,5 @@
 # knowledge base retrieve
-from common_logic.common_utils.lambda_invoke_utils import invoke_lambda
+from shared.utils.lambda_invoke_utils import invoke_lambda
 from shared.constant import (
     LLMTaskType
 )

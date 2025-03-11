@@ -107,15 +107,15 @@ class RetrieverConfigBase(HybridSearchConfig):
     
 
 class IntentionRetrieverConfig(RetrieverConfigBase):
-    index_type = IndexType.INTENTION
+    index_type: IndexType = IndexType.INTENTION
     
 
 class QQMatchRetrieverConfig(RetrieverConfigBase):
-    index_type = IndexType.QQ
+    index_type: IndexType = IndexType.QQ
     
 
 class PrivateKnowledgeRetrieverConfig(RetrieverConfigBase):
-    index_type = IndexType.QD
+    index_type: IndexType = IndexType.QD
     
 
 class IntentionConfig(ForbidBaseModel):

@@ -2,9 +2,9 @@ import json
 import pathlib
 import os
 
-from common_logic.common_utils.logger_utils import get_logger
-from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper, invoke_lambda
-from common_logic.langchain_integration.retrievers.retriever import lambda_handler as retrieve_fn
+from shared.utils.logger_utils import get_logger
+from shared.utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
+from shared.langchain_integration.retrievers import OpensearchHybridQueryQuestionRetriever
 
 logger = get_logger("intention")
 kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"].lower() == "true"
@@ -36,6 +36,9 @@ def get_intention_results(query: str, intention_config: dict, intent_threshold: 
     #     handler_name="lambda_handler",
     #     event_body=event_body
     # )
+    OpensearchHybridQueryQuestionRetriever.from_config(
+        intention_config["retrievers"][0]["target_model"]
+    )
     res = retrieve_fn(event_body)
 
     if not res["result"]["docs"]:

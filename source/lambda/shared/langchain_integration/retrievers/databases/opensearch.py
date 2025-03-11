@@ -9,7 +9,8 @@ from typing import Optional,Iterable,List,Tuple
 import uuid 
 from langchain_core.pydantic_v1 import Field
 import hashlib 
-from pydantic import dataclasses, Field
+from pydantic import  Field
+from dataclasses import dataclass
 from typing import Any,Union
 import traceback
 import logging 
@@ -21,7 +22,7 @@ logging.basicConfig(
 )
 
 
-@dataclasses
+@dataclass
 class OpenSearceBase:
     opensearch_url:Union[str,None]
     index_name:str

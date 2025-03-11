@@ -4,7 +4,7 @@ import traceback
 
 from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
 from shared.constant import StreamMessageType
-from shared.langchain_integration.models import ReasonModelStreamResult
+from shared.langchain_integration.models.chat_models import ReasonModelStreamResult
 from shared.utils.logger_utils import get_logger
 from shared.utils.websocket_utils import (
     check_stop_signal,

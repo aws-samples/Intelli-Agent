@@ -66,6 +66,6 @@ MODEL_PROVIDER_LOAD_FN_MAP = {
     ModelProvider.BRCONNECTOR_BEDROCK: _import_brconnector_bedrock_embeddings,
     ModelProvider.OPENAI: _import_openai_embeddings,
     ModelProvider.EMD: _import_emd_embeddings,
-    ModelProvider.SAGEMAKER_MULTIMODEL: _import_sagemaker_embeddings,
+    ModelProvider.SAGEMAKER: _import_sagemaker_embeddings,
 }
 
