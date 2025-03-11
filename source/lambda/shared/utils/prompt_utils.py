@@ -2,7 +2,7 @@ import boto3
 import os
 import json
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field,ConfigDict
 from collections import defaultdict
 from shared.constant import LLMModelType, LLMTaskType
 import copy
@@ -59,6 +59,7 @@ EXPORT_SCENES = [
 
 
 class PromptTemplate(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     model_id: str = Field(description="model_id")
     task_type: str = Field(description="task type")
     prompt_name: str = Field(description="prompt name",

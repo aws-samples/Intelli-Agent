@@ -35,30 +35,6 @@ class AllowBaseModel(BaseModel):
         use_enum_values = True
 
 
-class LLMConfig(AllowBaseModel):
-    model_config  = ConfigDict(protected_namespaces=())
-    provider: ModelProvider = ModelProvider.BEDROCK
-    model_id: LLMModelType = LLMModelType.CLAUDE_3_5_HAIKU
-    base_url: Union[str, None] = None
-    api_key_arn: Union[str, None] = None
-    api_key: Union[str, None] = None
-    model_kwargs: dict = {"temperature": 0.01, "max_tokens": 4096}
-   
-
-    def model_post_init(self, __context: Any) -> None:
-        if self.api_key_arn and not self.api_key:
-            self.api_key = get_secret_value(self.api_key_arn)
-
-
-class QueryRewriteConfig(LLMConfig):
-    rewrite_first_message: bool = False
-
-
-class QueryProcessConfig(ForbidBaseModel):
-    conversation_query_rewrite_config: QueryRewriteConfig = Field(
-        default_factory=QueryRewriteConfig)
-
-
 
 ##### model config ##############
 class ModelConfig(AllowBaseModel):
@@ -69,18 +45,44 @@ class ModelConfig(AllowBaseModel):
     api_key: Union[str, None] = None
     target_model: Union[str, None] = None
     model_endpoint: Union[str, None] = None
-    model_kwargs: Union[dict, None] = None
+    model_kwargs: dict = Field(default_factory=lambda : {})
 
+    def model_post_init(self, __context: Any) -> None:
+        if self.api_key_arn and not self.api_key:
+            self.api_key = get_secret_value(self.api_key_arn)
+
+class LLMConfig(ModelConfig):
+    provider: ModelProvider = ModelProvider.BEDROCK
+    model_id: LLMModelType = LLMModelType.CLAUDE_3_5_HAIKU
+    model_kwargs: dict = Field(default_factory=lambda : {"temperature": 0.01, "max_tokens": 4096})
+   
     def model_post_init(self, __context: Any) -> None:
         if self.api_key_arn and not self.api_key:
             self.api_key = get_secret_value(self.api_key_arn)
 
 class EmbeddingModelConfig(ModelConfig):
     dimension: Union[int, None] = None
+    embedding_dimension: Union[int, None] = None
+    def model_post_init(self, __context: Any) -> None:
+        if self.embedding_dimension is None:
+            assert self.dimension is not None
+            self.embedding_dimension = self.dimension
 
 
 class RerankConfig(ModelConfig):
     pass
+
+
+
+# query preprocess config
+
+class QueryRewriteConfig(LLMConfig):
+    rewrite_first_message: bool = False
+
+
+class QueryProcessConfig(ForbidBaseModel):
+    conversation_query_rewrite_config: QueryRewriteConfig = Field(
+        default_factory=QueryRewriteConfig)
 
 
 ####### retriever config  ###########
@@ -98,8 +100,10 @@ class HybridSearchConfig(AllowBaseModel):
     vector_search_whole_doc_max_size:int = 100
     enable_vector_search:bool = True
     
+    rerank_top_k: int = 10
+
 class RetrieverConfigBase(HybridSearchConfig):
-    database: dict = Field(default_factory=dict)
+    # database: dict = Field(default_factory=dict)
     index_name: str
     index_type: IndexType
     query_key: str = "query"
@@ -128,7 +132,7 @@ class IntentionConfig(ForbidBaseModel):
 
 class QQMatchConfig(ForbidBaseModel):
     retrievers: list[QQMatchRetrieverConfig] = Field(default_factory=list)
-    reranks: list[RerankConfig] = Field(default_factory=list)
+    # reranks: list[RerankConfig] = Field(default_factory=list)
     qq_match_threshold: float = 0.9
     qq_in_rag_context_threshold: float = Threshold.QQ_IN_RAG_CONTEXT_THRESHOLD
 

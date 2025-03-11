@@ -7,7 +7,7 @@ from langchain_core.documents import Document
 from shared.utils.logger_utils import get_logger
 from shared.utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
 from shared.langchain_integration.retrievers import OpensearchHybridQueryQuestionRetriever
-
+from langchain.retrievers.merger_retriever import MergerRetriever
 logger = get_logger("intention")
 kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"].lower() == "true"
 kb_type = json.loads(os.environ["KNOWLEDGE_BASE_TYPE"])
@@ -38,9 +38,13 @@ def get_intention_results(query: str, intention_config: dict, intent_threshold: 
     #     handler_name="lambda_handler",
     #     event_body=event_body
     # )
-    intention_retriever = OpensearchHybridQueryQuestionRetriever.from_config(
-        **event_body
-    )
+
+
+    intention_retriever = MergerRetriever(retrievers=[
+        OpensearchHybridQueryQuestionRetriever.from_config(
+        **retriver_config
+    ) for retriver_config in intention_config['retrievers']
+    ])
     intention_retrievered:List[Document] = asyncio.run(intention_retriever.ainvoke(event_body['query']))
     # res = retrieve_fn(event_body)
 

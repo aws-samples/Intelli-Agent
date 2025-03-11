@@ -8,33 +8,37 @@ from langchain_community.vectorstores.opensearch_vector_search import (
 from typing import Optional,Iterable,List,Tuple
 import uuid 
 from langchain_core.pydantic_v1 import Field
+from pydantic import BaseModel
 import hashlib 
 from pydantic import  Field
 from dataclasses import dataclass
 from typing import Any,Union
 import traceback
-import logging 
+import os 
+from shared.utils.logger_utils import get_logger
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
+aosEndpoint = os.environ.get("AOS_ENDPOINT")
 
+logger = get_logger(__name__)
 
-@dataclass
-class OpenSearceBase:
-    opensearch_url:Union[str,None]
+class OpenSearceBase(BaseModel):
+    opensearch_url:Union[str,None] = None
     index_name:str
     client_kwargs: dict = Field(default_factory=dict)
-    client: any = None
-    async_client: any = None
+    client: Any = None
+    async_client: Any = None
     http_auth: Any = None
+    is_aoss: bool = False
     
 
-    def __post_init__(self):
+    def model_post_init(self,__context: Any):
         if self.opensearch_url is None:
-            assert self.client is not None and self.async_client is not None, (self.client,self.async_client)
+            if aosEndpoint is not None:
+                self.opensearch_url="https://{}".format(aosEndpoint)
+                logger.info("Using AOS_ENDPOINT: {}".format(self.opensearch_url))
+
+        if self.opensearch_url is None:
+                assert self.client is not None and self.async_client is not None, (self.client,self.async_client)
         else:
             assert self.client is  None and self.async_client is  None, (self.client,self.async_client)
             self.client = _get_opensearch_client(self.opensearch_url, **self.client_kwargs)
@@ -159,7 +163,7 @@ class OpenSearceBase:
                 break
             except Exception:
                 error = traceback.format_exc()
-                logging.error(f"retry bulk {retry_time}，error: {error}")
+                logger.error(f"retry bulk {retry_time}，error: {error}")
                 retry_time += 1
         
         if not self.is_aoss:
@@ -418,16 +422,16 @@ def _get_hybrid_search_index_body(
 class OpenSearchHybridSearch(OpenSearceBase):
     k1: float = 1.2
     b: float = 0.75
-    analyzer_type="standard"
-    source_field="file_path"
+    analyzer_type: str ="standard"
+    source_field: str ="file_path"
     text_field: str = "text"
     vector_field: str = "vector"
     embedding_dimension: int
-    space_type= "l2"
-    m=16
-    ef_construction=512
-    ann_algrithm="hnsw"
-    engine="nmslib"
+    space_type: str = "l2"
+    m: int =16
+    ef_construction: int =512
+    ann_algrithm: str = "hnsw"
+    engine: str = "nmslib"
     
     def create_index(
         self

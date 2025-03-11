@@ -50,7 +50,8 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
         **kwargs
     ):
         database = OpenSearchHybridSearch(
-            **kwargs 
+            embedding_dimension=embedding_config['embedding_dimension'],
+            **kwargs,
         )
         embeddings = EmbeddingModel.get_model(
             **embedding_config
@@ -143,14 +144,14 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
             **kwargs
         )
 
-        search_res = await self.database.asearch(**search_query_dict)
+        search_res = await self.database.asearch(search_query_dict)
         results = await self.aextend_bm25_search_results(search_res, **kwargs)
         for doc in results:
             doc.metadata['search_by'] = 'bm25'
         return results
 
     
-    async def avector_search(self, query:str, top_k:int, **kwargs):
+    async def avector_search(self, query:str, **kwargs):
         top_k = kwargs.get("vector_search_top_k", self.vector_search_top_k)
         embedding = await self._aget_embedding(query)
         search_query_dict = self.create_vector_search_query_dict(
@@ -158,7 +159,7 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
             top_k=top_k,
             **kwargs
         )
-        search_res = await self.database.asearch(**search_query_dict)
+        search_res = await self.database.asearch(search_query_dict)
         results = await self.aextend_vector_search_results(search_res, **kwargs)
         for doc in results:
             doc.metadata['search_by'] = 'vector'
@@ -233,6 +234,16 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
                     if i < len(doc):
                         merged_documents.append(doc[i])
             return merged_documents
+    
+    def _get_relevant_documents(
+            self, 
+            query: str, *, 
+            run_manager: AsyncCallbackManagerForRetrieverRun,
+            **kwargs
+        ) -> List[Document]:
+        return asyncio.run(self._aget_relevant_documents(query, run_manager=run_manager, **kwargs))
+
+        
 
 class OpensearchHybridQueryDocumentRetriever(OpensearchHybridRetrieverBase):
     
@@ -579,7 +590,7 @@ class OpensearchHybridQueryDocumentRetriever(OpensearchHybridRetrieverBase):
         vector_search_chunk_window_size = kwargs.get(
             "vector_search_chunk_window_size",self.vector_search_chunk_window_size
         )
-        return self._aextend_search_results(
+        return await self._aextend_search_results(
             search_response=search_response,
             context_extend_method = vector_search_context_extend_method,
             whole_doc_max_size = vector_search_whole_doc_max_size,
@@ -688,7 +699,7 @@ class OpensearchHybridQueryQuestionRetriever(OpensearchHybridRetrieverBase):
         return results
 
     
-    async def avector_search(self, query:str, top_k:int, **kwargs):
+    async def avector_search(self, query:str, **kwargs):
         top_k = kwargs.get("vector_search_top_k", self.vector_search_top_k)
         embedding = await self._aget_embedding(query)
         search_query_dict = self.create_vector_search_query_dict(
@@ -696,7 +707,7 @@ class OpensearchHybridQueryQuestionRetriever(OpensearchHybridRetrieverBase):
             top_k=top_k,
             **kwargs
         )
-        search_res = await self.database.asearch(**search_query_dict)
+        search_res = await self.database.asearch(search_query_dict)
         results = await self._aextend_faq_results(search_res, **kwargs)
         for doc in results:
             doc.metadata['search_by'] = 'vector'

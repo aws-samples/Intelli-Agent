@@ -50,7 +50,7 @@ class BedrockEmbeddingBaseModel(EmbeddingModel):
 
         model_kwargs = {
             **default_model_kwargs,
-            **kwargs.get("model_kwargs", {})
+            **kwargs.get("model_kwargs")
         }
 
         model_kwargs = model_kwargs or None

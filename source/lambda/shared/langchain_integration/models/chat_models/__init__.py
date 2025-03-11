@@ -41,6 +41,7 @@ class ChatModelBase(ModeMixins, ModelBase):
     default_model_kwargs: Union[Dict,None] = None
     model_map = {}
 
+    @classmethod
     def load_module(cls,model_provider):
         _load_module(model_provider)
     
@@ -59,6 +60,7 @@ class ChatModelBase(ModeMixins, ModelBase):
                 "default_model_kwargs": config.default_model_kwargs,
                 "enable_any_tool_choice": config.enable_any_tool_choice,
                 "enable_prefill": config.enable_prefill,
+                "is_reasoning_model":config.is_reasoning_model
             },
         )
         return model_class

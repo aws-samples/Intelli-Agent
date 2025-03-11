@@ -31,6 +31,7 @@ class BrconnetorChatOpenAI(ChatOpenAI):
     enable_any_tool_choice: bool = False
     any_tool_choice_value: str = 'any'
     enable_prefill: bool = True
+    is_reasoning_model: bool = False
 
 
 class BrconnectorBedrockBaseModel(ChatModelBase):
@@ -58,6 +59,7 @@ class BrconnectorBedrockBaseModel(ChatModelBase):
             base_url=base_url,
             api_key=api_key,
             model=BRCONNECTOR_MODEL_MAP[cls.model_id],
+            is_reasoning_model = cls.is_reasoning_model
             **model_kwargs
         )
 

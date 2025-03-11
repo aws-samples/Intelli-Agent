@@ -29,7 +29,8 @@ class ModelBase(metaclass=ModelMeta):
         if model_provider is None:
             model_provider = cls.model_provider
         return f"{model_id}__{model_provider}"
-
+     
+    @classmethod
     def load_module(cls,model_provider):
         raise NotImplementedError
     

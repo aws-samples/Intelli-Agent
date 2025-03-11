@@ -22,6 +22,7 @@ class ChatBedrockConverse(_ChatBedrockConverse):
     enable_any_tool_choice: bool = False
     any_tool_choice_value: str = 'any'
     enable_prefill: bool = True
+    is_reasoning_model: bool = False
 
 
 class BedrockBaseModel(ChatModelBase):
@@ -63,6 +64,7 @@ class BedrockBaseModel(ChatModelBase):
                 model=cls.model_id,
                 enable_any_tool_choice=cls.enable_any_tool_choice,
                 enable_prefill=cls.enable_prefill,
+                is_reasoning_model=cls.is_reasoning_model,
                 **model_kwargs,
             )
         else:

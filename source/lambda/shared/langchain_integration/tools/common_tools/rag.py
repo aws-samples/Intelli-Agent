@@ -12,6 +12,10 @@ from langchain_core.documents import Document
 from shared.utils.monitor_utils import format_rag_data
 from typing import Iterable,List
 from shared.utils.logger_utils import get_logger
+from langchain.retrievers.merger_retriever import MergerRetriever
+from shared.langchain_integration.models.chat_models import (
+    ReasonModelResult,ReasonModelStreamResult
+)
 
 logger = get_logger(__name__)
 
@@ -109,9 +113,19 @@ def rag_tool(retriever_config: dict, query=None):
         "query_key", "query")]
     
     # 
-    qd_retriever = OpensearchHybridQueryDocumentRetriever.from_config(
-        **retriever_params
+    qd_retrievers = [
+                OpensearchHybridQueryDocumentRetriever.from_config(
+                **retriver_config
+            ) for retriver_config in retriever_config['retrievers']
+        ]
+    
+    qd_retriever = MergerRetriever(
+        retrievers=qd_retrievers
     )
+    
+    # qd_retriever = OpensearchHybridQueryDocumentRetriever.from_config(
+    #     **retriever_params
+    # )
     retrieved_contexts:List[Document] = asyncio.run(
         qd_retriever.ainvoke(retriever_params["query"])
     )
@@ -141,7 +155,7 @@ def rag_tool(retriever_config: dict, query=None):
     context_md = format_rag_data(
         retrieved_contexts, 
         state.get("qq_match_results", []),
-        source_field=qd_retriever.database.source_field
+        source_field=qd_retrievers[0].database.source_field
     )
     send_trace(
         f"\n\n{context_md}\n\n", enable_trace=state["enable_trace"])
@@ -182,14 +196,17 @@ def rag_tool(retriever_config: dict, query=None):
         filtered_output = filter_response(output, state)
         return filtered_output, filtered_output
     else:
-        output.content_stream = filter_response(
-            output.content_stream,
-            state
-        )
-        output.new_stream = filter_response(
-            output.generate_stream(output.message_stream),
-            state
-        )
-
+        if isinstance(output,(ReasonModelStreamResult,)):
+            output.content_stream = filter_response(
+                output.content_stream,
+                state
+            )
+            output.new_stream = filter_response(
+                output.generate_stream(output.message_stream),
+                state
+            )
+        else:
+            output = filter_response(output, state)
+        
         return output, output
 

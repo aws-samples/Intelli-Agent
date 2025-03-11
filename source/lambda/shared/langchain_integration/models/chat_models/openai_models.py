@@ -15,6 +15,7 @@ class ChatOpenAI(_ChatOpenAI):
     enable_any_tool_choice: bool = True
     any_tool_choice_value: str = 'required'
     enable_prefill: bool = False
+    is_reasoning_model: bool = False
 
 
 class OpenAIBaseModel(ChatModelBase):
@@ -39,6 +40,7 @@ class OpenAIBaseModel(ChatModelBase):
             base_url=base_url,
             api_key=api_key,
             model=cls.model_id,
+            is_reasoning_model=cls.is_reasoning_model,
             **model_kwargs
         )
 
