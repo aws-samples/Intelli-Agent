@@ -98,9 +98,9 @@ class figureUnderstand:
         self,
         model_provider="bedrock",
         model_id="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-        model_api_url=None,
-        model_secret_name=None,
-        model_sagemaker_endpoint_name=None,
+        model_api_url="",
+        model_secret_name="",
+        model_sagemaker_endpoint_name="",
     ):
         """Initialize the figureUnderstand class with appropriate client.
 
@@ -109,6 +109,7 @@ class figureUnderstand:
             model_id (str): The model ID to use
             model_api_url (str): The API URL for OpenAI
             model_secret_name (str): Secret name for OpenAI API key (required for OpenAI)
+            model_sagemaker_endpoint_name (str): The name of the SageMaker endpoint for the model
         """
         self.model_provider = model_provider
         if model_provider == "bedrock":
