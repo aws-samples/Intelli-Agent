@@ -1,19 +1,19 @@
-from langchain_core.documents import Document
-from langchain_community.vectorstores.opensearch_vector_search import (
-    _is_aoss_enabled,
-    _get_opensearch_client,
-    _get_async_opensearch_client,
-    _import_bulk
-)
-from typing import Optional,Iterable,List,Tuple
-import uuid 
-from langchain_core.pydantic_v1 import Field
-import hashlib 
-from pydantic import  Field
-from dataclasses import dataclass
-from typing import Any,Union
+import hashlib
+import logging
 import traceback
-import logging 
+import uuid
+from dataclasses import dataclass
+from typing import Any, Iterable, List, Optional, Tuple, Union
+
+from langchain_community.vectorstores.opensearch_vector_search import (
+    _get_async_opensearch_client,
+    _get_opensearch_client,
+    _import_bulk,
+    _is_aoss_enabled,
+)
+from langchain_core.documents import Document
+from langchain_core.pydantic_v1 import Field
+from pydantic import Field
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,7 +23,7 @@ logging.basicConfig(
 
 
 @dataclass
-class OpenSearceBase:
+class OpenSearchBase:
     opensearch_url:Union[str,None]
     index_name:str
     client_kwargs: dict = Field(default_factory=dict)
@@ -175,7 +175,7 @@ class OpenSearceBase:
       
 
 
-class OpenSearchBM25Search(OpenSearceBase):
+class OpenSearchBM25Search(OpenSearchBase):
     k1: float = 1.2
     b: float = 0.75
     analyzer_type: str = "standard"
@@ -415,7 +415,7 @@ def _get_hybrid_search_index_body(
     }
 
 
-class OpenSearchHybridSearch(OpenSearceBase):
+class OpenSearchHybridSearch(OpenSearchBase):
     k1: float = 1.2
     b: float = 0.75
     analyzer_type="standard"
