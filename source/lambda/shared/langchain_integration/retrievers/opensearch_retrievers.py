@@ -26,14 +26,14 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
     database: OpenSearchHybridSearch
     embeddings: Embeddings
     reranker: Union[BaseDocumentCompressor,None] = None
-    bm25_search_context_extend_method: ContextExtendMethod = ContextExtendMethod.WHOLE_DOC
+    bm25_search_context_extend_method: str = ContextExtendMethod.WHOLE_DOC
     bm25_search_whole_doc_max_size:int = 100
     bm25_search_chunk_window_size: int = 10
     enable_bm25_search:bool = True
 
     bm25_search_top_k:int = 5
     
-    vector_search_context_extend_method: ContextExtendMethod = ContextExtendMethod.WHOLE_DOC
+    vector_search_context_extend_method: str = ContextExtendMethod.WHOLE_DOC
     vector_search_chunk_window_size: int = 10
     vector_search_top_k:int = 5 
     vector_search_whole_doc_max_size:int = 100
@@ -159,7 +159,9 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
             top_k=top_k,
             **kwargs
         )
+        print('vector search query: ',search_query_dict)
         search_res = await self.database.asearch(search_query_dict)
+        print('vector search ret: ',search_res)
         results = await self.aextend_vector_search_results(search_res, **kwargs)
         for doc in results:
             doc.metadata['search_by'] = 'vector'
@@ -184,7 +186,7 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
 
 
 
-    async def _aget_relevant_documents(
+    async def __aget_relevant_documents(
         self, query: str, *, 
         run_manager: AsyncCallbackManagerForRetrieverRun,
         **kwargs
@@ -207,7 +209,7 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
             bm25_search_results:List[Document] = await self.abm25_search(query,**kwargs)
 
         if enable_vector_search:
-            vector_search_results = await self.avector_search(
+            vector_search_results: List[Document] = await self.avector_search(
                     query=query,
                     **kwargs
             )
@@ -226,6 +228,8 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
             # return compressed_output_docs
         else:
             # altertively to merge the retriverd docs
+            print('bm25_search_results',bm25_search_results)
+            print('vector_search_results',vector_search_results)
             merged_documents = []
             retriever_docs = [bm25_search_results,vector_search_results]
             max_docs = max(map(len, retriever_docs), default=0)
@@ -234,6 +238,19 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
                     if i < len(doc):
                         merged_documents.append(doc[i])
             return merged_documents
+    
+
+    async def _aget_relevant_documents(
+        self, query: str, *, 
+        run_manager: AsyncCallbackManagerForRetrieverRun,
+        **kwargs
+    ) -> List[Document]:
+        current_config = {**self.model_dump(),**kwargs}
+        logger.info(f"retriever config: {current_config}")
+        result = await self.__aget_relevant_documents(query, run_manager=run_manager, **kwargs)
+        logger.info(f"retrievered: {result}")
+        return result
+
     
     def _get_relevant_documents(
             self, 
@@ -508,7 +525,7 @@ class OpensearchHybridQueryDocumentRetriever(OpensearchHybridRetrieverBase):
         
         if context_extend_method == ContextExtendMethod.WHOLE_DOC:
             extend_chunks_list:list[list[Document]] = await asyncio.gather(
-                    [
+                    *[
                         self.aget_doc(
                             result.metadata[self.database.source_field], 
                             size=whole_doc_max_size
@@ -527,7 +544,7 @@ class OpensearchHybridQueryDocumentRetriever(OpensearchHybridRetrieverBase):
         
         if context_extend_method == ContextExtendMethod.NEIGHBOR:
             extend_chunks_list:list[list[Document]] = await asyncio.gather(
-                    [
+                    *[
                         self.aget_context(
                             result,
                             chunk_window_size

@@ -65,7 +65,7 @@ def filter_response(res: Iterable, state: dict):
 
     if references:
         state["extra_response"]["references"] = references
-        all_docs = state["extra_response"]["docs"]
+        all_docs:List[Document] = state["extra_response"]["docs"]
         ref_docs = []
         ref_figures = []
 
@@ -73,7 +73,7 @@ def filter_response(res: Iterable, state: dict):
             try:
                 doc_id = ref
                 ref_docs.append(all_docs[doc_id-1])
-                ref_figures.extend(all_docs[doc_id-1].get("figure", []))
+                ref_figures.extend(all_docs[doc_id-1].metadata.get("figure", []))
             except Exception as e:
                 logger.error(f"Invalid reference doc id: {ref}. Error: {e}")
 
@@ -93,7 +93,7 @@ def format_retrieved_context(retrieved_context:Document)->List[str]:
     Returns:
         List of dictionaries containing the formatted contexts
     """
-    extend_chunks:List[Document] = retrieved_context.metadata("extend_chunks", [])
+    extend_chunks:List[Document] = retrieved_context.metadata.get("extend_chunks", [])
     page_content = retrieved_context.page_content
     extend_page_content = "\n".join([chunk.page_content for chunk in extend_chunks])
     if page_content in extend_page_content:
@@ -139,18 +139,18 @@ def rag_tool(retriever_config: dict, query=None):
     #
 
     # retrieved_contexts
-    final_docs = []
+    # final_docs = []
 
     # state["extra_response"]["docs"] = final_docs
 
     for doc in retrieved_contexts:
         formated_context = format_retrieved_context(doc)
-        final_docs.append(formated_context)
+        # final_docs.append(formated_context)
         context_list.append(formated_context)
         # context_list.append(doc["page_content"])
         figure_list = figure_list + doc.metadata.get("figure", [])
     
-    state["extra_response"]["docs"] = final_docs
+    state["extra_response"]["docs"] = retrieved_contexts
 
     context_md = format_rag_data(
         retrieved_contexts, 

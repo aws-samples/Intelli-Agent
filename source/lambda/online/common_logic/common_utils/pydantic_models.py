@@ -99,7 +99,7 @@ class HybridSearchConfig(AllowBaseModel):
     vector_search_top_k:int = 5 
     vector_search_whole_doc_max_size:int = 100
     enable_vector_search:bool = True
-    
+
     rerank_top_k: int = 10
 
 class RetrieverConfigBase(HybridSearchConfig):
@@ -107,6 +107,9 @@ class RetrieverConfigBase(HybridSearchConfig):
     index_name: str
     index_type: IndexType
     query_key: str = "query"
+    vector_field: str = "vector_field"
+    source_field: str = "file_path"
+    text_field: str = "text"
     kb_type: KBType = KBType.AOS
     embedding_config: Union[EmbeddingModelConfig, None] = None
     rerank_config: Union[RerankConfig, None] = None
@@ -114,14 +117,17 @@ class RetrieverConfigBase(HybridSearchConfig):
 
 class IntentionRetrieverConfig(RetrieverConfigBase):
     index_type: IndexType = IndexType.INTENTION
+    vector_field: str = "vector"
     
 
 class QQMatchRetrieverConfig(RetrieverConfigBase):
     index_type: IndexType = IndexType.QQ
+    vector_field: str = "vector"
     
 
 class PrivateKnowledgeRetrieverConfig(RetrieverConfigBase):
     index_type: IndexType = IndexType.QD
+    vector_field: str = "vector"
     
 
 class IntentionConfig(ForbidBaseModel):

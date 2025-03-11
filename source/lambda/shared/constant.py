@@ -263,5 +263,6 @@ class ContextExtendMethod(ConstantBase):
     NONE = "none"
     WHOLE_DOC = "whole_doc"
     NEIGHBOR = "neighbor"
+    
 class WSConnectionSignal(ConstantBase):
     STOP = "STOP"

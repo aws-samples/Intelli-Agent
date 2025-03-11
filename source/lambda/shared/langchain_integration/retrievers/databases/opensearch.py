@@ -21,7 +21,7 @@ aosEndpoint = os.environ.get("AOS_ENDPOINT")
 
 logger = get_logger(__name__)
 
-class OpenSearceBase(BaseModel):
+class OpenSearchBase(BaseModel):
     opensearch_url:Union[str,None] = None
     index_name:str
     client_kwargs: dict = Field(default_factory=dict)
@@ -425,7 +425,7 @@ class OpenSearchHybridSearch(OpenSearchBase):
     analyzer_type: str ="standard"
     source_field: str ="file_path"
     text_field: str = "text"
-    vector_field: str = "vector"
+    vector_field: str = "vector_field"
     embedding_dimension: int
     space_type: str = "l2"
     m: int =16
