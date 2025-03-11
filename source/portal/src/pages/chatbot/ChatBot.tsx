@@ -37,7 +37,9 @@ import {
   ONLY_RAG_TOOL,
   MODEL_OPTION,
   CURRENT_CHAT_BOT,
-  TOPK,
+  TOPK_KEYWORD,
+  TOPK_EMBEDDING,
+  TOPK_RERANK,
   SCORE,
   ROUND,
   HISTORY_CHATBOT_ID,
@@ -92,7 +94,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const localTemperature = localStorage.getItem(TEMPERATURE);
   const localConfig = localStorage.getItem(ADITIONAL_SETTINGS);
   const localRound = localStorage.getItem(ROUND);
-  const localTopKRetrievals = localStorage.getItem(TOPK);
+  const localTopKKeyword = localStorage.getItem(TOPK_KEYWORD);
+  const localTopKEmbedding = localStorage.getItem(TOPK_EMBEDDING);
+  const localTopKRerank = localStorage.getItem(TOPK_RERANK);
   const localScore = localStorage.getItem(SCORE);
   const localApiEndpoint = localStorage.getItem(API_ENDPOINT);
   const localApiKeyArn = localStorage.getItem(API_KEY_ARN);
@@ -143,7 +147,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     temperature: '0.01',
     maxToken: '1000',
     maxRounds: '7',
-    topKRetrievals: '5',
+    topKKeyword: '5',
+    topKEmbedding: '5',
+    topKRerank: '10',
     score: '0.4',
     additionalConfig: ''
   }
@@ -153,10 +159,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [temperature, setTemperature] = useState<string>(localTemperature ?? defaultConfig.temperature);
   const [maxToken, setMaxToken] = useState<string>(localMaxToken ?? defaultConfig.maxToken);
   const [maxRounds, setMaxRounds] = useState<string>(localRound ?? defaultConfig.maxRounds);
-  const [topKRetrievals, setTopKRetrievals] = useState<string>(localTopKRetrievals ?? defaultConfig.topKRetrievals);
+  const [topKKeyword, setTopKKeyword] = useState<string>(localTopKKeyword ?? defaultConfig.topKKeyword);
+  const [topKEmbedding, setTopKEmbedding] = useState<string>(localTopKEmbedding ?? defaultConfig.topKEmbedding);
+  const [topKRerank, setTopKRerank] = useState<string>(localTopKRerank ?? defaultConfig.topKRerank);
   const [score, setScore] = useState<string>(localScore ?? defaultConfig.score);
   const [additionalConfig, setAdditionalConfig] = useState(localConfig ?? defaultConfig.additionalConfig);
-  const [topKRetrievalsError, setTopKRetrievalsError] = useState('');
+  const [topKKeywordError, setTopKKeywordError] = useState('');
+  const [topKEmbeddingError, setTopKEmbeddingError] = useState('');
+  const [topKRerankError, setTopKRerankError] = useState('');
   const [maxRoundsError, setMaxRoundsError] = useState('');
   const [scoreError, setScoreError] = useState('');
 
@@ -200,7 +210,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     setMaxToken(defaultConfig.maxToken)
     setMaxRounds(defaultConfig.maxRounds)
     setTemperature(defaultConfig.temperature)
-    setTopKRetrievals(defaultConfig.topKRetrievals)
+    // setTopKRetrievals(defaultConfig.topKRetrievals)
+    setTopKKeyword(defaultConfig.topKKeyword)
+    setTopKEmbedding(defaultConfig.topKEmbedding)
+    setTopKRerank(defaultConfig.topKRerank)
     setScore(defaultConfig.score)
     setUserMessage('')
     setAdditionalConfig('')
@@ -353,10 +366,23 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   }, [maxRounds])
 
   useEffect(() => {
-    if (topKRetrievals) {
-      localStorage.setItem(TOPK, topKRetrievals)
+    if (topKKeyword) {
+      localStorage.setItem(TOPK_KEYWORD, topKKeyword)
     }
-  }, [topKRetrievals])
+  }, [topKKeyword])
+
+  useEffect(() => {
+    if (topKEmbedding) {
+      localStorage.setItem(TOPK_EMBEDDING, topKEmbedding)
+    }
+  }, [topKEmbedding])
+
+  useEffect(() => {
+    if (topKRerank) {
+      localStorage.setItem(TOPK_RERANK, topKRerank)
+    }
+  }, [topKRerank])
+
 
   useEffect(() => {
     if (score) {
@@ -547,17 +573,34 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       return;
     }
 
-    if (!topKRetrievals.trim()) {
-      setTopKRetrievalsError('validation.requireTopKRetrievals');
+    // if (!topKRetrievals.trim()) {
+    //   setTopKRetrievalsError('validation.requireTopKRetrievals');
+    //   setModelSettingExpand(true);
+    //   return;
+    // }
+
+    if (!topKKeyword.trim()) {
+      setTopKKeywordError('validation.requireTopKKeyword');
       setModelSettingExpand(true);
       return;
     }
 
-    if (parseInt(topKRetrievals) < 1) {
-      setTopKRetrievalsError('validation.topKRetrievals');
+    if (!topKEmbedding.trim()) {
+      setTopKEmbeddingError('validation.requireTopKEmbedding');
       setModelSettingExpand(true);
       return;
     }
+    if (!topKRerank.trim()) {
+      setTopKRerankError('validation.requireTopKRerank');
+      setModelSettingExpand(true);
+      return;
+    }
+
+    // if (parseInt(topKRetrievals) < 1) {
+    //   setTopKRetrievalsError('validation.topKRetrievals');
+    //   setModelSettingExpand(true);
+    //   return;
+    // }
 
     if (parseFloat(temperature) < 0.0 || parseFloat(temperature) > 1.0) {
       setTemperatureError('validation.temperatureRange');
@@ -623,7 +666,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           },
         },
         private_knowledge_config: {
-          top_k: parseInt(topKRetrievals),
+          bm25_search_top_k: parseInt(topKKeyword),
+          vector_search_top_k: parseInt(topKEmbedding),
+          rerank_top_k: parseInt(topKRerank),
           score: parseFloat(score),
         },
         agent_config: {
@@ -1038,7 +1083,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                   </SpaceBetween>
                   <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 15, marginTop: 35 }}>{t('rad')}</div>
                   <SpaceBetween size="xs" direction="vertical">
-                    <Grid gridDefinition={[{ colspan: 3 }, { colspan: 3 }, { colspan: 5 }]}>
+                    <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
                       <FormField
                         label={t('temperature')}
                         stretch={true}
@@ -1058,7 +1103,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                           }}
                         />
                       </FormField>
-                      <FormField
+                      {/* <FormField
                         label={t('topKRetrievals')}
                         stretch={true}
                         description={t('topKRetrievalsDesc')}
@@ -1075,7 +1120,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                             setTopKRetrievals(detail.value);
                           }}
                         />
-                      </FormField>
+                      </FormField> */}
                       <FormField
                         label={t('score')}
                         stretch={true}
@@ -1092,6 +1137,68 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                             }
                             setScoreError('');
                             setScore(detail.value);
+                          }}
+                        />
+                      </FormField>
+                    </Grid>
+                    <Grid gridDefinition={[{ colspan: 4 }, { colspan: 4 }, { colspan: 4 }]}>
+
+                    {/* "topKKeywords": "Top K Based on Keyword",
+    "topKEmbedding": "Top K Based on Embedding",
+    "topKRerank": "Top K Participate in Reranking", */}
+                    <FormField
+                        label={t('topKKeyword')}
+                        stretch={true}
+                        description={t('topKKeywordDesc')}
+                        errorText={t(topKKeywordError)}
+                      >
+                        <Input
+                          type="number"
+                          value={topKKeyword}
+                          onChange={({ detail }) => {
+                            if (parseInt(detail.value) < 0 || parseInt(detail.value) > 100) {
+                              return
+                            }
+                            setTopKKeywordError('');
+                            setTopKKeyword(detail.value);
+                          }}
+                        />
+                      </FormField>
+                      
+                      <FormField
+                        label={t('topKEmbedding')}
+                        stretch={true}
+                        description={t('topKEmbeddingDesc')}
+                        errorText={t(topKEmbeddingError)}
+                      >
+                        <Input
+                          type="number"
+                          value={topKEmbedding}
+                          onChange={({ detail }) => {
+                            if (parseInt(detail.value) < 0 || parseInt(detail.value) > 100) {
+                              return
+                            }
+                            setTopKEmbeddingError('');
+                            setTopKEmbedding(detail.value);
+                          }}
+                        />
+                      </FormField>
+
+                      <FormField
+                        label={t('topKRerank')}
+                        stretch={true}
+                        description={t('topKRerankDesc')}
+                        errorText={t(topKRerankError)}
+                      >
+                        <Input
+                          type="number"
+                          value={topKRerank}
+                          onChange={({ detail }) => {
+                            if (parseInt(detail.value) < 0 || parseInt(detail.value) > 100) {
+                              return
+                            }
+                            setTopKRerankError('');
+                            setTopKRerank(detail.value);
                           }}
                         />
                       </FormField>
