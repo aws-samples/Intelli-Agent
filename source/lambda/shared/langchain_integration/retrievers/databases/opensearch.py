@@ -179,7 +179,7 @@ class OpenSearceBase(BaseModel):
       
 
 
-class OpenSearchBM25Search(OpenSearceBase):
+class OpenSearchBM25Search(OpenSearchBase):
     k1: float = 1.2
     b: float = 0.75
     analyzer_type: str = "standard"
@@ -419,7 +419,7 @@ def _get_hybrid_search_index_body(
     }
 
 
-class OpenSearchHybridSearch(OpenSearceBase):
+class OpenSearchHybridSearch(OpenSearchBase):
     k1: float = 1.2
     b: float = 0.75
     analyzer_type: str ="standard"

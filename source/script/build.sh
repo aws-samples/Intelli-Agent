@@ -33,6 +33,34 @@ if [ "$deploy_region" != "cn-north-1" ] && [ "$deploy_region" != "cn-northwest-1
     aws ecr-public get-login-password --region $ecr_login_region | docker login --username AWS --password-stdin public.ecr.aws
 fi
 
+build_lambda_asset() {
+    echo "Building Lambda Asset"
+    cd script
+    bash build-s3-dist.sh
+    cd - > /dev/null
+}
+
+build_frontend() {
+    echo "Building Frontend"
+    cd portal
+    npm install && npm run build
+    cd - > /dev/null
+}
+
+build_client_frontend() {
+    echo "Building Frontend"
+    cd cs-portal
+    npm install && npm run build
+    cd - > /dev/null
+}
+
+build_etl_package() {
+    echo "Building ETL Package"
+    cd lambda/job
+    sh build_whl.sh
+    cd - > /dev/null
+}
+
 prepare_etl_model() {
     echo "Preparing ETL Model"
     cd model/etl/code
@@ -52,32 +80,11 @@ prepare_online_model() {
     cd - > /dev/null
 }
 
-build_frontend() {
-    echo "Building Frontend"
-    cd portal
-    npm install && npm run build
-    cd - > /dev/null
-}
-
-build_client_frontend() {
-    echo "Building Frontend"
-    cd cs-portal
-    npm install && npm run build
-    cd - > /dev/null
-}
-
 build_deployment_module() {
     echo "Building Model Deployment Module"
     # curl https://aws-gcr-solutions-assets.s3.us-east-1.amazonaws.com/emd/wheels/emd-0.5.0-py3-none-any.whl -o emd-0.5.0-py3-none-any.whl && pip install emd-0.5.0-py3-none-any.whl"[all]"
     curl https://aws-gcr-solutions-assets.s3.us-east-1.amazonaws.com/emd/wheels/emd-0.6.0%2B0.6.0.mini-py3-none-any.whl -o emd-0.6.0-py3-none-any.whl && pip install emd-0.6.0-py3-none-any.whl"[all]"
     emd bootstrap
-}
-
-build_lambda_asset() {
-    echo "Building Lambda Asset"
-    cd script
-    bash build-s3-dist.sh
-    cd - > /dev/null
 }
 
 modules_prepared=""
@@ -92,9 +99,9 @@ if $ui_enabled; then
     modules_prepared="${modules_prepared}Frontend, "
 fi
 
-if $use_open_source_llm; then
-    build_deployment_module
-    modules_prepared="${modules_prepared}Model Deployment, "
+if $knowledge_base_enabled && $knowledge_base_intelliagent_enabled; then
+    build_etl_package
+    modules_prepared="${modules_prepared}ETL Package, "
 fi
 
 if $knowledge_base_enabled && $knowledge_base_intelliagent_enabled && $knowledge_base_models_enabled; then
@@ -105,6 +112,11 @@ fi
 if $knowledge_base_enabled && $knowledge_base_intelliagent_enabled && $opensearch_enabled && [ "$embedding_model_provider" != "bedrock" ]; then
     prepare_online_model
     modules_prepared="${modules_prepared}Online Model, "
+fi
+
+if $use_open_source_llm; then
+    build_deployment_module
+    modules_prepared="${modules_prepared}Model Deployment, "
 fi
 
 # Remove the trailing comma and space
