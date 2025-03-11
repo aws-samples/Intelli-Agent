@@ -108,6 +108,15 @@ export const LLM_BOT_COMMON_MODEL_LIST = [
     ],
   },
   {
+    label: 'DeepSeek',
+    options: [
+      {
+        lable: 'deepseek.r1-v1:0',
+        value: 'deepseek.r1-v1:0',
+      },
+    ],
+  },
+  {
     label: 'Llama',
     options: [
       {

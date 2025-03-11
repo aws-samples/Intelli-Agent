@@ -30,6 +30,7 @@ class BedrockBaseModel(ChatModelBase):
     # enable_any_tool_choice = False
     # any_tool_choice_value: str = 'any'
     model_provider = ModelProvider.BEDROCK
+    is_reasoning_model: bool = False
 
     @classmethod
     def create_model(cls, model_kwargs=None, **kwargs):
