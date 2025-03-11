@@ -2,12 +2,10 @@ import base64
 import io
 import json
 import logging
-import os
 import re
 
 import boto3
 import openai
-from botocore.exceptions import ClientError
 
 # Add logger configuration
 logger = logging.getLogger(__name__)
@@ -20,8 +18,16 @@ BEDROCK_CROSS_REGION_SUPPORTED_REGIONS = [
     "eu-west-3",
 ]
 
+
 class figureUnderstand:
-    def __init__(self, model_provider="bedrock", model_id="us.anthropic.claude-3-5-sonnet-20241022-v2:0", model_api_url=None, model_secret_name=None):
+    def __init__(
+        self,
+        model_provider="bedrock",
+        model_id="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        model_api_url="",
+        model_secret_name="",
+        model_sagemaker_endpoint_name="",
+    ):
         """Initialize the figureUnderstand class with appropriate client.
 
         Args:
@@ -29,6 +35,7 @@ class figureUnderstand:
             model_id (str): The model ID to use
             model_api_url (str): The API URL for OpenAI
             model_secret_name (str): Secret name for OpenAI API key (required for OpenAI)
+            model_sagemaker_endpoint_name (str): The name of the SageMaker endpoint for the model
         """
         self.model_provider = model_provider
         if model_provider == "bedrock":
@@ -61,9 +68,13 @@ class figureUnderstand:
             self.model_id = model_id
 
             self.openai_client = openai
+
+        elif model_provider == "sagemaker":
+            self.sagemaker_client = boto3.client("sagemaker")
+            self.model_sagemaker_endpoint_name = model_sagemaker_endpoint_name
         else:
             raise ValueError(
-                "Unsupported model provider. Choose 'bedrock' or 'openai'"
+                "Unsupported model provider. Choose 'bedrock' or 'openai' or 'sagemaker'"
             )
 
         self.mermaid_prompt = json.load(open("prompt/mermaid.json", "r"))
@@ -109,6 +120,8 @@ class figureUnderstand:
             return self._invoke_bedrock(img, prompt, prefix, stop)
         elif self.model_provider == "openai":
             return self._invoke_openai(img, prompt, prefix, stop)
+        elif self.model_provider == "sagemaker":
+            return self._invoke_sagemaker(img, prompt, prefix, stop)
 
     def _invoke_bedrock(self, img, prompt, prefix="<output>", stop="</output>"):
         base64_encoded = self._image_to_base64(img)
@@ -171,6 +184,54 @@ class figureUnderstand:
         )
 
         result = prefix + response.choices[0].message.content + stop
+        return result
+
+    def _invoke_sagemaker(
+        self, img, prompt, prefix="<output>", stop="</output>"
+    ):
+        """Invoke SageMaker model with image and prompt."""
+        # If img is already a base64 string, use it directly
+        if isinstance(img, str):
+            base64_encoded = img
+        else:
+            # If img is a PIL Image, convert it to base64
+            image_stream = io.BytesIO()
+            img.save(image_stream, format="JPEG")
+            base64_encoded = base64.b64encode(image_stream.getvalue()).decode(
+                "utf-8"
+            )
+
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_encoded}"
+                        },
+                    },
+                ],
+            },
+            {"role": "assistant", "content": prefix},
+        ]
+
+        payload = {
+            "messages": messages,
+            "stream": False,
+        }
+
+        response = self.sagemaker_client.invoke_endpoint(
+            EndpointName=self.model_sagemaker_endpoint_name,
+            Body=json.dumps(payload),
+            ContentType="application/json",
+        )
+        response_body = response["Body"].read().decode("utf-8")
+        response_json = json.loads(response_body)
+        result = (
+            prefix + response_json["choices"][0]["message"]["content"] + stop
+        )
         return result
 
     def get_classification(self, img):

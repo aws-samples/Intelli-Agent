@@ -7,7 +7,8 @@ from shared.constant import ModelProvider
 class RerankModelBase(ModelBase):
     model_map = {}
     default_model_kwargs: Union[dict, None] = None
-
+    
+    @classmethod
     def load_module(cls,model_provider):
         _load_module(model_provider)
 

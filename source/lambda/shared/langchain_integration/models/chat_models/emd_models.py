@@ -16,6 +16,7 @@ class SageMakerVllmChatModel(_SageMakerVllmChatModel):
     enable_any_tool_choice: bool = False
     any_tool_choice_value: str = 'any'
     enable_prefill: bool = True
+    is_reasoning_model: bool = False
 
 
 class Qwen25Instruct72bAwq(ChatModelBase):
@@ -50,6 +51,7 @@ class Qwen25Instruct72bAwq(ChatModelBase):
             region_name=region_name,
             enable_any_tool_choice=cls.enable_any_tool_choice,
             enable_prefill=cls.enable_prefill,
+            is_reasoning_model=cls.is_reasoning_model,
             model_kwargs=model_kwargs
             
         )

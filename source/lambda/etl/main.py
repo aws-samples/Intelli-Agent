@@ -95,6 +95,7 @@ def lambda_handler(event, context):
             "modelId": event.get("modelId", "us.anthropic.claude-3-5-sonnet-20241022-v2:0"),
             "modelApiUrl": event.get("modelApiUrl", "-"),
             "modelSecretName": event.get("modelSecretName", "-"),
+            "modelSagemakerEndpointName": event.get("modelSagemakerEndpointName", "-"),
         }
     elif event["offline"].lower() == "false":
         # This response should match the expected input schema of the downstream tasks in the Step Functions workflow
@@ -121,6 +122,7 @@ def lambda_handler(event, context):
             "modelId": event.get("modelId", "us.anthropic.claude-3-5-sonnet-20241022-v2:0"),
             "modelApiUrl": event.get("modelApiUrl", "-"),
             "modelSecretName": event.get("modelSecretName", "-"),
+            "modelSagemakerEndpointName": event.get("modelSagemakerEndpointName", "-"),
         }
     else:
         raise ValueError("offline is not true or false")

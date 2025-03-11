@@ -46,6 +46,7 @@ from lambda_query_preprocess.query_preprocess import conversation_query_rewrite
 from shared.langchain_integration.chains import LLMChain
 from common_logic.common_utils.serialization_utils import JSONEncoder
 import asyncio
+from langchain.retrievers.merger_retriever import MergerRetriever
 
 logger = get_logger("common_entry")
 
@@ -160,20 +161,28 @@ def query_preprocess(state: ChatbotState):
 
 @node_monitor_wrapper
 def intention_detection(state: ChatbotState):
-    retriever_params = state["chatbot_config"]["qq_match_config"]
-    retriever_params["query"] = state[
-        retriever_params.get("retriever_config", {}).get("query_key", "query")
+    qq_match_config = state["chatbot_config"]["qq_match_config"]
+    # retriever_params["query"] = state[
+    #     retriever_params.get("retriever_config", {}).get("query_key", "query")
+    # ]
+
+    qq_retrievers = [
+        OpensearchHybridQueryQuestionRetriever.from_config(
+        **retriver_config
+    ) for retriver_config in qq_match_config['retrievers']
     ]
-    qq_retriever = OpensearchHybridQueryQuestionRetriever.from_config(
-        **retriever_params
-    )
-    qq_retrievered:List[Document] = asyncio.run(qq_retriever.ainvoke(retriever_params["query"]))
+
+    qq_retriever = MergerRetriever(retrievers=qq_retrievers)
+    # qq_retriever = OpensearchHybridQueryQuestionRetriever.from_config(
+    #     **retriever_params
+    # )
+    qq_retrievered:List[Document] = asyncio.run(qq_retriever.ainvoke(state["query"]))
 
     # output = retrieve_fn(retriever_params)
     # context_list = []
     qq_match_results = [] # used in rag tool
-    qq_match_threshold = retriever_params["qq_match_threshold"]
-    qq_in_rag_context_threshold = retriever_params["qq_in_rag_context_threshold"]
+    qq_match_threshold = qq_match_config["qq_match_threshold"]
+    qq_in_rag_context_threshold = qq_match_config["qq_in_rag_context_threshold"]
 
     # for doc in output["result"]["docs"]:
     #     if doc["retrieval_score"] > qq_match_threshold:
@@ -198,11 +207,12 @@ def intention_detection(state: ChatbotState):
     #         qq_match_contexts.append(doc)
     
     # TODO modify intention and qq match score
+
     for doc in qq_retrievered:
         if doc.metadata["score"] > qq_match_threshold:
             doc_md = format_qq_data(
                 doc,
-                source_field=qq_retriever.database.source_field
+                source_field=qq_retrievers[0].database.source_field
             )
             send_trace(
                 f"\n\n**similar query found**\n\n{doc_md}",
@@ -266,16 +276,26 @@ def intention_detection(state: ChatbotState):
     if not intention_ready and not custom_qd_index:
         # if not intention_ready:
         # retrieve all knowledge
-        retriever_params = state["chatbot_config"]["private_knowledge_config"]
-        retriever_params["query"] = state[
-            retriever_params.get("retriever_config", {}).get(
-                "query_key", "query")
+        # retriever_params = state["chatbot_config"]["private_knowledge_config"]
+        # retriever_params["query"] = state[
+        #     retriever_params.get("retriever_config", {}).get(
+        #         "query_key", "query")
+        # ]
+
+        private_knowledge_config = state["chatbot_config"]["private_knowledge_config"]
+
+        qd_retrievers = [
+                OpensearchHybridQueryDocumentRetriever.from_config(
+                **retriver_config
+            ) for retriver_config in private_knowledge_config['retrievers']
         ]
-        qd_retriever = OpensearchHybridQueryDocumentRetriever.from_config(
-            **retriever_params
-        )
+
+        qd_retriever = MergerRetriever(retrievers=qd_retrievers)
+        # qd_retriever = OpensearchHybridQueryDocumentRetriever.from_config(
+        #     **retriever_params
+        # )
         qd_retrievered:List[Document] = asyncio.run(
-            qd_retriever.ainvoke(retriever_params["query"])
+            qd_retriever.ainvoke(state["query"])
         )
         # output = retrieve_fn(retriever_params)
 

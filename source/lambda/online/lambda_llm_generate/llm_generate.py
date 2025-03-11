@@ -1,6 +1,6 @@
-from common_logic.common_utils.logger_utils import get_logger
-from common_logic.langchain_integration.chains import LLMChain
-from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
+from shared.utils.logger_utils import get_logger
+from shared.langchain_integration.chains import LLMChain
+from shared.utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
 
 logger = get_logger("llm_generate")
 
