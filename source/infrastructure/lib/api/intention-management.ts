@@ -11,12 +11,11 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Duration } from "aws-cdk-lib";
-import { Runtime } from "aws-cdk-lib/aws-lambda";
+import { Runtime, Code } from "aws-cdk-lib/aws-lambda";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 import { join } from "path";
-import { PythonFunction } from "@aws-cdk/aws-lambda-python-alpha";
+import { LambdaFunction } from "../shared/lambda-helper";
 import * as pyLambda from "@aws-cdk/aws-lambda-python-alpha";
 import { IAMHelper } from "../shared/iam-helper";
 import { Vpc, SecurityGroup } from 'aws-cdk-lib/aws-ec2';
@@ -60,7 +59,7 @@ export class IntentionApi extends Construct {
 
   constructor(scope: Construct, id: string, props: IntentionApiProps) {
     super(scope, id);
-    
+
     this.api = props.api;
     this.auth = props.auth;
     this.vpc = props.vpc;
@@ -77,13 +76,20 @@ export class IntentionApi extends Construct {
     this.iamHelper = props.iamHelper;
     this.genMethodOption = props.genMethodOption;
 
-    const intentionLambda = new PythonFunction(scope, "IntentionLambda", {
+    const intentionLambda = new LambdaFunction(scope, "IntentionLambda", {
       runtime: Runtime.PYTHON_3_12,
-      entry: join(__dirname, "../../../lambda/intention"),
-      index: "intention.py",
       memorySize: 1024,
-      handler: "lambda_handler",
-      timeout: Duration.minutes(15),
+      handler: "intention.lambda_handler",
+      code: Code.fromCustomCommand(
+        "/tmp/intention_lambda_function_codes",
+        ['bash', '-c', [
+          "mkdir -p /tmp/intention_lambda_function_codes",
+          `cp -r ${join(__dirname, "../../../lambda/intention/*")} /tmp/intention_lambda_function_codes`,
+          `cp -r ${join(__dirname, "../../../lambda/shared")} /tmp/intention_lambda_function_codes/`,
+        ].join(' && ')
+        ]
+      ),
+      // timeout: Duration.minutes(15),
       vpc: this.vpc,
       securityGroups: this.securityGroups,
       environment: {
@@ -100,16 +106,16 @@ export class IntentionApi extends Construct {
       },
       layers: [this.sharedLayer],
     });
-    intentionLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
-    intentionLambda.addToRolePolicy(this.iamHelper.logStatement);
-    intentionLambda.addToRolePolicy(this.iamHelper.secretStatement);
-    intentionLambda.addToRolePolicy(this.iamHelper.esStatement);
-    intentionLambda.addToRolePolicy(this.iamHelper.s3Statement);
-    intentionLambda.addToRolePolicy(this.iamHelper.bedrockStatement);
-    intentionLambda.addToRolePolicy(this.iamHelper.endpointStatement);
+    intentionLambda.function.addToRolePolicy(this.iamHelper.dynamodbStatement);
+    intentionLambda.function.addToRolePolicy(this.iamHelper.logStatement);
+    intentionLambda.function.addToRolePolicy(this.iamHelper.secretStatement);
+    intentionLambda.function.addToRolePolicy(this.iamHelper.esStatement);
+    intentionLambda.function.addToRolePolicy(this.iamHelper.s3Statement);
+    intentionLambda.function.addToRolePolicy(this.iamHelper.bedrockStatement);
+    intentionLambda.function.addToRolePolicy(this.iamHelper.endpointStatement);
 
     // API Gateway Lambda Integration to manage intention
-    const lambdaIntentionIntegration = new apigw.LambdaIntegration(intentionLambda, {
+    const lambdaIntentionIntegration = new apigw.LambdaIntegration(intentionLambda.function, {
       proxy: true,
     });
     const apiResourceIntentionManagement = this.api.root.addResource("intention");

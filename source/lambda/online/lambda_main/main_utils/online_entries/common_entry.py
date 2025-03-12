@@ -3,46 +3,50 @@ import json
 import uuid
 import re
 from typing import Annotated, Any, TypedDict, List, Union
+from langchain_core.documents import Document
 
 from common_logic.common_utils.chatbot_utils import ChatbotManager
-from common_logic.common_utils.constant import (
+from shared.constant import (
     IndexType,
     LLMTaskType,
     SceneType,
     GUIDE_INTENTION_NOT_FOUND,
     Threshold,
 )
-from common_logic.common_utils.lambda_invoke_utils import (
+from shared.utils.lambda_invoke_utils import (
     is_running_local,
     node_monitor_wrapper,
     send_trace,
 )
 from langchain_core.messages import ToolMessage, AIMessage
-from common_logic.common_utils.logger_utils import get_logger
-from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
-from common_logic.common_utils.python_utils import add_messages, update_nest_dict
-from common_logic.common_utils.response_utils import process_response, clear_stop_signal
-from common_logic.langchain_integration.tools import ToolManager
+from shared.utils.logger_utils import get_logger
+from shared.utils.prompt_utils import get_prompt_templates_from_ddb
+from shared.utils.python_utils import add_messages, update_nest_dict
+from common_logic.common_utils.response_utils import process_response,clear_stop_signal
+from shared.langchain_integration.tools import ToolManager
 from langchain_core.tools import BaseTool
 from langchain_core.messages.tool import ToolCall
 from langgraph.prebuilt.tool_node import ToolNode, TOOL_CALL_ERROR_TEMPLATE
-from common_logic.langchain_integration.chains import LLMChain
+from shared.langchain_integration.chains import LLMChain
 from common_logic.common_utils.serialization_utils import JSONEncoder
-from common_logic.common_utils.monitor_utils import format_intention_output, format_preprocess_output, format_qq_data
 from common_logic.common_utils.ddb_utils import custom_index_desc
 from lambda_main.main_utils.parse_config import CommonConfigParser
 from langgraph.graph import END, StateGraph
-from common_logic.langchain_integration.retrievers.retriever import lambda_handler as retrieve_fn
-from common_logic.common_utils.monitor_utils import (
+from shared.langchain_integration.retrievers import (
+    OpensearchHybridQueryQuestionRetriever,
+    OpensearchHybridQueryDocumentRetriever
+)
+from shared.utils.monitor_utils import (
     format_preprocess_output,
     format_qq_data,
     format_intention_output
 )
 from lambda_intention_detection.intention import get_intention_results
 from lambda_query_preprocess.query_preprocess import conversation_query_rewrite
-from common_logic.langchain_integration.chains import LLMChain
+from shared.langchain_integration.chains import LLMChain
 from common_logic.common_utils.serialization_utils import JSONEncoder
-
+import asyncio
+from langchain.retrievers.merger_retriever import MergerRetriever
 
 logger = get_logger("common_entry")
 
@@ -157,20 +161,59 @@ def query_preprocess(state: ChatbotState):
 
 @node_monitor_wrapper
 def intention_detection(state: ChatbotState):
-    retriever_params = state["chatbot_config"]["qq_match_config"]
-    retriever_params["query"] = state[
-        retriever_params.get("retriever_config", {}).get("query_key", "query")
+    qq_match_config = state["chatbot_config"]["qq_match_config"]
+    # retriever_params["query"] = state[
+    #     retriever_params.get("retriever_config", {}).get("query_key", "query")
+    # ]
+
+    qq_retrievers = [
+        OpensearchHybridQueryQuestionRetriever.from_config(
+        **retriver_config
+    ) for retriver_config in qq_match_config['retrievers']
     ]
 
-    output = retrieve_fn(retriever_params)
-    context_list = []
-    qq_match_contexts = []
-    qq_match_threshold = retriever_params["qq_match_threshold"]
-    qq_in_rag_context_threshold = retriever_params["qq_in_rag_context_threshold"]
+    qq_retriever = MergerRetriever(retrievers=qq_retrievers)
+    # qq_retriever = OpensearchHybridQueryQuestionRetriever.from_config(
+    #     **retriever_params
+    # )
+    qq_retrievered:List[Document] = asyncio.run(qq_retriever.ainvoke(state["query"]))
 
-    for doc in output["result"]["docs"]:
-        if doc["retrieval_score"] > qq_match_threshold:
-            doc_md = format_qq_data(doc)
+    # output = retrieve_fn(retriever_params)
+    # context_list = []
+    qq_match_results = [] # used in rag tool
+    qq_match_threshold = qq_match_config["qq_match_threshold"]
+    qq_in_rag_context_threshold = qq_match_config["qq_in_rag_context_threshold"]
+
+    # for doc in output["result"]["docs"]:
+    #     if doc["retrieval_score"] > qq_match_threshold:
+    #         doc_md = format_qq_data(doc)
+    #         send_trace(
+    #             f"\n\n**similar query found**\n\n{doc_md}",
+    #             state["stream"],
+    #             state["ws_connection_id"],
+    #             state["enable_trace"],
+    #         )
+    #         query_content = doc["answer"]
+    #         # query_content = doc['answer']['jsonlAnswer']
+    #         return {
+    #             "answer": query_content,
+    #             "intent_type": "similar query found",
+    #         }
+
+    #     if doc["retrieval_score"] > qq_in_rag_context_threshold:
+    #         question = doc["question"]
+    #         answer = doc["answer"]
+    #         context_list.append(f"问题: {question}, \n答案：{answer}")
+    #         qq_match_contexts.append(doc)
+    
+    # TODO modify intention and qq match score
+
+    for doc in qq_retrievered:
+        if doc.metadata["score"] > qq_match_threshold:
+            doc_md = format_qq_data(
+                doc,
+                source_field=qq_retrievers[0].database.source_field
+            )
             send_trace(
                 f"\n\n**similar query found**\n\n{doc_md}",
                 state["stream"],
@@ -184,15 +227,23 @@ def intention_detection(state: ChatbotState):
                 "intent_type": "similar query found",
             }
 
-        if doc["retrieval_score"] > qq_in_rag_context_threshold:
+        if doc.metadata["score"] > qq_in_rag_context_threshold:
             question = doc["question"]
             answer = doc["answer"]
-            context_list.append(f"问题: {question}, \n答案：{answer}")
-            qq_match_contexts.append(doc)
 
+            qq_match_results.append(
+                Document(
+                    page_content=f"问题: {question}, \n答案：{answer}",
+                    metadata={
+                        **doc.metadata
+                    }
+                )
+            )
+            # qq_match_contexts.append(Document(
+            # ))
     if state["chatbot_config"]["agent_config"]["only_use_rag_tool"]:
         return {
-            "qq_match_results": context_list,
+            "qq_match_results": qq_match_results,
             "intent_type": "intention detected"
         }
 
@@ -225,20 +276,49 @@ def intention_detection(state: ChatbotState):
     if not intention_ready and not custom_qd_index:
         # if not intention_ready:
         # retrieve all knowledge
-        retriever_params = state["chatbot_config"]["private_knowledge_config"]
-        retriever_params["query"] = state[
-            retriever_params.get("retriever_config", {}).get(
-                "query_key", "query")
+        # retriever_params = state["chatbot_config"]["private_knowledge_config"]
+        # retriever_params["query"] = state[
+        #     retriever_params.get("retriever_config", {}).get(
+        #         "query_key", "query")
+        # ]
+
+        private_knowledge_config = state["chatbot_config"]["private_knowledge_config"]
+
+        qd_retrievers = [
+                OpensearchHybridQueryDocumentRetriever.from_config(
+                **retriver_config
+            ) for retriver_config in private_knowledge_config['retrievers']
         ]
-        output = retrieve_fn(retriever_params)
+
+        qd_retriever = MergerRetriever(retrievers=qd_retrievers)
+        # qd_retriever = OpensearchHybridQueryDocumentRetriever.from_config(
+        #     **retriever_params
+        # )
+        qd_retrievered:List[Document] = asyncio.run(
+            qd_retriever.ainvoke(state["query"])
+        )
+        # output = retrieve_fn(retriever_params)
 
         info_to_log = []
         all_knowledge_retrieved_list = []
-        for doc in output["result"]["docs"]:
-            if doc['score'] >= all_knowledge_in_agent_threshold:
-                all_knowledge_retrieved_list.append(doc["page_content"])
+        # for doc in output["result"]["docs"]:
+        #     if doc['score'] >= all_knowledge_in_agent_threshold:
+        #         all_knowledge_retrieved_list.append(doc["page_content"])
+        #     info_to_log.append(
+        #         f"score: {doc['score']}, page_content: {doc['page_content'][:200]}")
+        for doc in qd_retrievered:
+            if doc.metadata['score'] >= all_knowledge_in_agent_threshold:
+                all_knowledge_retrieved_list.append(
+                    Document(
+                        page_content=doc.page_content,
+                        metadata={
+                            **doc.metadata
+                        }
+                    )
+                    # doc["page_content"]
+                )
             info_to_log.append(
-                f"score: {doc['score']}, page_content: {doc['page_content'][:200]}")
+                f"score: {doc['score']}, page_content: {doc.page_content[:200]}")
 
         send_trace(
             f"all knowledge retrieved:\n{chr(10).join(info_to_log)}",
@@ -263,8 +343,8 @@ def intention_detection(state: ChatbotState):
         "intent_fewshot_examples": intent_fewshot_examples,
         "intent_fewshot_tools": intent_fewshot_tools,
         "all_knowledge_retrieved_list": all_knowledge_retrieved_list,
-        "qq_match_results": context_list,
-        "qq_match_contexts": qq_match_contexts,
+        "qq_match_results": qq_match_results,
+        # "qq_match_contexts": qq_match_contexts,
         "intent_type": "intention detected"
     }
 
@@ -593,17 +673,22 @@ def register_rag_tool_from_config(event_body: dict):
                         if retriever["index_name"] == index_content["indexId"]:
                             break
                     assert retriever is not None, retrievers
-                    rerankers = event_body["chatbot_config"]["private_knowledge_config"]['rerankers']
-                    if rerankers:
-                        rerankers = [rerankers[0]]
+                    # rerankers = event_body["chatbot_config"]["private_knowledge_config"]['rerankers']
+                    # if rerankers:
+                    #     rerankers = [rerankers[0]]
                     # index_name = index_content["indexId"]
                     index_name = tool_rename(index_content["indexId"])
                     description = index_content["description"]
                     # TODO give specific retriever config
+                    # retriever['rerank_config'] = {
+                    #     'provider':"Bedrock",
+                    #     "model_id": "cohere.rerank-v3-5:0",
+                        
+                    # }
                     ToolManager.register_common_rag_tool(
                         retriever_config={
                             "retrievers": [retriever],
-                            "rerankers": rerankers,
+                            # "rerankers": rerankers,
                             "llm_config": event_body["chatbot_config"]["private_knowledge_config"]['llm_config']
                         },
                         name=index_name,

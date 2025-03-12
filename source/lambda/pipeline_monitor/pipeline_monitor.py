@@ -12,7 +12,7 @@ dynamodb = boto3.resource("dynamodb")
 iam = boto3.client("iam")
 model_table_name = os.environ.get("DYNAMODB_TABLE", "")
 post_lambda_name = os.environ.get("POST_LAMBDA", "")
-CODE_PIPELINE_PREFIX = "DMAA-Env"
+CODE_PIPELINE_PREFIX = "EMD-Env"
 
 
 def update_pipeline_status(group_name, model_id, new_status):

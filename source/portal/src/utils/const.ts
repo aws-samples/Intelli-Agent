@@ -108,10 +108,19 @@ export const LLM_BOT_COMMON_MODEL_LIST = [
     ],
   },
   {
+    label: 'DeepSeek',
+    options: [
+      {
+        label: 'deepseek.r1-v1:0',
+        value: 'deepseek.r1-v1:0',
+      },
+    ],
+  },
+  {
     label: 'Llama',
     options: [
       {
-        lable: 'meta.llama3-1-70b-instruct-v1:0',
+        label: 'meta.llama3-1-70b-instruct-v1:0',
         value: 'meta.llama3-1-70b-instruct-v1:0',
       },
       {
@@ -269,7 +278,7 @@ export const MODEL_TYPE_LIST: SelectProps.Option[] = [
   },
   {
     label: 'Custom Deployment',
-    value: 'dmaa',
+    value: 'emd',
   },
 ];
 

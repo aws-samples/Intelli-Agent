@@ -80,9 +80,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     });
 
     new s3Deployment.BucketDeployment(this, "DeployGlueLibs", {
-      sources: [s3Deployment.Source.asset(join(__dirname, "../../../lambda/job/dep/dist"), {
-        exclude: ["*", "!llm_bot_dep-0.1.0-py3-none-any.whl"]
-      })],
+      sources: [s3Deployment.Source.asset(join(__dirname, "../../../lambda/job/dep/dist"))],
       destinationBucket: this.glueLibS3Bucket,
     });
 
@@ -211,7 +209,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
       "--PORTAL_BUCKET": this.uiPortalBucketName,
       "--CHATBOT_TABLE": props.sharedConstructOutputs.chatbotTable.tableName,
       "--additional-python-modules":
-        "langchain==0.3.7,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.35.98,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,pdfminer.six==20221105,smart-open==7.0.4,opensearch-py==2.2.0,lxml==5.2.2,pandas==2.1.2,openpyxl==3.1.5,xlrd==2.0.1,langchain_community==0.3.5,pillow==10.0.1,tiktoken==0.8.0",
+        "langchain==0.3.7,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.35.98,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,pdfminer.six==20221105,smart-open==7.0.4,opensearch-py==2.2.0,lxml==5.2.2,pandas==2.1.2,openpyxl==3.1.5,xlrd==2.0.1,langchain_community==0.3.7,pillow==10.0.1,tiktoken==0.8.0,pypdf==3.17.0",
       // Add multiple extra python files
       "--extra-py-files": extraPythonFilesList,
     }
@@ -288,6 +286,11 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
             "embeddingEndpoint.$": "$.Payload.embeddingEndpoint",
             "tableItemId.$": "$.Payload.tableItemId",
             "documentLanguage.$": "$.Payload.documentLanguage",
+            "modelProvider.$": "$.Payload.modelProvider",
+            "modelId.$": "$.Payload.modelId",
+            "modelApiUrl.$": "$.Payload.modelApiUrl",
+            "modelSecretName.$": "$.Payload.modelSecretName",
+            "modelSagemakerEndpointName.$": "$.Payload.modelSagemakerEndpointName",
           },
         },
         // Original input
@@ -325,6 +328,11 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
         "--INDEX_ID.$": "$.indexId",
         "--EMBEDDING_MODEL_TYPE.$": "$.embeddingModelType",
         "--job-language": "python",
+        "--MODEL_PROVIDER.$": "$.modelProvider",
+        "--MODEL_ID.$": "$.modelId",
+        "--MODEL_API_URL.$": "$.modelApiUrl",
+        "--MODEL_SECRET_NAME.$": "$.modelSecretName",
+        "--MODEL_SAGEMAKER_ENDPOINT_NAME.$": "$.modelSagemakerEndpointName",
       }),
     });
 
@@ -354,6 +362,11 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
         "embeddingEndpoint.$": "$.embeddingEndpoint",
         "tableItemId.$": "$.tableItemId",
         "documentLanguage.$": "$.documentLanguage",
+        "modelProvider.$": "$.modelProvider",
+        "modelId.$": "$.modelId",
+        "modelApiUrl.$": "$.modelApiUrl",
+        "modelSecretName.$": "$.modelSecretName",
+        "modelSagemakerEndpointName.$": "$.modelSagemakerEndpointName",
       },
       resultPath: "$.mapResults",
     });
@@ -362,7 +375,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
       offlineGlueJob.addRetry({
         errors: ["States.ALL"],
         interval: Duration.seconds(10),
-        maxAttempts: 3,
+        maxAttempts: 1,
       }),
     );
 

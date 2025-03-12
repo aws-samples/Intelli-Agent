@@ -196,6 +196,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [modelSettingExpand, setModelSettingExpand] = useState(false);
   const [additionalConfigError, setAdditionalConfigError] = useState('');
   const [apiEndpointError, setApiEndpointError] = useState('');
+  const [apiEndpointError, setApiEndpointError] = useState('');
   const [apiKeyArnError, setApiKeyArnError] = useState('');
   const [apiEndpoint, setApiEndpoint] = useState(localApiEndpoint ?? '');
   const [apiKeyArn, setApiKeyArn] = useState(localApiKeyArn ?? '');
@@ -313,6 +314,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         },
       });
       const sessionMessage: SessionMessage[] = data.Items;
+
 
       // Get chatbotId from first message if available
       if (sessionMessage && sessionMessage.length > 0) {
@@ -702,6 +704,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     console.info('send message:', message);
     sendMessage(JSON.stringify(message));
 
+
     // Only add to messages if it's a new message (not regeneration)
     if (!customQuery) {
       setMessages((prev) => {
@@ -727,19 +730,23 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     const localModel = localStorage.getItem(MODEL_OPTION);
     if (modelType.value === 'Bedrock') {
       optionList = LLM_BOT_COMMON_MODEL_LIST;
+      optionList = LLM_BOT_COMMON_MODEL_LIST;
       setModelList(LLM_BOT_COMMON_MODEL_LIST);
       setModelOption(LLM_BOT_COMMON_MODEL_LIST[0].options[0].value);
       setApiEndpoint('');
       setApiKeyArn('');
     } else if (modelType.value === 'Bedrock API') {
       optionList = BR_API_MODEL_LIST;
+      optionList = BR_API_MODEL_LIST;
       setModelList(BR_API_MODEL_LIST);
       setModelOption(BR_API_MODEL_LIST[0].options[0].value);
     } else if (modelType.value === 'OpenAI API') {
       optionList = OPENAI_API_MODEL_LIST;
+      optionList = OPENAI_API_MODEL_LIST;
       setModelList(OPENAI_API_MODEL_LIST);
       setModelOption(OPENAI_API_MODEL_LIST[0].options[0].value);
     } else if (modelType.value === 'siliconflow') {
+      optionList = SILICON_FLOW_API_MODEL_LIST;
       optionList = SILICON_FLOW_API_MODEL_LIST;
       setModelList(SILICON_FLOW_API_MODEL_LIST);
       setModelOption(SILICON_FLOW_API_MODEL_LIST[0].options[0].value);
@@ -901,6 +908,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
 
     // Remove the AI message and all subsequent messages
     setMessages(messages.slice(0, index));
+
 
     // Reuse handleClickSendMessage with the found human message
     handleClickSendMessage(humanMessage);

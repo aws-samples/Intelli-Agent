@@ -2,12 +2,10 @@ import base64
 import io
 import json
 import logging
-import os
 import re
 
 import boto3
 import openai
-from botocore.exceptions import ClientError
 
 # Add logger configuration
 logger = logging.getLogger(__name__)
@@ -20,8 +18,25 @@ BEDROCK_CROSS_REGION_SUPPORTED_REGIONS = [
     "eu-west-3",
 ]
 
+
 class figureUnderstand:
-    def __init__(self, model_provider="bedrock", api_secret_name=None):
+    def __init__(
+        self,
+        model_provider="bedrock",
+        model_id="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        model_api_url="",
+        model_secret_name="",
+        model_sagemaker_endpoint_name="",
+    ):
+        """Initialize the figureUnderstand class with appropriate client.
+
+        Args:
+            model_provider (str): The LLM provider to use ('bedrock' or 'openai')
+            model_id (str): The model ID to use
+            model_api_url (str): The API URL for OpenAI
+            model_secret_name (str): Secret name for OpenAI API key (required for OpenAI)
+            model_sagemaker_endpoint_name (str): The name of the SageMaker endpoint for the model
+        """
         self.model_provider = model_provider
         if model_provider == "bedrock":
             session = boto3.session.Session()
@@ -33,31 +48,29 @@ class figureUnderstand:
                     f"Bedrock is not supported in region {bedrock_region}"
                 )
 
-            model_prefix = bedrock_region.split("-")[0] + "."
-
             # Initialize Bedrock client and model ID
             self.bedrock_runtime = boto3.client(service_name="bedrock-runtime")
-            self.model_id = (
-                model_prefix + "anthropic.claude-3-5-sonnet-20241022-v2:0"
-            )
+
+            # Add model prefix if not provided
+            model_prefix = bedrock_region.split("-")[0] + "."
+            if not model_id.startswith(model_prefix):
+                model_id = model_prefix + model_id
+            self.model_id = model_id
         elif model_provider == "openai":
-            self.openai_api_key = self._get_api_key(api_secret_name)
-            if not self.openai_api_key:
-                raise ValueError(
-                    "Failed to retrieve OpenAI API key from Secrets Manager"
-                )
+            self.openai_api_key = self._get_api_key(model_secret_name)
+
             openai.api_key = self.openai_api_key
-            
-            # Set OpenAI base URL from environment variable if provided
-            base_url = os.environ.get("OPENAI_API_BASE")
-            if base_url:
-                openai.base_url = base_url
-            
-            # Set model ID from environment variable or use default
-            self.model_id = os.environ.get("OPENAI_MODEL_ID", "gpt-4o-2024-08-06")
+            openai.base_url = model_api_url
+            self.model_id = model_id
+
+            self.openai_client = openai
+
+        elif model_provider == "sagemaker":
+            self.sagemaker_client = boto3.client("sagemaker-runtime")
+            self.model_sagemaker_endpoint_name = model_sagemaker_endpoint_name
         else:
             raise ValueError(
-                "Unsupported model provider. Choose 'bedrock' or 'openai'"
+                "Unsupported model provider. Choose 'bedrock' or 'openai' or 'sagemaker'"
             )
 
         self.mermaid_prompt = json.load(open("prompt/mermaid.json", "r"))
@@ -71,10 +84,10 @@ class figureUnderstand:
             str: The API key.
         """
         if not api_secret_name:
-            raise ValueError(
-                "api_secret_name must be provided when using OpenAI"
+            logger.error(
+                "API secret name is required for OpenAI integration. Multimodal image processing will be unavailable."
             )
-
+            return None
         try:
             secrets_client = boto3.client("secretsmanager")
             secret_response = secrets_client.get_secret_value(
@@ -82,15 +95,16 @@ class figureUnderstand:
             )
             if "SecretString" in secret_response:
                 secret_data = json.loads(secret_response["SecretString"])
-                api_key = secret_data.get("api_key")
+                api_key = secret_data.get("key")
                 logger.info(
-                    f"Successfully retrieved API key from secret: {api_secret_name}"
+                    f"Successfully retrieved API credentials from secret: {api_secret_name}"
                 )
                 return api_key
         except Exception as e:
-            logger.error(f"Error retrieving secret {api_secret_name}: {str(e)}")
-            raise
-        return None
+            logger.error(
+                f"Failed to retrieve secret '{api_secret_name}': {str(e)}. Multimodal image processing will be unavailable."
+            )
+            return None
 
     def _image_to_base64(self, img):
         """Convert PIL Image to base64 encoded string"""
@@ -103,6 +117,8 @@ class figureUnderstand:
             return self._invoke_bedrock(img, prompt, prefix, stop)
         elif self.model_provider == "openai":
             return self._invoke_openai(img, prompt, prefix, stop)
+        elif self.model_provider == "sagemaker":
+            return self._invoke_sagemaker(img, prompt, prefix, stop)
 
     def _invoke_bedrock(self, img, prompt, prefix="<output>", stop="</output>"):
         base64_encoded = self._image_to_base64(img)
@@ -139,6 +155,10 @@ class figureUnderstand:
         return result
 
     def _invoke_openai(self, img, prompt, prefix="<output>", stop="</output>"):
+        if not self.openai_api_key:
+            raise ValueError(
+                "OpenAI API key not configured. Please provide a valid API secret name."
+            )
         base64_encoded = self._image_to_base64(img)
 
         messages = [
@@ -165,6 +185,54 @@ class figureUnderstand:
         )
 
         result = prefix + response.choices[0].message.content + stop
+        return result
+
+    def _invoke_sagemaker(
+        self, img, prompt, prefix="<output>", stop="</output>"
+    ):
+        """Invoke SageMaker model with image and prompt."""
+        # If img is already a base64 string, use it directly
+        if isinstance(img, str):
+            base64_encoded = img
+        else:
+            # If img is a PIL Image, convert it to base64
+            image_stream = io.BytesIO()
+            img.save(image_stream, format="JPEG")
+            base64_encoded = base64.b64encode(image_stream.getvalue()).decode(
+                "utf-8"
+            )
+
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_encoded}"
+                        },
+                    },
+                ],
+            },
+            {"role": "assistant", "content": prefix},
+        ]
+
+        payload = {
+            "messages": messages,
+            "stream": False,
+        }
+
+        response = self.sagemaker_client.invoke_endpoint(
+            EndpointName=self.model_sagemaker_endpoint_name,
+            Body=json.dumps(payload),
+            ContentType="application/json",
+        )
+        response_body = response["Body"].read().decode("utf-8")
+        response_json = json.loads(response_body)
+        result = (
+            prefix + response_json["choices"][0]["message"]["content"] + stop
+        )
         return result
 
     def get_classification(self, img):

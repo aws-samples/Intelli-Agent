@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 from typing import Generator, Iterable, List
 
 import boto3
-import chardet
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import OpenSearchVectorSearch
@@ -53,12 +52,21 @@ args = getResolvedOptions(
         "BEDROCK_REGION",
         "MODEL_TABLE",
         "GROUP_NAME",
+        "MODEL_PROVIDER",
+        "MODEL_ID",
+        "MODEL_API_URL",
+        "MODEL_SECRET_NAME",
+        "MODEL_SAGEMAKER_ENDPOINT_NAME",
     ],
 )
 
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
-from llm_bot_dep.loaders.auto import cb_process_object
+from llm_bot_dep.loaders.auto import process_object
+from llm_bot_dep.schemas.processing_parameters import (
+    ProcessingParameters,
+    VLLMParameters,
+)
 from llm_bot_dep.storage_utils import save_content_to_s3
 
 # Adaption to allow nougat to run in AWS Glue with writable /tmp
@@ -95,7 +103,11 @@ index_type = args["INDEX_TYPE"]
 # Valid Operation types: "create", "delete", "update", "extract_only"
 operation_type = args["OPERATION_TYPE"]
 aos_secret = args.get("AOS_SECRET_NAME", "opensearch-master-user")
-
+model_provider = args["MODEL_PROVIDER"]
+model_id = args["MODEL_ID"]
+model_api_url = args["MODEL_API_URL"]
+model_secret_name = args["MODEL_SECRET_NAME"]
+model_sagemaker_endpoint_name = args["MODEL_SAGEMAKER_ENDPOINT_NAME"]
 
 s3_client = boto3.client("s3")
 sm_client = boto3.client("secretsmanager")
@@ -108,7 +120,6 @@ OBJECT_EXPIRY_TIME = 3600
 
 credentials = boto3.Session().get_credentials()
 MAX_OS_DOCS_PER_PUT = 8
-
 
 def get_aws_auth():
     try:
@@ -138,7 +149,26 @@ def get_aws_auth():
     return aws_auth
 
 
-class S3FileProcessor:
+def update_etl_object_table(processing_params: ProcessingParameters, status: str, detail: str = ""):
+    """
+    Update the etl object table with the processing parameters.
+
+    Args:
+        processing_params (ProcessingParameters): The processing parameters.
+    """
+    input_body = {
+        "s3Path": f"s3://{processing_params.source_bucket_name}/{processing_params.source_object_key}",
+        "s3Bucket": processing_params.source_bucket_name,
+        "s3Prefix": processing_params.source_object_key,
+        "executionId": table_item_id,
+        "createTime": str(datetime.now(timezone.utc)),
+        "status": status,
+        "detail": detail,
+    }
+    etl_object_table.put_item(Item=input_body)
+
+
+class S3FileIterator:
     def __init__(
         self, bucket: str, prefix: str, supported_file_types: List[str] = []
     ):
@@ -146,112 +176,6 @@ class S3FileProcessor:
         self.prefix = prefix
         self.supported_file_types = supported_file_types
         self.paginator = s3_client.get_paginator("list_objects_v2")
-
-    def get_file_content(self, key: str):
-        """
-        Get the content of a file from S3.
-        """
-        response = s3_client.get_object(Bucket=self.bucket, Key=key)
-        return response["Body"].read()
-
-    def process_file(self, key: str, file_type: str, file_content: str):
-        """
-        Process a file based on its type and return the processed data.
-
-        Args:
-            key (str): The key of the file.
-            file_type (str): The type of the file.
-            file_content (str): The content of the file.
-
-        Returns:
-            tuple: A tuple containing the file type, processed file content, and additional keyword arguments.
-
-        Raises:
-            None
-        """
-        create_time = str(datetime.now(timezone.utc))
-        # TODO: make it configurable in frontend
-        kwargs = {
-            "bucket": self.bucket,
-            "key": key,
-            "etl_model_endpoint": etlModelEndpoint,
-            "smr_client": smr_client,
-            "res_bucket": res_bucket,
-            "table_item_id": table_item_id,
-            "create_time": create_time,
-            "portal_bucket_name": portal_bucket_name,
-            "document_language": document_language,
-            "model_provider": "siliconflow",
-            "model_id": "Qwen/Qwen2-VL-72B-Instruct",
-            "api_secret_name": "siliconflow-api-key",
-            "api_url": "https://api.siliconflow.cn/v1/chat/completions",
-        }
-
-        input_body = {
-            "s3Path": f"s3://{self.bucket}/{key}",
-            "s3Bucket": self.bucket,
-            "s3Prefix": key,
-            "executionId": table_item_id,
-            "createTime": create_time,
-            "status": "RUNNING",
-        }
-        etl_object_table.put_item(Item=input_body)
-
-        if file_type == "txt":
-            return "txt", self.decode_file_content(file_content), kwargs
-        elif file_type == "csv":
-            kwargs["csv_row_count"] = 1
-            return "csv", self.decode_file_content(file_content), kwargs
-        elif file_type in ["xlsx", "xls"]:
-            kwargs["xlsx_row_count"] = 1
-            return "xlsx", file_content, kwargs
-        elif file_type == "html":
-            return "html", self.decode_file_content(file_content), kwargs
-        elif file_type in ["pdf"]:
-            return "pdf", file_content, kwargs
-        elif file_type in ["docx", "doc"]:
-            return "doc", file_content, kwargs
-        elif file_type == "md":
-            return "md", self.decode_file_content(file_content), kwargs
-        elif file_type == "json":
-            return "json", self.decode_file_content(file_content), kwargs
-        elif file_type == "jsonl":
-            return "jsonl", file_content, kwargs
-        elif file_type in ["png", "jpeg", "jpg", "webp"]:
-            kwargs["image_file_type"] = file_type
-            return "image", file_content, kwargs
-        else:
-            message = "Unknown file type: " + file_type
-            input_body = {
-                "s3Path": f"s3://{self.bucket}/{key}",
-                "s3Bucket": self.bucket,
-                "s3Prefix": key,
-                "executionId": table_item_id,
-                "createTime": create_time,
-                "status": "FAILED",
-                "detail": message,
-            }
-            etl_object_table.put_item(Item=input_body)
-            logger.info(message)
-
-    def decode_file_content(
-        self, file_content: str, default_encoding: str = "utf-8"
-    ):
-        """Decode the file content and auto detect the content encoding.
-
-        Args:
-            content: The content to detect the encoding.
-            default_encoding: The default encoding to try to decode the content.
-            timeout: The timeout in seconds for the encoding detection.
-        """
-        try:
-            decoded_content = file_content.decode(default_encoding)
-        except UnicodeDecodeError:
-            # Try to detect encoding
-            encoding = chardet.detect(file_content)["encoding"]
-            decoded_content = file_content.decode(encoding)
-
-        return decoded_content
 
     def iterate_s3_files(self, extract_content=True) -> Generator:
         current_indice = 0
@@ -280,11 +204,30 @@ class S3FileProcessor:
                     logger.info("Processing object: %s", key)
                     current_indice += 1
 
-                    if extract_content:
-                        file_content = self.get_file_content(key)
-                        yield self.process_file(key, file_type, file_content)
-                    else:
-                        yield file_type, "", {"bucket": self.bucket, "key": key}
+                    # Create VLLM parameters
+                    vllm_params = VLLMParameters(
+                        model_provider=model_provider,
+                        model_id=model_id,
+                        model_api_url=model_api_url,
+                        model_secret_name=model_secret_name,
+                        model_sagemaker_endpoint_name=model_sagemaker_endpoint_name
+                    )
+
+                    # Create processing parameters with VLLM parameters
+                    processing_params = ProcessingParameters(
+                        source_bucket_name=self.bucket,
+                        source_object_key=key,
+                        etl_endpoint_name=etlModelEndpoint,
+                        result_bucket_name=res_bucket,
+                        portal_bucket_name=portal_bucket_name,
+                        document_language=document_language,
+                        file_type=file_type,
+                        vllm_parameters=vllm_params
+                    )
+
+                    update_etl_object_table(processing_params, "RUNNING")
+
+                    yield processing_params
 
             if current_indice >= (int(batchIndice) + 1) * int(batchFileNumber):
                 # Exit the outer loop
@@ -543,32 +486,24 @@ def ingestion_pipeline(
     ingestion_worker,
     extract_only=False,
 ):
-    for file_type, file_content, kwargs in s3_files_iterator:
-        input_body = {
-            "s3Path": f"s3://{kwargs['bucket']}/{kwargs['key']}",
-            "s3Bucket": kwargs["bucket"],
-            "s3Prefix": kwargs["key"],
-            "executionId": table_item_id,
-            "createTime": kwargs["create_time"],
-            "status": "SUCCEED",
-        }
+    for processing_params in s3_files_iterator:
         try:
             # The res is list[Document] type
-            res = cb_process_object(
-                s3_client, file_type, file_content, **kwargs
-            )
-            for document in res:
+            documents = process_object(processing_params)
+            for document in documents:
                 save_content_to_s3(
                     s3_client,
                     document,
-                    res_bucket,
+                    processing_params.result_bucket_name,
                     SplittingType.SEMANTIC.value,
                 )
 
             gen_chunk_flag = (
-                False if file_type in ["csv", "xlsx", "xls"] else True
+                False if processing_params.file_type in ["csv", "xlsx", "xls"] else True
             )
-            batches = batch_chunk_processor.batch_generator(res, gen_chunk_flag)
+            batches = batch_chunk_processor.batch_generator(
+                documents, gen_chunk_flag
+            )
 
             for batch in batches:
                 if len(batch) == 0:
@@ -587,36 +522,27 @@ def ingestion_pipeline(
                     save_content_to_s3(
                         s3_client,
                         document,
-                        res_bucket,
+                        processing_params.result_bucket_name,
                         SplittingType.CHUNK.value,
                     )
 
                 if not extract_only:
                     ingestion_worker.aos_ingestion(batch)
+            update_etl_object_table(processing_params, "COMPLETED")
         except Exception as e:
             logger.error(
                 "Error processing object %s: %s",
-                kwargs["bucket"] + "/" + kwargs["key"],
+                f"{processing_params.source_bucket_name}/{processing_params.source_object_key}",
                 e,
             )
-            input_body = {
-                "s3Path": f"s3://{kwargs['bucket']}/{kwargs['key']}",
-                "s3Bucket": kwargs["bucket"],
-                "s3Prefix": kwargs["key"],
-                "executionId": table_item_id,
-                "createTime": kwargs["create_time"],
-                "status": "FAILED",
-                "detail": str(e),
-            }
+            update_etl_object_table(processing_params, "FAILED", str(e))
             traceback.print_exc()
-        finally:
-            etl_object_table.put_item(Item=input_body)
 
 
 def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
-    for _, _, kwargs in s3_files_iterator:
+    for processing_params in s3_files_iterator:
         try:
-            s3_path = f"s3://{kwargs['bucket']}/{kwargs['key']}"
+            s3_path = f"s3://{processing_params.source_bucket_name}/{processing_params.source_object_key}"
 
             batches = document_generator.batch_generator(s3_path)
             for batch in batches:
@@ -627,14 +553,14 @@ def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
         except Exception as e:
             logger.error(
                 "Error processing object %s: %s",
-                kwargs["bucket"] + "/" + kwargs["key"],
+                f"{processing_params.source_bucket_name}/{processing_params.source_object_key}",
                 e,
             )
             traceback.print_exc()
 
 
 def create_processors_and_workers(
-    operation_type, docsearch, embedding_model_endpoint, file_processor
+    operation_type, docsearch, embedding_model_endpoint, file_iterator
 ):
     """
     Create processors and workers based on the operation type.
@@ -643,7 +569,7 @@ def create_processors_and_workers(
         operation_type (str): The type of operation to perform. Valid types are "create", "delete", "update", and "extract_only".
         docsearch: The instance of the DocSearch class.
         embedding_model_endpoint: The endpoint of the embedding model.
-        file_processor: The instance of the file processor.
+        file_iterator: The instance of the file processor.
 
     Returns:
         tuple: A tuple containing the following elements:
@@ -653,7 +579,7 @@ def create_processors_and_workers(
     """
 
     if operation_type in ["create", "extract_only"]:
-        s3_files_iterator = file_processor.iterate_s3_files(
+        s3_files_iterator = file_iterator.iterate_s3_files(
             extract_content=True
         )
         batch_processor = BatchChunkDocumentProcessor(
@@ -661,7 +587,7 @@ def create_processors_and_workers(
         )
         worker = OpenSearchIngestionWorker(docsearch, embedding_model_endpoint)
     elif operation_type in ["delete", "update"]:
-        s3_files_iterator = file_processor.iterate_s3_files(
+        s3_files_iterator = file_iterator.iterate_s3_files(
             extract_content=False
         )
         batch_processor = BatchQueryDocumentProcessor(docsearch, batch_size=10)
@@ -701,7 +627,7 @@ def main():
             "webp",
         ]
 
-    file_processor = S3FileProcessor(s3_bucket, s3_prefix, supported_file_types)
+    file_iterator = S3FileIterator(s3_bucket, s3_prefix, supported_file_types)
 
     if operation_type == "extract_only":
         embedding_function, docsearch = None, None
@@ -727,7 +653,7 @@ def main():
         )
 
     s3_files_iterator, batch_processor, worker = create_processors_and_workers(
-        operation_type, docsearch, embedding_model_endpoint, file_processor
+        operation_type, docsearch, embedding_model_endpoint, file_iterator
     )
 
     if operation_type == "create":
@@ -745,7 +671,7 @@ def main():
         # Then ingest the documents
         s3_files_iterator, batch_processor, worker = (
             create_processors_and_workers(
-                "create", docsearch, embedding_model_endpoint, file_processor
+                "create", docsearch, embedding_model_endpoint, file_iterator
             )
         )
         ingestion_pipeline(s3_files_iterator, batch_processor, worker)

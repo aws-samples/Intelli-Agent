@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import boto3
 from boto3.dynamodb.conditions import Attr
 from botocore.paginate import TokenEncoder
-from constant import EmbeddingModelType, IndexType, ModelProvider
+from constant import EmbeddingModelType, ModelProvider
 from utils.ddb_utils import initiate_chatbot, initiate_index, initiate_model
 
 logger = logging.getLogger()
@@ -261,60 +261,6 @@ def __delete_chatbot(event, group_name):
     return response
 
 
-def lambda_handler(event, context):
-    # logger.info(f"event:{event}")
-    authorizer_type = (
-        event["requestContext"].get("authorizer", {}).get("authorizerType")
-    )
-    if authorizer_type == "lambda_authorizer":
-        claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-
-    if "use_api_key" in claims:
-        group_name = __get_query_parameter(event, "GroupName", "Admin")
-    else:
-        email = claims["email"]
-        group_name = claims["cognito:groups"]  # Agree to only be in one group
-    http_method = event["httpMethod"]
-    resource: str = event["resource"]
-    output = {}
-    if resource == EMBEDDING_MODELS_RESOURCE:
-        output = __list_embedding_model()
-    elif resource.startswith(CHATBOTS_RESOURCE):
-        if http_method == "POST":
-            output = create_chatbot(event, group_name)
-        elif http_method == "GET":
-            if resource == CHATBOTS_RESOURCE:
-                output = __list_chatbot(event, group_name)
-            else:
-                output = __get_chatbot(event, group_name)
-        elif http_method == "DELETE":
-            output = __delete_chatbot(event, group_name)
-    elif resource == CHATBOTCHECK_RESOURCE:
-        output = __validate_chatbot(event, group_name)
-    elif resource == CHATBOTCHECK_DEFAULT:
-        output = __validate_default_chatbot(event, group_name)
-    elif resource == CHATBOTINDEXCHECK_RESOURCE:
-        output = __validate_index(event, group_name)
-    elif resource == CHATBOTEDIT_RESOURCE:
-        output = __edit_chatbot(event, group_name)
-    elif resource.startswith(CHATBOTLISTINDEX_RESOURCE):
-        output = __list_index(event, group_name)
-
-    try:
-        return {
-            "statusCode": 200,
-            "headers": resp_header,
-            "body": json.dumps(output),
-        }
-    except Exception as e:
-        logger.error("Error: %s", str(e))
-        return {
-            "statusCode": 500,
-            "headers": resp_header,
-            "body": json.dumps(f"Error: {str(e)}"),
-        }
-
-
 def __validate_index(event, group_name):
     input_body = json.loads(event["body"])
     model = input_body.get("model")
@@ -346,7 +292,7 @@ def __edit_chatbot(event, group_name):
     #       modelName: chatbotDetail.model,
     #       indexList: tmpIndexList.map(({status,...rest})=> rest),
     #     }
-    # 1.删除index表旧的index
+    # 1. Delete old indexes
     index_dict = (
         chatbot_table.get_item(
             Key={"groupName": group_name, "chatbotId": chatbot_id}
@@ -365,7 +311,7 @@ def __edit_chatbot(event, group_name):
                 }
             )
 
-    # 2.更新chatbot表
+    # 2. Update chatbot table
     # indexList
     for index_type in index:
         index_ids = [
@@ -393,7 +339,7 @@ def __edit_chatbot(event, group_name):
                 update_time,
             )
 
-    # 3.更新index表
+    # 3. Update index table
     return {
         "chatbotId": chatbot_id,
         "groupName": group_name,
@@ -558,3 +504,57 @@ def __get_query_parameter(event, parameter_name, default_value=None):
     ):
         return event["queryStringParameters"][parameter_name]
     return default_value
+
+
+def lambda_handler(event, context):
+    # logger.info(f"event:{event}")
+    authorizer_type = (
+        event["requestContext"].get("authorizer", {}).get("authorizerType")
+    )
+    if authorizer_type == "lambda_authorizer":
+        claims = json.loads(event["requestContext"]["authorizer"]["claims"])
+
+    if "use_api_key" in claims:
+        group_name = __get_query_parameter(event, "GroupName", "Admin")
+    else:
+        email = claims["email"]
+        group_name = claims["cognito:groups"]  # Agree to only be in one group
+    http_method = event["httpMethod"]
+    resource: str = event["resource"]
+    output = {}
+    if resource == EMBEDDING_MODELS_RESOURCE:
+        output = __list_embedding_model()
+    elif resource.startswith(CHATBOTS_RESOURCE):
+        if http_method == "POST":
+            output = create_chatbot(event, group_name)
+        elif http_method == "GET":
+            if resource == CHATBOTS_RESOURCE:
+                output = __list_chatbot(event, group_name)
+            else:
+                output = __get_chatbot(event, group_name)
+        elif http_method == "DELETE":
+            output = __delete_chatbot(event, group_name)
+    elif resource == CHATBOTCHECK_RESOURCE:
+        output = __validate_chatbot(event, group_name)
+    elif resource == CHATBOTCHECK_DEFAULT:
+        output = __validate_default_chatbot(event, group_name)
+    elif resource == CHATBOTINDEXCHECK_RESOURCE:
+        output = __validate_index(event, group_name)
+    elif resource == CHATBOTEDIT_RESOURCE:
+        output = __edit_chatbot(event, group_name)
+    elif resource.startswith(CHATBOTLISTINDEX_RESOURCE):
+        output = __list_index(event, group_name)
+
+    try:
+        return {
+            "statusCode": 200,
+            "headers": resp_header,
+            "body": json.dumps(output),
+        }
+    except Exception as e:
+        logger.error("Error: %s", str(e))
+        return {
+            "statusCode": 500,
+            "headers": resp_header,
+            "body": json.dumps(f"Error: {str(e)}"),
+        }

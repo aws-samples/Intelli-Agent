@@ -1,12 +1,19 @@
 import json
-import logging
 import time
 import traceback
+
 from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
-from common_logic.common_utils.websocket_utils import check_stop_signal, clear_stop_signal, send_to_ws_client
-from common_logic.common_utils.constant import StreamMessageType
-from common_logic.common_utils.logger_utils import get_logger
-from common_logic.langchain_integration.models.chat_models import ReasonModelStreamResult
+from shared.constant import StreamMessageType
+from shared.langchain_integration.models.chat_models import ReasonModelStreamResult
+from shared.utils.logger_utils import get_logger
+from shared.utils.websocket_utils import (
+    check_stop_signal,
+    clear_stop_signal,
+    send_to_ws_client,
+)
+from typing import List 
+from langchain_core.documents import Document
+
 logger = get_logger("response_utils")
 
 
@@ -262,13 +269,13 @@ def stream_response(event_body: dict, response: dict):
                 # context_msg["ddb_additional_kwargs"]["figure"] = figure[:2]
                 context_msg["ddb_additional_kwargs"]["figure"] = figure
 
-            ref_doc = response.get("extra_response").get("ref_docs", [])
+            ref_doc:List[Document] = response.get("extra_response").get("ref_docs", [])
             if ref_doc:
                 md_images = []
                 md_image_list = []
                 for doc in ref_doc:
                     # Look for markdown image pattern in reference doc: ![alt text](image_path)
-                    doc_content = doc.get("page_content", "")
+                    doc_content = doc.page_content
                     for line in doc_content.split('\n'):
                         img_start = line.find("![")
                         while img_start != -1:
