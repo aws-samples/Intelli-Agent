@@ -1,55 +1,102 @@
-from langchain_core.documents import Document
-from langchain_community.vectorstores.opensearch_vector_search import (
-    _is_aoss_enabled,
-    _get_opensearch_client,
-    _get_async_opensearch_client,
-    _import_bulk
-)
-from typing import Optional,Iterable,List,Tuple
-import uuid 
-from langchain_core.pydantic_v1 import Field
-from pydantic import BaseModel
-import hashlib 
-from pydantic import  Field
-from dataclasses import dataclass
-from typing import Any,Union
+import hashlib
+import json
+import os
 import traceback
-import os 
+import uuid
+from typing import Any, Iterable, List, Optional, Tuple, Union
+
+import boto3
+from langchain_community.vectorstores.opensearch_vector_search import (
+    _get_async_opensearch_client,
+    _get_opensearch_client,
+    _import_bulk,
+    _is_aoss_enabled,
+)
+from langchain_core.pydantic_v1 import Field
+from pydantic import BaseModel, Field
+from requests_aws4auth import AWS4Auth
 from shared.utils.logger_utils import get_logger
 
 aosEndpoint = os.environ.get("AOS_ENDPOINT")
-
+aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
+region = os.environ["AWS_REGION"]
 logger = get_logger(__name__)
 
+
+def get_aws_auth():
+    secrets_manager_client = boto3.client("secretsmanager")
+    credentials = boto3.Session().get_credentials()
+    try:
+        master_user = secrets_manager_client.get_secret_value(
+            SecretId=aos_secret
+        )["SecretString"]
+        cred = json.loads(master_user)
+        username = cred.get("username")
+        password = cred.get("password")
+        aws_auth = (username, password)
+
+    except secrets_manager_client.exceptions.ResourceNotFoundException:
+        aws_auth = AWS4Auth(
+            refreshable_credentials=credentials, region=region, service="es"
+        )
+    except secrets_manager_client.exceptions.InvalidRequestException:
+        logger.info(
+            "InvalidRequestException. It might caused by getting secret value from a deleting secret"
+        )
+        logger.info("Fallback to authentication with IAM")
+        aws_auth = AWS4Auth(
+            refreshable_credentials=credentials, region=region, service="es"
+        )
+    except Exception as e:
+        logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
+        raise
+    return aws_auth
+
+
 class OpenSearchBase(BaseModel):
-    opensearch_url:Union[str,None] = None
-    index_name:str
+    opensearch_url: Union[str, None] = None
+    index_name: str
     client_kwargs: dict = Field(default_factory=dict)
     client: Any = None
     async_client: Any = None
     http_auth: Any = None
     is_aoss: bool = False
-    
 
-    def model_post_init(self,__context: Any):
+    def model_post_init(self, __context: Any):
         if self.opensearch_url is None:
             if aosEndpoint is not None:
-                self.opensearch_url="https://{}".format(aosEndpoint)
-                logger.info("Using AOS_ENDPOINT: {}".format(self.opensearch_url))
+                self.opensearch_url = "https://{}".format(aosEndpoint)
+                logger.info(
+                    "Using AOS_ENDPOINT: {}".format(self.opensearch_url)
+                )
 
         if self.opensearch_url is None:
-                assert self.client is not None and self.async_client is not None, (self.client,self.async_client)
+            assert self.client is not None and self.async_client is not None, (
+                self.client,
+                self.async_client,
+            )
         else:
-            assert self.client is  None and self.async_client is  None, (self.client,self.async_client)
-            self.client = _get_opensearch_client(self.opensearch_url, **self.client_kwargs)
-            self.async_client = _get_async_opensearch_client(self.opensearch_url, **self.client_kwargs)
+            assert self.client is None and self.async_client is None, (
+                self.client,
+                self.async_client,
+            )
+            self.client_kwargs = {
+                "http_auth": get_aws_auth(),
+                "use_ssl": True,
+                "verify_certs": True,
+            }
+            self.client = _get_opensearch_client(
+                self.opensearch_url, **self.client_kwargs
+            )
+            self.async_client = _get_async_opensearch_client(
+                self.opensearch_url, **self.client_kwargs
+            )
         self.is_aoss = _is_aoss_enabled(http_auth=self.http_auth)
         self.create_index()
-    
+
     def create_index(self):
         raise NotImplemented
 
-    
     def delete_index(self, index_name: Optional[str] = None) -> Optional[bool]:
         """Deletes a given index from vectorstore."""
         if index_name is None:
@@ -83,17 +130,24 @@ class OpenSearchBase(BaseModel):
             raise ValueError("ids must be provided.")
 
         for _id in ids:
-            body.append({"_op_type": "delete", "_index": self.index_name, "_id": _id})
+            body.append(
+                {"_op_type": "delete", "_index": self.index_name, "_id": _id}
+            )
 
         if len(body) > 0:
             try:
-                bulk(self.client, body, refresh=refresh_indices, ignore_status=404)
+                bulk(
+                    self.client,
+                    body,
+                    refresh=refresh_indices,
+                    ignore_status=404,
+                )
                 return True
             except Exception as e:
                 raise e
         else:
             return False
-    
+
     async def adelete(
         self, ids: Optional[List[str]] = None, **kwargs: Any
     ) -> Optional[bool]:
@@ -110,7 +164,9 @@ class OpenSearchBase(BaseModel):
         if ids is None:
             raise ValueError("No ids provided to delete.")
 
-        actions = [{"delete": {"_index": self.index_name, "_id": id_}} for id_ in ids]
+        actions = [
+            {"delete": {"_index": self.index_name, "_id": id_}} for id_ in ids
+        ]
         response = await self.async_client.bulk(body=actions, **kwargs)
         return not any(
             item.get("delete", {}).get("error") for item in response["items"]
@@ -119,9 +175,9 @@ class OpenSearchBase(BaseModel):
     @staticmethod
     def get_md5(s):
         md5 = hashlib.md5()
-        md5.update(s.encode('utf-8'))
+        md5.update(s.encode("utf-8"))
         return md5.hexdigest()
-    
+
     def index_exists(self, index_name: Optional[str] = None) -> Optional[bool]:
         """If given index present in vectorstore, returns True else False."""
         if index_name is None:
@@ -136,7 +192,7 @@ class OpenSearchBase(BaseModel):
         texts: Iterable[str],
         metadatas: Optional[List[dict]] = None,
         ids: Optional[List[str]] = None,
-        **kwargs   
+        **kwargs,
     ) -> Tuple:
         raise NotImplementedError
 
@@ -147,14 +203,11 @@ class OpenSearchBase(BaseModel):
         ids: Optional[List[str]] = None,
         max_chunk_bytes: Optional[int] = 1 * 1024 * 1024,
         max_retry_time: int = 3,
-        **kwargs
+        **kwargs,
     ) -> List[str]:
         bulk = _import_bulk()
-        requests,return_ids = self.create_injestion_requests(
-            texts=texts,
-            metadatas=metadatas,
-            ids=ids,
-            **kwargs
+        requests, return_ids = self.create_injestion_requests(
+            texts=texts, metadatas=metadatas, ids=ids, **kwargs
         )
         retry_time = 0
         while retry_time < max_retry_time:
@@ -165,18 +218,19 @@ class OpenSearchBase(BaseModel):
                 error = traceback.format_exc()
                 logger.error(f"retry bulk {retry_time}，error: {error}")
                 retry_time += 1
-        
+
         if not self.is_aoss:
             self.client.indices.refresh(index=self.index_name)
-        return return_ids 
+        return return_ids
 
-    def search(self,query_dict:dict):
+    def search(self, query_dict: dict):
         res = self.client.search(index=self.index_name, body=query_dict)
         return res
-    
-    async def asearch(self,query_dict:dict):
-        return await self.async_client.search(index=self.index_name, body=query_dict)
-      
+
+    async def asearch(self, query_dict: dict):
+        return await self.async_client.search(
+            index=self.index_name, body=query_dict
+        )
 
 
 class OpenSearchBM25Search(OpenSearchBase):
@@ -185,9 +239,7 @@ class OpenSearchBM25Search(OpenSearchBase):
     analyzer_type: str = "standard"
     text_field: str = "text"
 
-    def create_index(
-        self
-    ) -> Optional[str]:
+    def create_index(self) -> Optional[str]:
         """Create a new Index with given arguments"""
         index_name = self.index_name
         k1 = self.k1
@@ -207,27 +259,24 @@ class OpenSearchBM25Search(OpenSearchBase):
         mappings = {
             "properties": {
                 self.text_field: {
-                    "type":"text",
-                    "similarity": "custom_bm25", 
+                    "type": "text",
+                    "similarity": "custom_bm25",
                 }
             }
         }
-       
+
         self.client.indices.create(
-            index=index_name,
-            body={
-                "settings":settings,
-                "mappings":mappings
-            })
+            index=index_name, body={"settings": settings, "mappings": mappings}
+        )
         return index_name
 
     def create_injestion_requests(
-            self, 
-            texts: Iterable[str], 
-            metadatas: Optional[List[dict]] = None,
-            ids: Optional[List[str]] = None,
-            **kwargs
-        ):
+        self,
+        texts: Iterable[str],
+        metadatas: Optional[List[dict]] = None,
+        ids: Optional[List[str]] = None,
+        **kwargs,
+    ):
         requests = []
         return_ids = []
 
@@ -246,196 +295,188 @@ class OpenSearchBM25Search(OpenSearchBase):
                 request["_id"] = _id
             requests.append(request)
             return_ids.append(_id)
-        return requests,return_ids
+        return requests, return_ids
 
 
-def _get_hybrid_search_index_body( 
-        embedding_dimension:int,
-        engine="nmslib",
-        space_type= "l2",
-        ann_algrithm="hnsw",
-        ef_construction=512,
-        m=16,   
-        analyzer_type="standard",
-        text_field="text",
-        vector_field: str = "vector",
-        k1=1.2,
-        b=0.75
-    ):
-    
+def _get_hybrid_search_index_body(
+    embedding_dimension: int,
+    engine="nmslib",
+    space_type="l2",
+    ann_algrithm="hnsw",
+    ef_construction=512,
+    m=16,
+    analyzer_type="standard",
+    text_field="text",
+    vector_field: str = "vector",
+    k1=1.2,
+    b=0.75,
+):
+
     settings = {
-            "analysis": {"analyzer": {"default": {"type": analyzer_type}}},
-            "similarity": {
-                "custom_bm25": {
-                    "type": "BM25",
-                    "k1": k1,
-                    "b": b,
-                }
-            },
-        }
-    
+        "analysis": {"analyzer": {"default": {"type": analyzer_type}}},
+        "similarity": {
+            "custom_bm25": {
+                "type": "BM25",
+                "k1": k1,
+                "b": b,
+            }
+        },
+    }
+
     mapping = {
-            "properties": {
-                # "metadata": {
-                #     "properties": {
-                #     "chunk_id": {
-                #         "type": "text",
-                #         "fields": {
-                #         "keyword": {
-                #             "type": "keyword",
-                #             "ignore_above": 256
-                #             }
-                #             }
-                #         },
-                #     "complete_heading": {
-                #         "type": "text",
-                #         "fields": {
-                #         "keyword": {
-                #             "type": "keyword",
-                #             "ignore_above": 256
-                #         }
-                #         }
-                #     },
-                #     "content_type": {
-                #         "type": "text",
-                #         "fields": {
-                #         "keyword": {
-                #             "type": "keyword",
-                #             "ignore_above": 256
-                #         }
-                #         }
-                #     },
-                #     "current_heading": {
-                #         "type": "text",
-                #         "fields": {
-                #         "keyword": {
-                #             "type": "keyword",
-                #             "ignore_above": 256
-                #         }
-                #         }
-                #     },
-                #     "figure": {
-                #         "properties": {
-                #         "content_type": {
-                #             "type": "text",
-                #             "fields": {
-                #             "keyword": {
-                #                 "type": "keyword",
-                #                 "ignore_above": 256
-                #             }
-                #             }
-                #         },
-                #         "figure_path": {
-                #             "type": "text",
-                #             "fields": {
-                #             "keyword": {
-                #                 "type": "keyword",
-                #                 "ignore_above": 256
-                #             }
-                #             }
-                #         }
-                #         }
-                #     },
-                #     "file_path": {
-                #         "type": "text",
-                #         "fields": {
-                #         "keyword": {
-                #             "type": "keyword",
-                #             "ignore_above": 256
-                #         }
-                #         }
-                #     },
-                #     "file_type": {
-                #         "type": "text",
-                #         "fields": {
-                #         "keyword": {
-                #             "type": "keyword",
-                #             "ignore_above": 256
-                #         }
-                #         }
-                #     },
-                #     "heading_hierarchy": {
-                #         "properties": {
-                #         "level": {
-                #             "type": "long"
-                #         },
-                #         "next": {
-                #             "type": "text",
-                #             "fields": {
-                #             "keyword": {
-                #                 "type": "keyword",
-                #                 "ignore_above": 256
-                #             }
-                #             }
-                #         },
-                #         "previous": {
-                #             "type": "text",
-                #             "fields": {
-                #             "keyword": {
-                #                 "type": "keyword",
-                #                 "ignore_above": 256
-                #             }
-                #             }
-                #         },
-                #         "size": {
-                #             "type": "long"
-                #         },
-                #         "title": {
-                #             "type": "text",
-                #             "fields": {
-                #             "keyword": {
-                #                 "type": "keyword",
-                #                 "ignore_above": 256
-                #             }
-                #             }
-                #         }
-                #         }
-                #     }
-                #     }
-                # },
-                text_field: {
-                    "type":"text",
-                    "similarity": "custom_bm25", 
-                },
-                vector_field: {
-                    "type": "knn_vector",
-                    "dimension": embedding_dimension,
-                    "method": {
+        "properties": {
+            # "metadata": {
+            #     "properties": {
+            #     "chunk_id": {
+            #         "type": "text",
+            #         "fields": {
+            #         "keyword": {
+            #             "type": "keyword",
+            #             "ignore_above": 256
+            #             }
+            #             }
+            #         },
+            #     "complete_heading": {
+            #         "type": "text",
+            #         "fields": {
+            #         "keyword": {
+            #             "type": "keyword",
+            #             "ignore_above": 256
+            #         }
+            #         }
+            #     },
+            #     "content_type": {
+            #         "type": "text",
+            #         "fields": {
+            #         "keyword": {
+            #             "type": "keyword",
+            #             "ignore_above": 256
+            #         }
+            #         }
+            #     },
+            #     "current_heading": {
+            #         "type": "text",
+            #         "fields": {
+            #         "keyword": {
+            #             "type": "keyword",
+            #             "ignore_above": 256
+            #         }
+            #         }
+            #     },
+            #     "figure": {
+            #         "properties": {
+            #         "content_type": {
+            #             "type": "text",
+            #             "fields": {
+            #             "keyword": {
+            #                 "type": "keyword",
+            #                 "ignore_above": 256
+            #             }
+            #             }
+            #         },
+            #         "figure_path": {
+            #             "type": "text",
+            #             "fields": {
+            #             "keyword": {
+            #                 "type": "keyword",
+            #                 "ignore_above": 256
+            #             }
+            #             }
+            #         }
+            #         }
+            #     },
+            #     "file_path": {
+            #         "type": "text",
+            #         "fields": {
+            #         "keyword": {
+            #             "type": "keyword",
+            #             "ignore_above": 256
+            #         }
+            #         }
+            #     },
+            #     "file_type": {
+            #         "type": "text",
+            #         "fields": {
+            #         "keyword": {
+            #             "type": "keyword",
+            #             "ignore_above": 256
+            #         }
+            #         }
+            #     },
+            #     "heading_hierarchy": {
+            #         "properties": {
+            #         "level": {
+            #             "type": "long"
+            #         },
+            #         "next": {
+            #             "type": "text",
+            #             "fields": {
+            #             "keyword": {
+            #                 "type": "keyword",
+            #                 "ignore_above": 256
+            #             }
+            #             }
+            #         },
+            #         "previous": {
+            #             "type": "text",
+            #             "fields": {
+            #             "keyword": {
+            #                 "type": "keyword",
+            #                 "ignore_above": 256
+            #             }
+            #             }
+            #         },
+            #         "size": {
+            #             "type": "long"
+            #         },
+            #         "title": {
+            #             "type": "text",
+            #             "fields": {
+            #             "keyword": {
+            #                 "type": "keyword",
+            #                 "ignore_above": 256
+            #             }
+            #             }
+            #         }
+            #         }
+            #     }
+            #     }
+            # },
+            text_field: {
+                "type": "text",
+                "similarity": "custom_bm25",
+            },
+            vector_field: {
+                "type": "knn_vector",
+                "dimension": embedding_dimension,
+                "method": {
                     "engine": engine,
                     "space_type": space_type,
                     "name": ann_algrithm,
-                    "parameters": {
-                        "ef_construction": ef_construction,
-                        "m": m
-                    }
-                 }
-            }
-            }
+                    "parameters": {"ef_construction": ef_construction, "m": m},
+                },
+            },
         }
-    
-    return {
-        "settings":settings,
-        "mappings":mapping
     }
+
+    return {"settings": settings, "mappings": mapping}
 
 
 class OpenSearchHybridSearch(OpenSearchBase):
     k1: float = 1.2
     b: float = 0.75
-    analyzer_type: str ="standard"
-    source_field: str ="file_path"
+    analyzer_type: str = "standard"
+    source_field: str = "file_path"
     text_field: str = "text"
     vector_field: str = "vector_field"
     embedding_dimension: int
     space_type: str = "l2"
-    m: int =16
-    ef_construction: int =512
+    m: int = 16
+    ef_construction: int = 512
     ann_algrithm: str = "hnsw"
     engine: str = "nmslib"
-    
-    def create_index(
-        self
-    ) -> Optional[str]:
+
+    def create_index(self) -> Optional[str]:
         """Create a new Index with given arguments"""
         index_name = self.index_name
         if self.index_exists(index_name):
@@ -451,18 +492,16 @@ class OpenSearchHybridSearch(OpenSearchBase):
             text_field=self.text_field,
             vector_field=self.vector_field,
             k1=self.k1,
-            b=self.b
+            b=self.b,
         )
 
-        self.client.indices.create(
-            index=index_name,
-            body=index_body
-        )
+        self.client.indices.create(index=index_name, body=index_body)
         return index_name
 
-    
     @staticmethod
-    def _validate_embeddings_and_bulk_size(embeddings_length: int, bulk_size: int) -> None:
+    def _validate_embeddings_and_bulk_size(
+        embeddings_length: int, bulk_size: int
+    ) -> None:
         """Validate Embeddings Length and Bulk Size."""
         if embeddings_length == 0:
             raise RuntimeError("Embeddings size is zero")
@@ -471,7 +510,7 @@ class OpenSearchHybridSearch(OpenSearchBase):
                 f"The embeddings count, {embeddings_length} is more than the "
                 f"[bulk_size], {bulk_size}. Increase the value of [bulk_size]."
             )
-    
+
     @staticmethod
     def _validate_aoss_with_engines(is_aoss: bool, engine: str) -> None:
         """Validate AOSS with the engine."""
@@ -482,18 +521,18 @@ class OpenSearchHybridSearch(OpenSearchBase):
             )
 
     def create_injestion_requests(
-            self,
-            texts: Iterable[str],
-            embeddings: List[List[float]],
-            metadatas: Optional[List[dict]] = None,
-            ids: Optional[List[str]] = None,
-            bulk_size: int = 500,
-            **kwargs: Any
-        ):
-    
+        self,
+        texts: Iterable[str],
+        embeddings: List[List[float]],
+        metadatas: Optional[List[dict]] = None,
+        ids: Optional[List[str]] = None,
+        bulk_size: int = 500,
+        **kwargs: Any,
+    ):
+
         self._validate_embeddings_and_bulk_size(len(embeddings), bulk_size)
         self._validate_aoss_with_engines(self.is_aoss, self.engine)
-        
+
         requests = []
         return_ids = []
         for i, text in enumerate(texts):
@@ -502,10 +541,10 @@ class OpenSearchHybridSearch(OpenSearchBase):
             request = {
                 "_op_type": "update",
                 "_index": self.index_name,
-                "doc":{
+                "doc": {
                     self.text_field: text,
                     self.vector_field: embeddings[i],
-                    "metadata": metadata
+                    "metadata": metadata,
                 },
                 "doc_as_upsert": True,
             }
@@ -515,8 +554,7 @@ class OpenSearchHybridSearch(OpenSearchBase):
                 request["_id"] = _id
             requests.append(request)
             return_ids.append(_id)
-        return requests,return_ids
-    
+        return requests, return_ids
 
     # def _get_relevant_documents(
     #     self, query: str, *, run_manager: CallbackManagerForRetrieverRun,**kwargs
@@ -532,7 +570,3 @@ class OpenSearchHybridSearch(OpenSearchBase):
     #             page_content=page_content,
     #             metadata=metadata
     #         ))
-
-    
-
-

@@ -1,25 +1,23 @@
 import copy
-from typing import Any, Union, Dict,List
+from typing import Any, List, Union
 
 from common_logic.common_utils.chatbot_utils import ChatbotManager
+from pydantic import BaseModel, ConfigDict, Field
 from shared.constant import (
     ChatbotMode,
+    ContextExtendMethod,
+    EmbeddingModelType,
     IndexType,
+    KBType,
     LLMModelType,
+    ModelProvider,
+    RerankModelType,
     SceneType,
     Threshold,
-    ModelProvider,
-    EmbeddingModelType,
-    KBType,
-    RerankModelType,
-    ContextExtendMethod
 )
-
 from shared.utils.logger_utils import get_logger
 from shared.utils.python_utils import update_nest_dict
-from pydantic import BaseModel, ConfigDict, Field
 from shared.utils.secret_utils import get_secret_value
-
 
 logger = get_logger("pydantic_models")
 
@@ -35,34 +33,38 @@ class AllowBaseModel(BaseModel):
         use_enum_values = True
 
 
-
 ##### model config ##############
 class ModelConfig(AllowBaseModel):
     provider: ModelProvider
-    model_id: Union[EmbeddingModelType,LLMModelType,RerankModelType]
+    model_id: Union[EmbeddingModelType, LLMModelType, RerankModelType]
     base_url: Union[str, None] = None
     api_key_arn: Union[str, None] = None
     api_key: Union[str, None] = None
     target_model: Union[str, None] = None
     model_endpoint: Union[str, None] = None
-    model_kwargs: dict = Field(default_factory=lambda : {})
+    model_kwargs: dict = Field(default_factory=lambda: {})
 
     def model_post_init(self, __context: Any) -> None:
         if self.api_key_arn and not self.api_key:
             self.api_key = get_secret_value(self.api_key_arn)
+
 
 class LLMConfig(ModelConfig):
     provider: ModelProvider = ModelProvider.BEDROCK
     model_id: LLMModelType = LLMModelType.CLAUDE_3_5_HAIKU
-    model_kwargs: dict = Field(default_factory=lambda : {"temperature": 0.01, "max_tokens": 4096})
-   
+    model_kwargs: dict = Field(
+        default_factory=lambda: {"temperature": 0.01, "max_tokens": 4096}
+    )
+
     def model_post_init(self, __context: Any) -> None:
         if self.api_key_arn and not self.api_key:
             self.api_key = get_secret_value(self.api_key_arn)
 
+
 class EmbeddingModelConfig(ModelConfig):
     dimension: Union[int, None] = None
     embedding_dimension: Union[int, None] = None
+
     def model_post_init(self, __context: Any) -> None:
         if self.embedding_dimension is None:
             assert self.dimension is not None
@@ -73,8 +75,8 @@ class RerankConfig(ModelConfig):
     pass
 
 
-
 # query preprocess config
+
 
 class QueryRewriteConfig(LLMConfig):
     rewrite_first_message: bool = False
@@ -82,25 +84,32 @@ class QueryRewriteConfig(LLMConfig):
 
 class QueryProcessConfig(ForbidBaseModel):
     conversation_query_rewrite_config: QueryRewriteConfig = Field(
-        default_factory=QueryRewriteConfig)
+        default_factory=QueryRewriteConfig
+    )
 
 
 ####### retriever config  ###########
 
-class HybridSearchConfig(AllowBaseModel):
-    bm25_search_context_extend_method: ContextExtendMethod = ContextExtendMethod.WHOLE_DOC
-    bm25_search_whole_doc_max_size:int = 100
-    bm25_search_chunk_window_size: int = 10
-    bm25_search_top_k:int = 5
-    enable_bm25_search:bool = True
 
-    vector_search_context_extend_method: ContextExtendMethod = ContextExtendMethod.WHOLE_DOC
+class HybridSearchConfig(AllowBaseModel):
+    bm25_search_context_extend_method: ContextExtendMethod = (
+        ContextExtendMethod.WHOLE_DOC
+    )
+    bm25_search_whole_doc_max_size: int = 100
+    bm25_search_chunk_window_size: int = 10
+    bm25_search_top_k: int = 5
+    enable_bm25_search: bool = True
+
+    vector_search_context_extend_method: ContextExtendMethod = (
+        ContextExtendMethod.WHOLE_DOC
+    )
     vector_search_chunk_window_size: int = 10
-    vector_search_top_k:int = 5 
-    vector_search_whole_doc_max_size:int = 100
-    enable_vector_search:bool = True
+    vector_search_top_k: int = 5
+    vector_search_whole_doc_max_size: int = 100
+    enable_vector_search: bool = True
 
     rerank_top_k: int = 10
+
 
 class RetrieverConfigBase(HybridSearchConfig):
     # database: dict = Field(default_factory=dict)
@@ -113,27 +122,29 @@ class RetrieverConfigBase(HybridSearchConfig):
     kb_type: KBType = KBType.AOS
     embedding_config: Union[EmbeddingModelConfig, None] = None
     rerank_config: Union[RerankConfig, None] = None
-    
+
 
 class IntentionRetrieverConfig(RetrieverConfigBase):
     index_type: IndexType = IndexType.INTENTION
     vector_field: str = "vector"
-    
+
 
 class QQMatchRetrieverConfig(RetrieverConfigBase):
     index_type: IndexType = IndexType.QQ
-    vector_field: str = "vector"
-    
+    vector_field: str = "vector_field"
+
 
 class PrivateKnowledgeRetrieverConfig(RetrieverConfigBase):
     index_type: IndexType = IndexType.QD
     vector_field: str = "vector_field"
-    
+
 
 class IntentionConfig(ForbidBaseModel):
     retrievers: list[IntentionRetrieverConfig] = Field(default_factory=list)
     intent_threshold: float = Threshold.INTENTION_THRESHOLD
-    all_knowledge_in_agent_threshold: float = Threshold.ALL_KNOWLEDGE_IN_AGENT_THRESHOLD
+    all_knowledge_in_agent_threshold: float = (
+        Threshold.ALL_KNOWLEDGE_IN_AGENT_THRESHOLD
+    )
 
 
 class QQMatchConfig(ForbidBaseModel):
@@ -145,7 +156,8 @@ class QQMatchConfig(ForbidBaseModel):
 
 class RagToolConfig(AllowBaseModel):
     retrievers: List[PrivateKnowledgeRetrieverConfig] = Field(
-        default_factory=list)
+        default_factory=list
+    )
     # rerankers: list[RerankConfig] = Field(default_factory=list)
     llm_config: LLMConfig = Field(default_factory=LLMConfig)
 
@@ -170,7 +182,8 @@ class ChatbotConfig(AllowBaseModel):
     scene: SceneType = SceneType.COMMON
     agent_repeated_call_limit: int = 5
     query_process_config: QueryProcessConfig = Field(
-        default_factory=QueryProcessConfig)
+        default_factory=QueryProcessConfig
+    )
     intention_config: IntentionConfig = Field(default_factory=IntentionConfig)
     qq_match_config: QQMatchConfig = Field(default_factory=QQMatchConfig)
     agent_config: AgentConfig = Field(default_factory=AgentConfig)
@@ -200,17 +213,25 @@ class ChatbotConfig(AllowBaseModel):
 
     @staticmethod
     def format_index_info(index_info_from_ddb: dict):
-        print('index_info_from_ddb', index_info_from_ddb)
-        embeddin_config_from_ddb = index_info_from_ddb['modelIds']['embedding']
+        print("index_info_from_ddb", index_info_from_ddb)
+        embeddin_config_from_ddb = index_info_from_ddb["modelIds"]["embedding"]
         embedding_config = {
-            "provider": embeddin_config_from_ddb['parameter']['ModelProvider'],
-            "model_id": embeddin_config_from_ddb['parameter']['ModelEndpoint'],
-            "base_url": embeddin_config_from_ddb['parameter'].get('BaseUrl'),
-            "api_key_arn": embeddin_config_from_ddb['parameter'].get('ApiKeyArn'),
-            "api_key": embeddin_config_from_ddb['parameter'].get('ApiKey'),
-            "dimension": embeddin_config_from_ddb['parameter'].get('ModelDimension'),
-            "target_model": embeddin_config_from_ddb['parameter'].get('TargetModel'),
-            "model_endpoint": embeddin_config_from_ddb['parameter'].get("ModelEndpoint"),
+            "provider": embeddin_config_from_ddb["parameter"]["ModelProvider"],
+            "model_id": embeddin_config_from_ddb["parameter"]["ModelEndpoint"],
+            "base_url": embeddin_config_from_ddb["parameter"].get("BaseUrl"),
+            "api_key_arn": embeddin_config_from_ddb["parameter"].get(
+                "ApiKeyArn"
+            ),
+            "api_key": embeddin_config_from_ddb["parameter"].get("ApiKey"),
+            "dimension": embeddin_config_from_ddb["parameter"].get(
+                "ModelDimension"
+            ),
+            "target_model": embeddin_config_from_ddb["parameter"].get(
+                "TargetModel"
+            ),
+            "model_endpoint": embeddin_config_from_ddb["parameter"].get(
+                "ModelEndpoint"
+            ),
         }
         return {
             "index_name": index_info_from_ddb["indexId"],
@@ -281,7 +302,8 @@ class ChatbotConfig(AllowBaseModel):
         default_retriever_config: dict[str, dict],
     ):
         index_infos = self.get_index_infos_from_ddb(
-            self.group_name, self.chatbot_id)
+            self.group_name, self.chatbot_id
+        )
         logger.info(f"index_infos: {index_infos}")
         logger.info(f"default_index_names: {default_index_names}")
         logger.info(f"default_retriever_config: {default_retriever_config}")
@@ -303,7 +325,8 @@ class ChatbotConfig(AllowBaseModel):
                     for index_info in index_info_list
                 ]
                 getattr(self, f"{task_name}_config").retrievers.extend(
-                    index_info_list)
+                    index_info_list
+                )
             else:
                 for index_name in index_names:
                     index_info = self.get_index_info(
