@@ -19,8 +19,7 @@ import {
   SpaceBetween,
   StatusIndicator,
   Textarea,
-  Toggle,
-  Icon,
+  Toggle
 } from '@cloudscape-design/components';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { identity } from 'lodash';
