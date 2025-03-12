@@ -1,7 +1,6 @@
 import io
 import json
 import logging
-import os
 from typing import Any, Dict, Iterator, List, Mapping, Optional
 
 import boto3
@@ -12,7 +11,9 @@ from langchain_community.embeddings import (
     SagemakerEndpointEmbeddings,
 )
 from langchain_community.embeddings.openai import OpenAIEmbeddings
-from langchain_community.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
+from langchain_community.embeddings.sagemaker_endpoint import (
+    EmbeddingsContentHandler,
+)
 from langchain_community.llms import SagemakerEndpoint
 from langchain_community.llms.sagemaker_endpoint import LLMContentHandler
 from langchain_community.llms.utils import enforce_stop_tokens
@@ -28,7 +29,7 @@ session = boto3.session.Session()
 secret_manager_client = session.client(service_name="secretsmanager")
 
 
-def get_model_details(group_name: str, chatbot_id: str, table_name: str):
+def get_model_details(group_name: str, chatbot_id: str, model_table):
     """Get model details from DynamoDB table
 
     Args:
@@ -39,12 +40,10 @@ def get_model_details(group_name: str, chatbot_id: str, table_name: str):
     Returns:
         dict: Model details from DynamoDB
     """
-    dynamodb = boto3.resource("dynamodb")
-    table = dynamodb.Table(table_name)
     model_id = f"{chatbot_id}-embedding"
 
     try:
-        response = table.get_item(
+        response = model_table.get_item(
             Key={"groupName": group_name, "modelId": model_id}
         )
 
@@ -516,7 +515,7 @@ def getCustomEmbeddings(
     model_type: str,
     group_name: str,
     chatbot_id: str,
-    model_table: str,
+    model_table,
 ) -> SagemakerEndpointEmbeddings:
     embeddings = None
     model_details = get_model_details(group_name, chatbot_id, model_table)

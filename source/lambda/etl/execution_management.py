@@ -134,7 +134,6 @@ class ExecutionManager:
             "indexId": execution["indexId"],
             "groupName": execution["groupName"],
             "tableItemId": execution["executionId"],
-            "embeddingModelType": execution["embeddingModelType"],
             "offline": "true",
         }
 
@@ -218,7 +217,6 @@ class ExecutionManager:
                 "indexId": execution["indexId"],
                 "groupName": execution["groupName"],
                 "tableItemId": execution["executionId"],
-                "embeddingModelType": execution["embeddingModelType"],
                 "offline": "true",
             }
 
@@ -236,7 +234,6 @@ class ExecutionManager:
                 "indexId": execution["indexId"],
                 "groupName": execution["groupName"],
                 "tableItemId": execution["executionId"],
-                "embeddingModelType": execution["embeddingModelType"],
                 "offline": "true",
             }
 
@@ -252,7 +249,6 @@ class ExecutionManager:
                 "indexId": execution["indexId"],
                 "groupName": execution["groupName"],
                 "tableItemId": execution["executionId"],
-                "embeddingModelType": execution["embeddingModelType"],
                 "offline": "true",
             }
 

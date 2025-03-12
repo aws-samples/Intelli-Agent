@@ -16,8 +16,8 @@ class VLLMParameters(BaseModel):
     """
 
     model_provider: str = Field(
-        default="bedrock",
-        description="The provider of the model (e.g., 'openai', 'bedrock', 'sagemaker')",
+        default="Bedrock",
+        description="The provider of the model (e.g., 'OpenAI API', 'Bedrock', 'SageMaker')",
     )
     model_id: str = Field(
         default="anthropic.claude-3-sonnet-20240229-v1:0",
