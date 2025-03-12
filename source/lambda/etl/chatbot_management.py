@@ -7,7 +7,12 @@ import boto3
 from boto3.dynamodb.conditions import Attr
 from botocore.paginate import TokenEncoder
 from constant import EmbeddingModelType, ModelProvider
-from utils.ddb_utils import initiate_chatbot, initiate_index, initiate_model
+from utils.ddb_utils import (
+    initiate_chatbot,
+    initiate_embedding_model,
+    initiate_index,
+    initiate_vlm_model,
+)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -47,28 +52,53 @@ resp_header = {
 def create_chatbot(event, group_name):
     request_body = json.loads(event["body"])
     chatbot_id = request_body.get("chatbotId", group_name.lower())
-    model_provider = request_body.get(
+
+    # Initiate embedding model
+    embedding_model_info = request_body.get("embeddingModelInfo", {})
+    embedding_model_provider = embedding_model_info.get(
         "modelProvider", ModelProvider.BEDROCK.value
     )
-    base_url = request_body.get("baseUrl", "")
-    api_key_arn = request_body.get("apiKeyArn", "")
-    chatbot_description = request_body.get(
-        "chatbotDescription", "Answer question based on search result"
+    embedding_base_url = embedding_model_info.get("baseUrl", "")
+    embedding_api_key_arn = embedding_model_info.get("apiKeyArn", "")
+    embedding_model_id = embedding_model_info.get("modelId", embedding_endpoint)
+    embedding_additional_config = embedding_model_info.get(
+        "additionalConfig", {}
     )
-    chatbot_embedding = request_body.get("modelId", embedding_endpoint)
-    model_id = f"{chatbot_id}-embedding"
-    # model_id = request_body.get("modelId", f"{chatbot_id}-embedding")
     create_time = str(datetime.now(timezone.utc))
 
-    model_type = initiate_model(
-        model_table,
-        group_name,
-        model_id,
-        chatbot_embedding,
-        model_provider,
-        base_url,
-        api_key_arn,
-        create_time,
+    embedding_model_provider = initiate_embedding_model(
+        model_table=model_table,
+        group_name=group_name,
+        model_id=f"{chatbot_id}-embedding",
+        embedding_endpoint=embedding_model_id,
+        model_provider=embedding_model_provider,
+        base_url=embedding_base_url,
+        api_key_arn=embedding_api_key_arn,
+        create_time=create_time,
+        additional_config=embedding_additional_config,
+    )
+
+    # Initialize VLM model
+    vlm_model_info = request_body.get("vlmModelInfo", {})
+    vlm_model_provider = vlm_model_info.get(
+        "modelProvider", ModelProvider.BEDROCK.value
+    )
+    vlm_base_url = vlm_model_info.get("baseUrl", "")
+    vlm_api_key_arn = vlm_model_info.get("apiKeyArn", "")
+    vlm_model_id = vlm_model_info.get("modelId", embedding_endpoint)
+    vlm_model_provider = initiate_vlm_model(
+        model_table=model_table,
+        group_name=group_name,
+        model_id=f"{chatbot_id}-vlm",
+        vlm_endpoint=vlm_model_id,
+        model_provider=vlm_model_provider,
+        base_url=vlm_base_url,
+        api_key_arn=vlm_api_key_arn,
+        create_time=create_time,
+    )
+
+    chatbot_description = request_body.get(
+        "chatbotDescription", "Answer question based on search result"
     )
     index = request_body.get(
         "index",
@@ -95,6 +125,7 @@ def create_chatbot(event, group_name):
             chatbot_description,
             index_type,
             index_ids,
+            vlm_model_id,
             create_time,
         )
         for index_id in index_ids:
@@ -103,7 +134,7 @@ def create_chatbot(event, group_name):
                 index_table,
                 group_name,
                 index_id,
-                model_id,
+                f"{chatbot_id}-embedding",
                 index_type,
                 tag,
                 index.get(index_type, {}).get(index_id),
@@ -113,7 +144,9 @@ def create_chatbot(event, group_name):
         "chatbotId": chatbot_id,
         "groupName": group_name,
         "indexIds": index_ids,
-        "modelType": model_type,
+        "vlmModelId": vlm_model_id,
+        "embeddingModelProvider": embedding_model_provider,
+        "vlmModelProvider": vlm_model_provider,
         "Message": "OK",  # Need to be OK for the frontend to know the chatbot is created successfully and redirect to the chatbot management page
     }
 
@@ -153,23 +186,39 @@ def __list_chatbot(event, group_name):
             item_json = {}
             chatbot_id = item.get("chatbotId", {"S": ""})["S"]
             item_json["ChatbotId"] = chatbot_id
-            chatbot_model_item = model_table.get_item(
+            embedding_model_item = model_table.get_item(
                 Key={
                     "groupName": group_name,
                     "modelId": f"{chatbot_id}-embedding",
                 }
             ).get("Item")
-            item_json["ModelName"] = chatbot_model_item.get(
+            vlm_model_item = model_table.get_item(
+                Key={
+                    "groupName": group_name,
+                    "modelId": f"{chatbot_id}-vlm",
+                }
+            ).get("Item")
+            embedding_model = {}
+            embedding_model["embeddingModelName"] = embedding_model_item.get(
                 "parameter", {}
             ).get("ModelEndpoint", "")
-            item_json["ModelId"] = chatbot_model_item.get("modelId", "")
+            item_json["embeddingModelId"] = embedding_model_item.get(
+                "modelId", ""
+            )
             item_json["LastModifiedTime"] = item.get("updateTime", {"S": ""})[
                 "S"
             ]
-            item_json["ModelProvider"] = chatbot_model_item["parameter"].get(
+            item_json["embeddingModelProvider"] = embedding_model_item[
+                "parameter"
+            ].get("ModelProvider", "")
+            item_json["embeddingModel"] = embedding_model
+            item_json["vlmModelName"] = vlm_model_item.get("parameter", {}).get(
+                "ModelEndpoint", ""
+            )
+            item_json["vlmModelId"] = vlm_model_item.get("modelId", "")
+            item_json["vlmModelProvider"] = vlm_model_item["parameter"].get(
                 "ModelProvider", ""
             )
-            page_json.append(item_json)
         page_json.sort(key=lambda x: x["LastModifiedTime"], reverse=True)
         output["Items"] = page_json
         if "LastEvaluatedKey" in page:
@@ -196,23 +245,32 @@ def __get_chatbot(event, group_name):
         chatbot_item = chatbot_table.get_item(
             Key={"groupName": group_name, "chatbotId": chatbot_id}
         ).get("Item")
-        model_item = model_table.get_item(
+        embedding_model_item = model_table.get_item(
             Key={"groupName": group_name, "modelId": f"{chatbot_id}-embedding"}
+        ).get("Item")
+        vlm_model_item = model_table.get_item(
+            Key={"groupName": group_name, "modelId": f"{chatbot_id}-vlm"}
         ).get("Item")
     else:
         chatbot_item = None
-        model_item = None
+        embedding_model_item = None
+        vlm_model_item = None
 
     update_time = datetime.fromisoformat(
         chatbot_item.get("updateTime", "")
     ).strftime("%Y/%m/%d %H:%M:%S")
-    if chatbot_item and model_item:
+    if chatbot_item and embedding_model_item and vlm_model_item:
         chatbot_index_ids = chatbot_item.get("indexIds", {})
-        model = model_item.get("parameter", {})
-        model_endpoint = model.get("ModelEndpoint", {})
-        model_name = model.get("ModelName", {})
-        model_provider = model.get("ModelProvider", "")
-        base_url = model.get("BaseUrl", "")
+        embedding_model = embedding_model_item.get("parameter", {})
+        embedding_model_endpoint = embedding_model.get("ModelEndpoint", {})
+        embedding_model_name = embedding_model.get("ModelName", {})
+        embedding_model_provider = embedding_model.get("ModelProvider", "")
+        embedding_base_url = embedding_model.get("BaseUrl", "")
+        vlm_model = vlm_model_item.get("parameter", {})
+        vlm_model_endpoint = vlm_model.get("ModelEndpoint", {})
+        vlm_model_name = vlm_model.get("ModelName", {})
+        vlm_model_provider = vlm_model.get("ModelProvider", "")
+        vlm_base_url = vlm_model.get("BaseUrl", "")
         chatbot_index = []
         for key, value in chatbot_index_ids.items():
             v = value.get("value", {})
@@ -234,11 +292,17 @@ def __get_chatbot(event, group_name):
             "groupName": group_name,
             "chatbotId": chatbot_id,
             "updateTime": update_time,
-            "model": {
-                "model_endpoint": model_endpoint,
-                "model_name": model_name,
-                "model_provider": model_provider,
-                "base_url": base_url,
+            "embeddingModel": {
+                "modelEndpoint": embedding_model_endpoint,
+                "modelName": embedding_model_name,
+                "modelProvider": embedding_model_provider,
+                "baseUrl": embedding_base_url,
+            },
+            "vlmModel": {
+                "modelEndpoint": vlm_model_endpoint,
+                "modelName": vlm_model_name,
+                "modelProvider": vlm_model_provider,
+                "baseUrl": vlm_base_url,
             },
             "index": chatbot_index,
         }
@@ -247,7 +311,7 @@ def __get_chatbot(event, group_name):
             "groupName": group_name,
             "chatbotId": chatbot_id,
             "updateTime": update_time,
-            "index": chatbot_index,
+            "index": [],
         }
     return response
 

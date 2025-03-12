@@ -24,6 +24,7 @@ class ExecutionStatus(Enum):
     DELETED = "DELETED"
     UPDATING = "UPDATING"
 
+
 class EmbeddingModelType(Enum):
     BEDROCK_TITAN_V1 = "amazon.titan-embed-text-v1"
 
@@ -39,6 +40,7 @@ class IndexType(Enum):
 class ModelType(Enum):
     EMBEDDING = "embedding_and_rerank"
     LLM = "llm"
+    VLM = "vlm"
 
 
 @unique
