@@ -1,6 +1,5 @@
 from langchain_core.retrievers import BaseRetriever
-from langchain_community.vectorstores import OpenSearchVectorSearch
-from .databases.opensearch import OpenSearchBM25Search,OpenSearchHybridSearch
+from .databases.opensearch import OpenSearchHybridSearch
 from langchain_core.embeddings import Embeddings
 from langchain_core.documents import BaseDocumentCompressor
 from ..models.embedding_models import EmbeddingModel
@@ -14,10 +13,8 @@ from langchain.callbacks.manager import (
 )
 import traceback
 from shared.utils.logger_utils import get_logger
-from shared.constant import ContextExtendMethod
+from shared.constant import ContextExtendMethod,Threshold
 import asyncio
-from shared.utils.asyncio_utils import run_coroutine_task
-from langchain.retrievers.multi_query import MultiQueryRetriever
 
 logger = get_logger(__name__)
 
@@ -29,6 +26,7 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
     bm25_search_context_extend_method: str = ContextExtendMethod.WHOLE_DOC
     bm25_search_whole_doc_max_size:int = 100
     bm25_search_chunk_window_size: int = 10
+    bm25_search_threshold:float = Threshold.BM25_SEARCH_THRESHOLD
     enable_bm25_search:bool = True
 
     bm25_search_top_k:int = 5
@@ -37,6 +35,7 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
     vector_search_chunk_window_size: int = 10
     vector_search_top_k:int = 5 
     vector_search_whole_doc_max_size:int = 100
+    vector_search_threshold:float = Threshold.VECTOR_SEARCH_THRESHOLD
     enable_vector_search:bool = True
 
     rerank_top_k:Union[int,None] = None
@@ -138,6 +137,7 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
 
     async def abm25_search(self,query:str,**kwargs):
         top_k = kwargs.get("bm25_search_top_k",self.bm25_search_top_k)
+        bm25_search_threshold = kwargs.get("bm25_search_threshold",self.bm25_search_threshold)
         search_query_dict = self.create_bm25_search_query_dict(
             query=query, 
             top_k=top_k, 
@@ -146,6 +146,11 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
 
         search_res = await self.database.asearch(search_query_dict)
         results = await self.aextend_bm25_search_results(search_res, **kwargs)
+        # fileter documents 
+        results = [
+            r  for r in results
+            if r.metadata['retrieval_score'] >= bm25_search_threshold
+        ]
         for doc in results:
             doc.metadata['search_by'] = 'bm25'
         return results
@@ -159,10 +164,17 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
             top_k=top_k,
             **kwargs
         )
+        vector_search_threshold = kwargs.get("vector_search_threshold",self.vector_search_threshold)
         print('vector search query: ',search_query_dict)
         search_res = await self.database.asearch(search_query_dict)
         print('vector search ret: ',search_res)
         results = await self.aextend_vector_search_results(search_res, **kwargs)
+
+        results = [
+            r  for r in results
+            if r.metadata['retrieval_score'] >= vector_search_threshold
+        ]
+
         for doc in results:
             doc.metadata['search_by'] = 'vector'
         return results
@@ -229,8 +241,8 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
             # return compressed_output_docs
         else:
             # altertively to merge the retriverd docs
-            print('bm25_search_results',bm25_search_results)
-            print('vector_search_results',vector_search_results)
+            # print('bm25_search_results',bm25_search_results)
+            # print('vector_search_results',vector_search_results)
             merged_documents = []
             retriever_docs = [bm25_search_results,vector_search_results]
             max_docs = max(map(len, retriever_docs), default=0)

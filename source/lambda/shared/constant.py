@@ -247,6 +247,8 @@ INDEX_DESC = "Answer question based on search result"
 
 
 class Threshold(ConstantBase):
+    BM25_SEARCH_THRESHOLD = 2.0
+    VECTOR_SEARCH_THRESHOLD = 0.4
     QQ_IN_RAG_CONTEXT_THRESHOLD = 0.5
     QQ_MATCH_THRESHOLD = 0.9
     # This threhold will work when there are no intention examples.
