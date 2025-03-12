@@ -11,9 +11,7 @@ from langchain_community.embeddings import (
     SagemakerEndpointEmbeddings,
 )
 from langchain_community.embeddings.openai import OpenAIEmbeddings
-from langchain_community.embeddings.sagemaker_endpoint import (
-    EmbeddingsContentHandler,
-)
+from langchain_community.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 from langchain_community.llms import SagemakerEndpoint
 from langchain_community.llms.sagemaker_endpoint import LLMContentHandler
 from langchain_community.llms.utils import enforce_stop_tokens
@@ -512,22 +510,19 @@ def getCustomEmbeddings(
     endpoint_name: str,
     region_name: str,
     bedrock_region: str,
-    model_type: str,
-    group_name: str,
-    chatbot_id: str,
-    model_table,
+    embedding_model_info: Dict,
 ) -> SagemakerEndpointEmbeddings:
     embeddings = None
-    model_details = get_model_details(group_name, chatbot_id, model_table)
-    model_provider = model_details["parameter"].get("ModelProvider", "Bedrock")
-    base_url = model_details["parameter"].get("BaseUrl", "")
-    api_key_arn = model_details["parameter"].get("ApiKeyArn", "")
-    logger.info(model_details)
+    model_provider = embedding_model_info.get("ModelProvider", "Bedrock")
+    base_url = embedding_model_info.get("BaseUrl", "")
+    api_key_arn = embedding_model_info.get("ApiKeyArn", "")
+    logger.info(embedding_model_info)
 
     if model_provider not in ["Bedrock API", "OpenAI API"]:
         # Use local models
         client = boto3.client("sagemaker-runtime", region_name=region_name)
-        if model_type == "bedrock":
+        logger.info(f"model_type: {embedding_model_info.get('ModelType')}")
+        if embedding_model_info.get("ModelType") == "bedrock":
             bedrock_client = boto3.client(
                 "bedrock-runtime", region_name=bedrock_region
             )
@@ -537,7 +532,7 @@ def getCustomEmbeddings(
                 model_id=endpoint_name,
                 normalize=True,
             )
-        elif model_type == "bce":
+        elif embedding_model_info.get("ModelType") == "bce":
             content_handler = vectorContentHandler()
             embeddings = SagemakerEndpointEmbeddings(
                 client=client,

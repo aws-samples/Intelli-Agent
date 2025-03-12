@@ -638,8 +638,7 @@ def main():
         ]
 
     file_iterator = S3FileIterator(s3_bucket, s3_prefix, supported_file_types)
-    embedding_model_endpoint = embedding_model_info.get("modelEndpoint")
-    embedding_model_type = embedding_model_info.get("modelType")
+    embedding_model_endpoint = embedding_model_info.get("ModelEndpoint")
 
     if operation_type == "extract_only":
         embedding_function, docsearch = None, None
@@ -648,10 +647,7 @@ def main():
             embedding_model_endpoint,
             region_name=region,
             bedrock_region=bedrock_region,
-            model_type=embedding_model_type,
-            group_name=group_name,
-            chatbot_id=chatbot_id,
-            model_table=model_table,
+            embedding_model_info=embedding_model_info,
         )
         aws_auth = get_aws_auth()
         docsearch = OpenSearchVectorSearch(
