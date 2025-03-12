@@ -12,8 +12,8 @@ export const LANGUAGE_ITEMS = [
 ];
 
 export const INDEX_TYPE_OPTIONS = [
-  { label: 'qq (Query-Query: 两个查询之间的相似性, FAQ选择此类型', value: 'qq' },
-  { label: 'qd (Query-Document: 查询与文档之间的相似性, 用于检索知识库中的文档)', value: 'qd' },
+  { label: 'qq: Query-Query, 两个查询之间的相似性, 用于FAQ', value: 'qq' },
+  { label: 'qd: Query-Document, 查询与文档之间的相似性, 用于文档检索', value: 'qd' },
   { label: 'intention', value: 'intention' },
 ];
 
@@ -295,11 +295,11 @@ export const RETAIL_GOODS_LIST: SelectProps.Option[] = [
 
 export const DOC_INDEX_TYPE_LIST: SelectProps.Option[] = [
   {
-    label: 'qd (Query-Document: 查询与文档之间的相似性, 用于检索知识库中的文档)',
+    label: 'qd: Query-Document, 查询与文档之间的相似性, 用于文档检索',
     value: 'qd',
   },
   {
-    label: 'qq (Query-Query: 两个查询之间的相似性, FAQ选择此类型',
+    label: 'qq: Query-Query, 两个查询之间的相似性, 用于FAQ',
     value: 'qq',
   },
 ];
