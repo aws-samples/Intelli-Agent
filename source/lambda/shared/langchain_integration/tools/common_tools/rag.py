@@ -42,7 +42,7 @@ def filter_response(res: Iterable, state: dict):
         buffer += char
 
         # Check the string starts with <reference>
-        if buffer == tag_start[:len(buffer)]:
+        if buffer.strip() == tag_start[:len(buffer.strip())]:
             continue
         elif buffer.startswith(tag_start):
             buffer = buffer.strip()
