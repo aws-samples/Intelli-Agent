@@ -121,6 +121,7 @@ const Message: React.FC<MessageProps> = ({
                     variant="footer"
                     headingTagOverride="h5"
                     headerText="Monitoring"
+                    defaultExpanded={true}
                   >
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm, remarkHtml]}
