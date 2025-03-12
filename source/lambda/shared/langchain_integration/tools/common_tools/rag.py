@@ -45,6 +45,7 @@ def filter_response(res: Iterable, state: dict):
         if buffer == tag_start[:len(buffer)]:
             continue
         elif buffer.startswith(tag_start):
+            buffer = buffer.strip()
             if buffer.endswith(tag_end):
                 # Get reference document number after finding </reference>
                 ref_content = buffer[len(tag_start):-len(tag_end)]
