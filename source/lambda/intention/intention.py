@@ -6,7 +6,6 @@ import re
 import time
 from io import BytesIO
 from typing import List
-
 import boto3
 from aos import sm_utils
 from aos.aos_utils import LLMBotOpenSearchClient
