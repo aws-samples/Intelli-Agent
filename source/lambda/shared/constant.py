@@ -202,6 +202,8 @@ class EmbeddingModelType(ConstantBase):
 
 class RerankModelType(ConstantBase):
     BGE_RERANKER_V2_M3 = "bge-reranker-v2-m3"
+    BCE_RERANKER_BASE_V1 = "bce-reranker-base_v1"
+    BGE_RERANKER_LARGE = "bge-reranker-large"
     COHERE_RERANK_V3D5 = "cohere.rerank-v3-5:0"
     AMAZON_RERANK_V1 = "amazon.rerank-v1:0"
 

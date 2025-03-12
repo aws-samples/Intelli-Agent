@@ -230,15 +230,6 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
         if self.reranker is not None:
             output_docs = bm25_search_results + vector_search_results
             return await self.acompress_documents(query,output_docs,**kwargs)
-            # TODO 
-            # rerank_top_k = kwargs.get("rerank_top_k", self.rerank_top_k) or self.bm25_search_top_k + self.vector_search_top_k
-            # compressed_output_docs = await self.reranker.acompress_documents(
-            #     documents=output_docs, 
-            # )
-            
-            # compressed_output_docs = sorted(compressed_output_docs, key=lambda x: x.metadata['relevance_score'], reverse=True)
-            # compressed_output_docs = compressed_output_docs[:rerank_top_k]
-            # return compressed_output_docs
         else:
             # altertively to merge the retriverd docs
             # print('bm25_search_results',bm25_search_results)
