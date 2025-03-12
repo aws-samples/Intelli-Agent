@@ -1,7 +1,11 @@
+import json
+import logging
 from datetime import datetime, timezone
 
 from constant import KBType, ModelType, UiStatus
 from utils.embeddings import get_embedding_info
+
+logger = logging.getLogger(__name__)
 
 
 def item_exist(ddb_table, item_key: dict):
@@ -41,12 +45,21 @@ def initiate_embedding_model(
     base_url,
     api_key_arn,
     create_time,
+    additional_config,
 ):
     embedding_info = get_embedding_info(embedding_endpoint)
     embedding_info["ModelEndpoint"] = embedding_endpoint
     embedding_info["ModelProvider"] = model_provider
     embedding_info["BaseUrl"] = base_url
     embedding_info["ApiKeyArn"] = api_key_arn
+    try:
+        additional_config_dict = json.loads(additional_config)
+    except Exception as e:
+        logger.error(f"Error parsing additional config: {e}")
+        additional_config_dict = {}
+
+    # add all key vakue pair from additional_config_dict to embedding_info
+    embedding_info.update(additional_config_dict)
 
     item_content = {
         "groupName": group_name,
@@ -65,6 +78,49 @@ def initiate_embedding_model(
         item_content,
     )
     return embedding_info["ModelProvider"]
+
+
+def initiate_rerank_model(
+    *,
+    model_table,
+    group_name,
+    model_id,
+    rerank_endpoint,
+    model_provider,
+    base_url,
+    api_key_arn,
+    create_time,
+    additional_config,
+):
+    rerank_info = {
+        "ModelEndpoint": rerank_endpoint,
+        "ModelProvider": model_provider,
+        "BaseUrl": base_url,
+        "ApiKeyArn": api_key_arn,
+    }
+    try:
+        additional_config_dict = json.loads(additional_config)
+    except Exception as e:
+        logger.error(f"Error parsing additional config: {e}")
+        additional_config_dict = {}
+
+    rerank_info.update(additional_config_dict)
+
+    item_content = {
+        "groupName": group_name,
+        "modelId": model_id,
+        "modelType": ModelType.RERANK.value,
+        "parameter": rerank_info,
+        "createTime": create_time,
+        "updateTime": create_time,
+        "status": UiStatus.ACTIVE.value,
+    }
+    create_item(
+        model_table,
+        {"groupName": group_name, "modelId": model_id},
+        item_content,
+    )
+    return rerank_info["ModelProvider"]
 
 
 def initiate_vlm_model(
@@ -103,6 +159,7 @@ def initiate_vlm_model(
 
 
 def initiate_index(
+    *,
     index_table,
     group_name,
     index_id,
@@ -149,12 +206,15 @@ def create_item_if_not_exist(ddb_table, item_key: dict, body: str):
 
 
 def initiate_chatbot(
+    *,
     chatbot_table,
     group_name,
     chatbot_id,
     chatbot_description,
     index_type,
     index_id_list,
+    embedding_model_id,
+    rerank_model_id,
     vlm_model_id,
     create_time=None,
 ):
@@ -196,6 +256,8 @@ def initiate_chatbot(
                         },
                     }
                 },
+                "embeddingModelId": embedding_model_id,
+                "rerankModelId": rerank_model_id,
                 "vlmModelId": vlm_model_id,
                 "createTime": create_time,
                 "updateTime": create_time,

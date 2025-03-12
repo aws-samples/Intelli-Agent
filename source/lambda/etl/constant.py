@@ -38,9 +38,10 @@ class IndexType(Enum):
 
 @unique
 class ModelType(Enum):
-    EMBEDDING = "embedding_and_rerank"
+    EMBEDDING = "embedding"
     LLM = "llm"
     VLM = "vlm"
+    RERANK = "rerank"
 
 
 @unique
