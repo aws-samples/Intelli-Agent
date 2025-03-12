@@ -92,3 +92,4 @@ source/infrastructure/lib/**/*.js
 *.d.ts
 source/model/model_temp/
 source/lambda/job/dep/glue-job-script-debug.py
+source/lambda/deployment_assets/
