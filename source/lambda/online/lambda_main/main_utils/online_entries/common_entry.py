@@ -680,6 +680,11 @@ def register_rag_tool_from_config(event_body: dict):
                     index_name = tool_rename(index_content["indexId"])
                     description = index_content["description"]
                     # TODO give specific retriever config
+                    # retriever['rerank_config'] = {
+                    #     'provider':"Bedrock",
+                    #     "model_id": "cohere.rerank-v3-5:0",
+                        
+                    # }
                     ToolManager.register_common_rag_tool(
                         retriever_config={
                             "retrievers": [retriever],

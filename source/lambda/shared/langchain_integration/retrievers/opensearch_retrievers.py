@@ -171,13 +171,14 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
         return await self.embeddings.aembed_query(query)
 
 
-    async def acompress_documents(self,output_docs:list[Document],**kwargs):
+    async def acompress_documents(self,query,output_docs:list[Document],**kwargs):
         rerank_top_k = kwargs.get('rerank_top_k',self.rerank_top_k)
         bm25_search_top_k = kwargs.get('bm25_search_top_k', self.bm25_search_top_k)
         vector_search_top_k = kwargs.get('vector_search_top_k', self.vector_search_top_k)
         rerank_top_k = rerank_top_k or bm25_search_top_k + vector_search_top_k
         compressed_output_docs = await self.reranker.acompress_documents(
             documents=output_docs, 
+            query=query
         )
         
         compressed_output_docs = sorted(compressed_output_docs, key=lambda x: x.metadata['relevance_score'], reverse=True)
@@ -216,7 +217,7 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
         # rerank
         if self.reranker is not None:
             output_docs = bm25_search_results + vector_search_results
-            return await self.acompress_documents(output_docs,**kwargs)
+            return await self.acompress_documents(query,output_docs,**kwargs)
             # TODO 
             # rerank_top_k = kwargs.get("rerank_top_k", self.rerank_top_k) or self.bm25_search_top_k + self.vector_search_top_k
             # compressed_output_docs = await self.reranker.acompress_documents(

@@ -368,13 +368,14 @@ class RerankModelConfig:
 
 BGE_RERANK_V2_M3_CONFIGS = [
     RerankModelConfig(
-        model_id=RerankModelType.BGE_RERANKER_V2_M3,
+        model_id=RerankModelType.BGE_RERANKER_V2_M3
     )
 ]
 
 COHERE_RERANK_CONFIGS = [
     RerankModelConfig(
         model_id=RerankModelType.COHERE_RERANK_V3D5,
+        default_model_kwargs={"api_version":2}
     )
 ]
 
