@@ -4,12 +4,23 @@ import os
 
 import boto3
 from .logger_utils import get_logger
+from langchain_core.documents import Document
 
 logger = get_logger("websocket_utils")
 
 ws_client = None
 stop_signals_table_name = os.environ.get("STOP_SIGNALS_TABLE_NAME", "")
 
+
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Document):
+            return obj.model_dump()
+        try:
+            return json.JSONEncoder.default(self, obj)
+        except:
+            return str(obj)
 
 class WebsocketClientError(Exception):
     pass
@@ -42,7 +53,7 @@ def load_ws_client(websocket_url):
 def send_to_ws_client(message: dict, ws_connection_id):
     ws_client.post_to_connection(
         ConnectionId=ws_connection_id,
-        Data=json.dumps(message).encode("utf-8"),
+        Data=json.dumps(message,cls=JSONEncoder).encode("utf-8"),
     )
 
 

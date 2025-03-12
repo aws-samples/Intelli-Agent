@@ -43,6 +43,8 @@ class BedrockRerank(BaseDocumentCompressor):
 
     top_n: Optional[int] = sys.maxsize
 
+    model_kwargs: Dict[str, Any] = Field(default_factory=dict)
+
     model_config = ConfigDict(
         extra="forbid",
         protected_namespaces=(),
@@ -96,7 +98,8 @@ class BedrockRerank(BaseDocumentCompressor):
         request_body = {
             "query":query,
             "documents": serialized_documents,
-            "top_n":top_n
+            "top_n":top_n,
+            **self.model_kwargs
         }
         response = self.client.invoke_model(
             modelId=self.model_id,
@@ -164,6 +167,16 @@ class BedrockRerankBaseModel(RerankModelBase):
                                   aws_access_key_id=br_aws_access_key_id, aws_secret_access_key=br_aws_secret_access_key)
 
         extra_kwargs = {k: kwargs[k] for k in ["top_n"] if k in kwargs}
+
+        default_model_kwargs = cls.default_model_kwargs or {}
+
+        model_kwargs = {
+            **default_model_kwargs,
+            **kwargs.get("model_kwargs", {})
+        }
+
+                                                            
+        extra_kwargs.update({"model_kwargs": model_kwargs})
         embedding_model = BedrockRerank(
             client=client,
             credentials_profile_name=credentials_profile_name,

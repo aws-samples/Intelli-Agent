@@ -11,6 +11,8 @@ from shared.utils.websocket_utils import (
     clear_stop_signal,
     send_to_ws_client,
 )
+from typing import List 
+from langchain_core.documents import Document
 
 logger = get_logger("response_utils")
 
@@ -267,13 +269,13 @@ def stream_response(event_body: dict, response: dict):
                 # context_msg["ddb_additional_kwargs"]["figure"] = figure[:2]
                 context_msg["ddb_additional_kwargs"]["figure"] = figure
 
-            ref_doc = response.get("extra_response").get("ref_docs", [])
+            ref_doc:List[Document] = response.get("extra_response").get("ref_docs", [])
             if ref_doc:
                 md_images = []
                 md_image_list = []
                 for doc in ref_doc:
                     # Look for markdown image pattern in reference doc: ![alt text](image_path)
-                    doc_content = doc.get("page_content", "")
+                    doc_content = doc.page_content
                     for line in doc_content.split('\n'):
                         img_start = line.find("![")
                         while img_start != -1:
