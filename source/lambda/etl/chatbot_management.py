@@ -150,6 +150,7 @@ def create_chatbot(event, group_name):
     )
 
     index_ids = []
+    indexes = []
     for index_type in index:
         type_index_ids = [
             index_id.lower() for index_id in list(index[index_type].keys())
@@ -182,14 +183,42 @@ def create_chatbot(event, group_name):
                 create_time=create_time,
             )
 
+            indexes.append(
+                {
+                    "id": index_id,
+                    "type": index_type,
+                    "description": index[index_type].get(index_id),
+                    "tag": tag,
+                }
+            )
+
     return {
-        "chatbotId": chatbot_id,
         "groupName": group_name,
-        "indexIds": index_ids,
-        "vlmModelId": vlm_model_id,
-        "embeddingModelProvider": embedding_model_provider,
-        "vlmModelProvider": vlm_model_provider,
-        "message": "OK",  # Need to be OK for the frontend to know the chatbot is created successfully
+        "chatbotId": chatbot_id,
+        "updateTime": create_time,
+        "embeddingModel": {
+            "modelId": f"{chatbot_id}-embedding",
+            "modelEndpoint": embedding_model_id,
+            "modelName": embedding_model_id,
+            "modelProvider": embedding_model_provider,
+            "baseUrl": embedding_base_url,
+        },
+        "rerankModel": {
+            "modelId": f"{chatbot_id}-rerank",
+            "modelEndpoint": rerank_model_id,
+            "modelName": "",
+            "modelProvider": rerank_model_provider,
+            "baseUrl": rerank_base_url,
+        },
+        "vlmModel": {
+            "modelId": f"{chatbot_id}-vlm",
+            "modelEndpoint": vlm_model_id,
+            "modelName": "",
+            "modelProvider": vlm_model_provider,
+            "baseUrl": vlm_base_url,
+        },
+        "indexes": indexes,
+        "message": "OK",  # Keep this for frontend compatibility
     }
 
 
@@ -276,6 +305,9 @@ def list_chatbots(event, group_name):
             rerank_model = get_model_info(group_name, chatbot_id, "rerank")
             vlm_model = get_model_info(group_name, chatbot_id, "vlm")
 
+            # Get indexes
+            indexes = get_chatbot_indexes(group_name, chatbot_id)
+
             chatbot = {
                 "chatbotId": chatbot_id,
                 "groupName": group_name,
@@ -283,6 +315,7 @@ def list_chatbots(event, group_name):
                 "embeddingModel": embedding_model,
                 "rerankModel": rerank_model,
                 "vlmModel": vlm_model,
+                "indexes": indexes,
             }
             chatbots.append(chatbot)
 
@@ -335,7 +368,7 @@ def get_chatbot_indexes(group_name, chatbot_id):
 
             indexes.append(
                 {
-                    "name": index_id,
+                    "id": index_id,
                     "type": index_type,
                     "description": index_detail.get("description", ""),
                     "tag": tag,
@@ -361,7 +394,10 @@ def get_chatbot(event, group_name):
             "groupName": group_name,
             "chatbotId": None,
             "updateTime": "",
-            "index": [],
+            "embeddingModel": {},
+            "rerankModel": {},
+            "vlmModel": {},
+            "indexes": [],
         }
 
     chatbot_item = chatbot_table.get_item(
@@ -373,14 +409,11 @@ def get_chatbot(event, group_name):
             "groupName": group_name,
             "chatbotId": chatbot_id,
             "updateTime": "",
-            "index": [],
+            "embeddingModel": {},
+            "rerankModel": {},
+            "vlmModel": {},
+            "indexes": [],
         }
-
-    update_time = ""
-    if chatbot_item.get("updateTime"):
-        update_time = datetime.fromisoformat(
-            chatbot_item.get("updateTime", "")
-        ).strftime("%Y/%m/%d %H:%M:%S")
 
     # Get model information
     embedding_model = get_model_info(group_name, chatbot_id, "embedding")
@@ -393,11 +426,11 @@ def get_chatbot(event, group_name):
     return {
         "groupName": group_name,
         "chatbotId": chatbot_id,
-        "updateTime": update_time,
+        "updateTime": chatbot_item.get("updateTime", ""),
         "embeddingModel": embedding_model,
         "rerankModel": rerank_model,
         "vlmModel": vlm_model,
-        "index": indexes,
+        "indexes": indexes,
     }
 
 
@@ -545,6 +578,7 @@ def list_indexes(event, group_name):
     return {
         "items": indexes,
         "count": len(indexes),
+        "indexes": indexes,  # Added for consistency with other endpoints
     }
 
 
@@ -679,7 +713,6 @@ def lambda_handler(event, context):
         if "use_api_key" in claims:
             group_name = get_query_parameter(event, "GroupName", "Admin")
         else:
-            email = claims["email"]
             group_name = claims[
                 "cognito:groups"
             ]  # Assume user is in only one group
