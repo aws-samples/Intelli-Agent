@@ -202,6 +202,8 @@ class EmbeddingModelType(ConstantBase):
 
 class RerankModelType(ConstantBase):
     BGE_RERANKER_V2_M3 = "bge-reranker-v2-m3"
+    BCE_RERANKER_BASE_V1 = "bce-reranker-base_v1"
+    BGE_RERANKER_LARGE = "bge-reranker-large"
     COHERE_RERANK_V3D5 = "cohere.rerank-v3-5:0"
     AMAZON_RERANK_V1 = "amazon.rerank-v1:0"
 
@@ -247,6 +249,8 @@ INDEX_DESC = "Answer question based on search result"
 
 
 class Threshold(ConstantBase):
+    BM25_SEARCH_THRESHOLD = 2.0
+    VECTOR_SEARCH_THRESHOLD = 0.4
     QQ_IN_RAG_CONTEXT_THRESHOLD = 0.5
     QQ_MATCH_THRESHOLD = 0.9
     # This threhold will work when there are no intention examples.

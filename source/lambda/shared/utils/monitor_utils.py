@@ -35,12 +35,12 @@ def format_qq_data(doc:Document,source_field,rerank_score_field="relevance_score
 
     # Data contains only one QQ match result
     qq_source = _file_name_in_path(doc.metadata.get(source_field, ""))
-    score = doc.metadata.get("score", -1)
+    score = doc.metadata.get("retrieval_score", -1)
     rerank_score = doc.metadata.get(rerank_score_field, None)
     if rerank_score is not None:
-        score = f"{doc.metadata['search_by']} score: {score}, rerank score: {rerank_score})"
+        score = f"{doc.metadata['search_by']} retrieval_score: {score}, rerank score: {rerank_score})"
     else:
-        score = f"{doc.metadata['search_by']} score: {score}"
+        score = f"{doc.metadata['search_by']} retrieval_score: {score}"
     qq_question = doc.page_content.replace("\n", "<br>")
     qq_answer = doc.metadata.get("answer", "").replace("\n", "<br>")
     markdown_table += f"| {qq_source} | {score} | {qq_question} | {qq_answer} |\n"
@@ -67,12 +67,12 @@ def format_rag_data(retrieved_contexts:List[Document], qq_result:List[Document],
     for item in retrieved_contexts:
         raw_source = item.metadata.get(source_field, "")
         source = _file_name_in_path(raw_source)
-        score = item.metadata.get("score", -1)
+        score = item.metadata.get("retrieval_score", -1)
         rerank_score = item.metadata.get(rerank_score_field, None)
         if rerank_score is not None:
-            score = f"{item.metadata['search_by']} score: {score}, rerank score: {rerank_score})"
+            score = f"{item.metadata['search_by']} retrieval_score: {score}, rerank score: {rerank_score})"
         else:
-            score = f"{item.metadata['search_by']} score: {score}"
+            score = f"{item.metadata['search_by']} retrieval_score: {score}"
 
         page_content = item.page_content.replace("\n", "<br>")
         markdown_table += f"| {source} | {raw_source} | {score} | {page_content} |\n"
@@ -86,12 +86,12 @@ def format_rag_data(retrieved_contexts:List[Document], qq_result:List[Document],
             raw_qq_source = item.metadata.get(source_field, "")
             qq_source = _file_name_in_path(raw_qq_source)
 
-            score = item.metadata.get("score", -1)
+            score = item.metadata.get("retrieval_score", -1)
             rerank_score = item.metadata.get(rerank_score_field, None)
             if rerank_score is not None:
-                score = f"{item.metadata['search_by']} score: {score}, rerank score: {rerank_score})"
+                score = f"{item.metadata['search_by']} retrieval_score: {score}, rerank score: {rerank_score})"
             else:
-                score = f"{item.metadata['search_by']} score: {score}"
+                score = f"{item.metadata['search_by']} retrieval_score: {score}"
 
             # qq_score = qq_item.get("score", -1)
             qq_question = qq_item.page_content.replace("\n", "<br>")
@@ -120,7 +120,7 @@ def format_intention_output(data:List[Document]):
     markdown_table += "|-------|-------|-------|-------|-------|\n"
     for item in data:
         query = item.get("query", "")
-        score = item.get("score", "")
+        score = item.get("retrieval_score", -1)
         name = item.get("name", "")
         intent = item.get("intent", "")
         kwargs = ', '.join(

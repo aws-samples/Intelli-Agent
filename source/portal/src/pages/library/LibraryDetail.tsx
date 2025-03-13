@@ -14,6 +14,7 @@ import { LibraryExecutionItem, LibraryExecutionResponse } from 'src/types';
 import { alertMsg, formatTime } from 'src/utils/utils';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
+import { ROUTES } from 'src/utils/const';
 
 const LibraryDetail: React.FC = () => {
   const [loadingData, setLoadingData] = useState(false);
@@ -66,15 +67,15 @@ const LibraryDetail: React.FC = () => {
   return (
     <CommonLayout
       isLoading={loadingData}
-      activeHref="/library"
+      activeHref={ROUTES.Library}
       breadCrumbs={[
         {
           text: t('name'),
-          href: '/',
+          href: ROUTES.Home,
         },
         {
           text: t('docLibrary'),
-          href: '/library',
+          href: ROUTES.Library,
         },
         {
           text: `${id}`,

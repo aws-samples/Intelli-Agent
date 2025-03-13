@@ -1,5 +1,4 @@
 {
-  "translation": {
     "assetName": "AI Customer Service",
     "name": "Multi-modal Enterprise Knowledge Base in Manufacturing",
     "welcome": "Welcome to Multi-modal Enterprise Knowledge Base in Manufacturing",
@@ -84,7 +83,13 @@
     "common": "General",
     "rad": "Randomness & Diversity",
     "maxRounds": "Max Dialog Rounds To Remember",
-    "topKRetrievals": "Top K Retrievals",
+    "recallByKeyword":"Keyword Recall",
+    "recallByKeywordDesc":"Recall up to TOP_K documents that meet the set Threshold by keywords.",
+    "recallByEmbedding":"Embedding Recall",
+    "recallByEmbeddingDesc":"Recall up to TOP_K documents that meet the set Threshold by embeddings.",
+    "topK": "Top_K",
+    "threshold": "Threshold",
+    "topKRerank": "Top K Participate in Reranking",
     "score": "Relevance Score",
     "scenarioDesc": "Applicable scenario for the current session",
     "modelTypeDesc": "LLM model provider",
@@ -93,7 +98,9 @@
     "maxTokenDesc": " Max length of tokens that LLM process in a sequence",
     "maxRoundsDesc": "Max rounds of dialog that saved in memory",
     "temperatureDesc": "Higher values make the output more random",
-    "topKRetrievalsDesc": "Number of top documents to retrieve",
+    "topKKeywordDesc": "Retrieve top K most relevant documents based on keyword.",
+    "topKEmbeddingDesc": "Retrieve top K most relevant documents based on embedding.",
+    "topKRerankDesc": "Number of top documents participate in reranking.",
     "scoreDesc": "Outputs with a relevance score below the threshold will not be sent to LLM",
     "endPointDesc": "Endpoint address of LLM",
     "modelName": "Model name",
@@ -219,7 +226,6 @@
     "validation": {
       "requireModel": "Please select or input a model",
       "requireApiKeyArn": "Please input an API key ARN",
-      "requireApiEndpoint": "Please input an API endpoint",
       "requireChatbotName": "Please input chatbot name",
       "repeatChatbotName": "Chatbot name is already used, please change the name",
       "repeatIndex": "This index is already used by other users",
@@ -227,8 +233,11 @@
       "requireTemperature": "Please enter a temperature",
       "requireMaxTokens": "Please enter a maximum number of tokens",
       "requireMaxRounds": "Please enter a maximum number of rounds",
-      "requireTopKRetrievals": "Please enter top K retrievals",
-      "requireScore": "Please enter a score",
+      "requireTopKKeyword": "Please enter top K based on keywords",
+      "requireTopKEmbedding": "Please enter top K based on embedding",
+      "requireTopKRerank": "Please enter top K for reranking",
+      "requireKeywordScore": "Please enter threshold value for keyword recall",
+      "requireEmbeddingScore": "Please enter threshold value for embedding recall",
       "temperatureRange": "The temperature must be between 0 and 1",
       "maxTokensRange": "The maximum number of tokens must lager than 0",
       "maxRoundsRange": "The maximum number of rounds must greater than or equal to 0",
@@ -313,5 +322,5 @@
     "apiModelNameDesc": "Enter the model name for the API",
     "apiKeyArn": "API Key ARN",
     "apiKeyArnDesc": "Enter the ARN of the secret in AWS Secrets Manager that stores the API key for Bedrock/OpenAI"
-  }
 }
+

@@ -88,9 +88,7 @@ export class RootStack extends Stack {
       sharedConstructOutputs: sharedConstruct,
       modelConstructOutputs: modelConstruct,
       knowledgeBaseStackOutputs: knowledgeBaseStackOutputs,
-      chatStackOutputs: chatStackOutputs,
-      userPoolId: props.userPoolId,
-      oidcClientId: props.oidcClientId,
+      chatStackOutputs: chatStackOutputs
     });
     apiConstruct.node.addDependency(sharedConstruct);
     apiConstruct.node.addDependency(modelConstruct);
@@ -167,8 +165,9 @@ const workspaceStack = new WorkspaceStack(app, `${stackName}-workspace`, {
   portalUrl: Fn.importValue(`${stackName}-frontend-portal-url`),
   clientPortalUrl: Fn.importValue(`${stackName}-frontend-client-portal-url`),
   suppressTemplateIndentation: true,
+  oidcRegion: Fn.importValue(`${stackName}-frontend-oidc-region`),
+  oidcDomain: Fn.importValue(`${stackName}-frontend-oidc-domain`)
 });
-
 // Add dependencies
 rootStack.addDependency(uiStack);
 workspaceStack.addDependency(rootStack);

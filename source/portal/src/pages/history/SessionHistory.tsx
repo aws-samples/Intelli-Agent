@@ -16,6 +16,7 @@ import { formatTime } from 'src/utils/utils';
 import TableLink from 'src/comps/link/TableLink';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
+import { ROUTES } from 'src/utils/const';
 
 const parseDate = (item: SessionHistoryItem) => {
   return item.createTimestamp ? new Date(item.createTimestamp) : 0;
@@ -92,15 +93,15 @@ const SessionHistory: React.FC = () => {
 
   return (
     <CommonLayout
-      activeHref="/sessions"
+      activeHref={ROUTES.Session}
       breadCrumbs={[
         {
           text: t('name'),
-          href: '/',
+          href: ROUTES.Home,
         },
         {
           text: t('sessionHistory'),
-          href: '/sessions',
+          href: ROUTES.Session,
         },
       ]}
     >

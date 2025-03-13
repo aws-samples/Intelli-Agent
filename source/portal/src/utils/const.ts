@@ -12,8 +12,8 @@ export const LANGUAGE_ITEMS = [
 ];
 
 export const INDEX_TYPE_OPTIONS = [
-  { label: 'qq (Query-Query: 两个查询之间的相似性, FAQ选择此类型', value: 'qq' },
-  { label: 'qd (Query-Document: 查询与文档之间的相似性, 用于检索知识库中的文档)', value: 'qd' },
+  { label: 'qq: Query-Query, 两个查询之间的相似性, 用于FAQ', value: 'qq' },
+  { label: 'qd: Query-Document, 查询与文档之间的相似性, 用于文档检索', value: 'qd' },
   { label: 'intention', value: 'intention' },
 ];
 
@@ -295,11 +295,11 @@ export const RETAIL_GOODS_LIST: SelectProps.Option[] = [
 
 export const DOC_INDEX_TYPE_LIST: SelectProps.Option[] = [
   {
-    label: 'qd (Query-Document: 查询与文档之间的相似性, 用于检索知识库中的文档)',
+    label: 'qd: Query-Document, 查询与文档之间的相似性, 用于文档检索',
     value: 'qd',
   },
   {
-    label: 'qq (Query-Query: 两个查询之间的相似性, FAQ选择此类型',
+    label: 'qq: Query-Query, 两个查询之间的相似性, 用于FAQ',
     value: 'qq',
   },
 ];
@@ -355,10 +355,62 @@ export const MODEL_OPTION = 'model';
 export const MAX_TOKEN = 'max_token';
 export const TEMPERATURE = 'temperature';
 export const ROUND = 'round';
-export const TOPK = 'topK';
-export const SCORE = 'score';
+export const TOPK_KEYWORD = 'topK_keyword';
+export const TOPK_EMBEDDING = 'topK_embedding';
+export const TOPK_RERANK = 'topK_rerank';
+export const KEYWORD_SCORE = 'keyword_score';
+export const EMBEDDING_SCORE = 'embedding_score';
 export const ADITIONAL_SETTINGS = 'additional_settings';
 export const HISTORY_CHATBOT_ID = 'history_chatbot_id';
 export const API_ENDPOINT = 'API_ENDPOINT';
 export const API_KEY_ARN = 'API_KEY_ARN';
 export const SHOW_FIGURES = 'SHOW_FIGURES';
+
+// export const ZH_LANGUAGE_LIST = ['zh', 'zh-cn', 'zh_CN', 'zh-CN'];
+export const EN_LANGUAGE_LIST = ['en', 'en-US', 'en_UK'];
+export const EN_LANG = 'en';
+export const ZH_LANG = 'zh';
+
+export const LOGIN_TYPE = {
+  USER: 'user',
+  SNS: 'sns',
+  OIDC: 'oidc',
+};
+
+export const OIDC_PROVIDER = {
+  AUTHING: 'authing',
+  COGNITO: 'cognito'
+};
+
+// export const TOKEN = "oidc"
+export const OIDC_PREFIX = "oidc."
+export const USER = "user"
+export const API_URL = "api_url"
+export const APP_URL = "app_url"
+export const OIDC_STORAGE = "oidc"
+export const OIDC_REDIRECT_URL = "oidc_uri"
+export const PROVIDER = "provider"
+export const CLIENT_ID = "client_id"
+export const REFRESH_TOKEN = "refresh_token"
+export const AUTO_LOGOUT_TIME = 15 * 60 * 1000
+
+export const ROUTES = {
+  Login: '/login',
+  FindPWD: '/find-password',
+  Register: '/create-account',
+  ChangePWD: '/change-password',
+  LoginCallback: '/signin',
+  Home: '/',
+  Chat: '/chats',
+  Library: '/library',
+  LibraryDetail: '/library/detail/:id',
+  Session: '/sessions',
+  SessionDetail: '/session/detail/:id',
+  Prompt: '/prompts',
+  Intention: '/intentions',
+  IntentionDetail: '/intention/detail/:id',
+  Chatbot: '/chatbots',
+  ChatbotDetail: '/chatbot/detail/:id',
+  Workspace: '/workspace',
+  WorkspaceChat: '/workspace/chat/:id'
+};
