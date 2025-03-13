@@ -20,6 +20,7 @@ import TableLink from 'src/comps/link/TableLink';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import AddLibrary from '../components/AddLibrary';
+import { ROUTES } from 'src/utils/const';
 
 const parseDate = (item: LibraryListItem) => {
   return item.createTime ? new Date(item.createTime) : 0;
@@ -132,15 +133,15 @@ const Library: React.FC = () => {
 
   return (
     <CommonLayout
-      activeHref="/library"
+      activeHref={ROUTES.Library}
       breadCrumbs={[
         {
           text: t('name'),
-          href: '/',
+          href: ROUTES.Home,
         },
         {
           text: t('docLibrary'),
-          href: '/library',
+          href: ROUTES.Library,
         },
       ]}
     >
@@ -212,7 +213,7 @@ const Library: React.FC = () => {
               header: t('docName'),
               sortingField: 's3Prefix',
               cell: (item: LibraryListItem) => {
-                return item.s3Prefix.split('/').pop();
+                return item.s3Prefix.split(ROUTES.Home).pop();
               },
             },
             // {
@@ -361,7 +362,7 @@ const Library: React.FC = () => {
           <div className="selected-items-list">
             <ul className="gap-5 flex-v">
               {selectedItems.map((item) => (
-                <li key={item.executionId}>{item.s3Prefix.split('/').pop()}</li>
+                <li key={item.executionId}>{item.s3Prefix.split(ROUTES.Home).pop()}</li>
               ))}
             </ul>
           </div>

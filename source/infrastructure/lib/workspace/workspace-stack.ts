@@ -47,6 +47,8 @@ interface WorkspaceProps extends StackProps {
   readonly clientPortalBucketName: string;
   readonly portalUrl: string;
   readonly clientPortalUrl: string;
+  readonly oidcDomain: string;
+  readonly oidcRegion: string;
 }
 
 export interface WorkspaceOutputs {
@@ -141,9 +143,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
       code: Code.fromAsset(join(__dirname, "../../../lambda/authorizer")),
       handler: "custom_authorizer.lambda_handler",
       environment: {
-        USER_POOL_ID: props.userPoolId,
         REGION: Aws.REGION,
-        APP_CLIENT_ID: props.oidcClientId,
       },
       layers: [apiLambdaAuthorizerLayer],
       statements: [props.sharedConstructOutputs.iamHelper.logStatement],
@@ -152,7 +152,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
 
     const auth = new apigw.RequestAuthorizer(this, 'ApiAuthorizer', {
       handler: customAuthorizerLambda.function,
-      identitySources: [apigw.IdentitySource.header('Authorization')],
+      identitySources: [apigw.IdentitySource.header('Authorization'),apigw.IdentitySource.header('Oidc-Info')],
     });
 
     const apiResourceSessions = workspaceApi.root.addResource("customer-sessions");
@@ -220,6 +220,9 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
         kbEnabled: props.config.knowledgeBase.enabled.toString(),
         kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
         embeddingEndpoint: embeddingEndpoint,
+        oidcDomain: props.oidcDomain,
+        oidcPoolId: props.userPoolId,
+        oidcRegion: props.oidcRegion,
       },
     });
 
@@ -240,6 +243,9 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
         kbEnabled: props.config.knowledgeBase.enabled.toString(),
         kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
         embeddingEndpoint: embeddingEndpoint,
+        oidcDomain: props.oidcDomain,
+        oidcPoolId: props.userPoolId,
+        oidcRegion: props.oidcRegion
       },
     });
 

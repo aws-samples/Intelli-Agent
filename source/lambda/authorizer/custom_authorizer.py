@@ -7,19 +7,12 @@ from urllib.request import urlopen
 import jwt
 
 # Replace with your Cognito User Pool info
-USER_POOL_ID = os.environ["USER_POOL_ID"]
+
 REGION = os.environ["REGION"]
-APP_CLIENT_ID = os.environ["APP_CLIENT_ID"]
 verify_exp = os.getenv("mode") != "dev"
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-issuer = f"https://cognito-idp.{REGION}.amazonaws.com/{USER_POOL_ID}"
-keys_url = f"https://cognito-idp.{REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json"
-response = urlopen(keys_url)
-keys = json.loads(response.read())["keys"]
-
 
 def generatePolicy(principalId, effect, resource, claims):
     authResponse = {}
@@ -38,11 +31,8 @@ def generatePolicy(principalId, effect, resource, claims):
         "claims": json.dumps(claims),
         "authorizerType": "lambda_authorizer",
     }
-
     authResponse_JSON = json.dumps(authResponse)
-
     return authResponse_JSON
-
 
 def generateAllow(principalId, resource, claims):
     return generatePolicy(principalId, "Allow", resource, claims)
@@ -57,31 +47,38 @@ def lambda_handler(event, context):
     try:
         if event.get("httpMethod"):
             # REST API
+            oidc_info = json.loads(event["headers"].get("oidc-info"))
             if event["headers"].get("authorization"):
                 # Browser will change the Authorization header to lowercase
-                token = (
-                    event["headers"]["authorization"]
-                    .replace("Bearer", "")
-                    .strip()
-                )
+                token = event["headers"]["authorization"].replace("Bearer", "").strip()
             else:
                 # Postman
-                token = (
-                    event["headers"]["Authorization"]
-                    .replace("Bearer", "")
-                    .strip()
-                )
+                token = event["headers"]["Authorization"].replace("Bearer", "").strip()
         else:
             # WebSocket API
             token = event["queryStringParameters"]["idToken"]
-
+            oidc_info={
+                "provider": event["queryStringParameters"].get("provider"),
+                "clientId": event["queryStringParameters"].get("clientId"),
+                "redirectUri": event["queryStringParameters"].get("redirectUri"),
+                "poolId": event["queryStringParameters"].get("poolId")
+            }
         headers = jwt.get_unverified_header(token)
         kid = headers["kid"]
+        if oidc_info.get("provider") == "authing":
+            issuer = f"{oidc_info.get('redirectUri')}/oidc"
+            keys_url = f"{oidc_info.get('redirectUri')}/oidc/.well-known/jwks.json"
+        else:
+            issuer = f"https://cognito-idp.{REGION}.amazonaws.com/{oidc_info.get('poolId')}"
+            keys_url = f"https://cognito-idp.{REGION}.amazonaws.com/{oidc_info.get('poolId')}/.well-known/jwks.json"
+        
+        response = urlopen(keys_url)
+        keys = json.loads(response.read())["keys"]
 
         # Search for the kid in the downloaded public keys
         key_index = -1
-        for i in range(len(keys)):
-            if kid == keys[i]["kid"]:
+        for i, key in enumerate(keys):
+            if kid == key["kid"]:
                 key_index = i
                 break
         if key_index == -1:
@@ -89,23 +86,21 @@ def lambda_handler(event, context):
             raise Exception(
                 "Custom Authorizer Error: Public key not found in jwks.json"
             )
-
-        # Construct the public key
-        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(
-            json.dumps(keys[key_index])
-        )
+        # # Construct the public key
+        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(keys[key_index]))
 
         # Verify the signature of the JWT token
         claims = jwt.decode(
             token,
             public_key,
             algorithms=["RS256"],
-            audience=APP_CLIENT_ID,
+            audience=oidc_info.get("clientId"),
             issuer=issuer,
             options={"verify_exp": verify_exp},
         )
         # reformat claims to align with cognito output
-        claims["cognito:groups"] = ",".join(claims["cognito:groups"])
+        claims["cognito:groups"] = ",".join(claims["cognito:groups"]) if oidc_info.get("provider") == "cognito" else "Admin"
+        claims["cognito:username"] =  claims["cognito:username"] if oidc_info.get("provider") == "cognito" else f"{oidc_info.get('provider')}-{oidc_info.get('username')}"
         logger.info(claims)
 
         response = generateAllow("me", "*", claims)

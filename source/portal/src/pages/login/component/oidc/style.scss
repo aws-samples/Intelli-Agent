@@ -1,0 +1,32 @@
+.oidc {
+    width:90%;
+    height: 160px;
+}
+
+.label {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.oidc {
+    [class^="awsui_button-trigger"] {
+        border: 1px solid #80808061 !important;
+        border-radius: 5px !important;
+        height: 40px !important;
+    }
+    [class^="awsui_input_"] {
+        border: 1px solid #80808061 !important;
+        border-radius: 5px !important;
+        height: 40px !important;
+    }
+    [class^="awsui_options-list_"] li {
+        border: 1px solid #80808061 !important;
+        border-radius: 0px !important;
+    }
+}
+
+.item {
+    margin-bottom: 15px;
+}

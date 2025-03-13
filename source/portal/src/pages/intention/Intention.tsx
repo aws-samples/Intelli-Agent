@@ -22,6 +22,7 @@ import TableLink from 'src/comps/link/TableLink';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import AddIntention from '../components/AddIntention';
+import { ROUTES } from 'src/utils/const';
 // import { useAuth } from 'react-oidc-context';
 
 const parseDate = (item: IntentionsItem) => {
@@ -264,15 +265,15 @@ const Intention: React.FC = () => {
 
   return (
     <CommonLayout
-      activeHref="/intention"
+      activeHref={ROUTES.Intention}
       breadCrumbs={[
         {
           text: t('name'),
-          href: '/',
+          href: ROUTES.Home,
         },
         {
           text: t('intention'),
-          href: '/intention',
+          href: ROUTES.Intention,
         },
       ]}
     >

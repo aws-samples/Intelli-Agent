@@ -14,13 +14,12 @@ import GetStarted from './comps/GetStarted';
 import MoreResource from './comps/MoreResource';
 import BenefitsFeatures from './comps/BenefitsFeatures';
 import BANNER from 'src/assets/images/banner.jpeg';
-import { useNavigate } from 'react-router-dom';
 import Joyride, { CallBackProps, STATUS, ACTIONS } from 'react-joyride';
 import ConfigContext from 'src/context/config-context';
+import { ROUTES } from 'src/utils/const';
 
 const Home: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [runTour, setRunTour] = useState(false);
   const config = useContext(ConfigContext);
 
@@ -31,35 +30,35 @@ const Home: React.FC = () => {
       disableBeacon: true,
     },
     {
-      target: 'a[href="/chats"]',
+      target: `a[href="${ROUTES.Chat}"]`,
       content: t('tour.chat'),
       disableBeacon: true,
     },
     {
-      target: 'a[href="/sessions"]',
+      target: `a[href="${ROUTES.Session}"]`,
       content: t('tour.session'),
       disableBeacon: true,
     },
     {
-      target: 'a[href="/chatbot-management"]',
+      target: `a[href="${ROUTES.Chatbot}"]`,
       content: t('tour.chatbot'),
       disableBeacon: true,
     },
     {
-      target: 'a[href="/intention"]',
+      target: `a[href="${ROUTES.Intention}"]`,
       content: t('tour.intention'),
       disableBeacon: true,
-    },
+    }
   ];
 
   const kbStep = {
-    target: 'a[href="/library"]',
+    target: `a[href="${ROUTES.Library}"]`,
     content: t('tour.kb'),
     disableBeacon: true,
   };
 
   const promptsStep = {
-    target: 'a[href="/prompts"]',
+    target: `a[href="${ROUTES.Prompt}"]`,
     content: t('tour.prompt'),
     disableBeacon: true,
   };
@@ -195,7 +194,7 @@ const Home: React.FC = () => {
         showSkipButton={true}
         callback={handleJoyrideCallback}
         run={runTour}
-        scrollToFirstStep={true}
+        scrollToFirstStep={false}
         disableOverlayClose={true}
         hideBackButton={false}
         spotlightClicks={false}
@@ -234,22 +233,22 @@ const Home: React.FC = () => {
           header={
             <div style={{marginTop:25}}>
               <Box variant="p">
-                {t('awsSolutionGuidance')} | {t('mead')}
+                {t('common:awsSolutionGuidance')} | {t('mead')}
               </Box>
               <Header
                 variant="h1"
                 actions={
                   <SpaceBetween size="xs" direction="horizontal">
-                    <Button
+                    {/* <Button
                       iconName="add-plus"
                       iconAlign="right"
                       variant="primary"
                       onClick={() => {
-                        navigate('/chats');
+                        navigate(ROUTES.Chat);
                       }}
                     >
-                      {t('button.startToChat')}
-                    </Button>
+                      {t('common:button.startToChat')}
+                    </Button> */}
                     <Button
                       iconName="refresh"
                       variant="normal"
@@ -259,9 +258,9 @@ const Home: React.FC = () => {
                     </Button>
                   </SpaceBetween>
                 }
-                description={t('projectDescription')}
+                // description={t('projectDescription')}
               >
-                <Box variant="h1">{t('solutionName')}</Box>
+                <Box variant="h1">{t('common:solutionName')}</Box>
                 {/* <Box fontSize="heading-l">{t('subTitle')}</Box> */}
               </Header>
             </div>
