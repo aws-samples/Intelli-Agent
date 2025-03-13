@@ -5,7 +5,7 @@ import os
 
 import cv2
 import numpy as np
-
+from PIL import Image
 # from transformers import StoppingCriteria
 
 __all__ = [
@@ -161,19 +161,16 @@ def check_and_read(img_path):
         return imgvalue, True, False
     elif os.path.basename(img_path)[-3:].lower() == "pdf":
         import fitz
-        from PIL import Image
-
-        imgs = []
+        MAX_PIXELS = 6000000  # 最大像素数限制
         with fitz.open(img_path) as pdf:
             for pg in range(0, pdf.page_count):
                 page = pdf[pg]
-                mat = fitz.Matrix(3, 3)
+                # 计算合适的缩放比例
+                rect = page.rect
+                w, h = rect.width, rect.height
+                scale = min(1.0, np.sqrt(MAX_PIXELS / (w * h * 9)))  # 9是因为原来的Matrix(3, 3)
+                mat = fitz.Matrix(3 * scale, 3 * scale)
                 pm = page.get_pixmap(matrix=mat, alpha=False)
-
-                # if width or height > 2000 pixels, don't enlarge the image
-                # if pm.width > 2000 or pm.height > 2000:
-                #     pm = page.get_pixmap(matrix=fitz.Matrix(1, 1), alpha=False)
-
                 img = Image.frombytes("RGB", [pm.width, pm.height], pm.samples)
                 img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
                 yield img
