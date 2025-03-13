@@ -65,10 +65,10 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
   private iamHelper: IAMHelper;
   private indexTableName: string;
   private modelTableName: string;
-  private lambdaOnlineQueryPreprocess: Function;
-  private lambdaOnlineIntentionDetection: Function;
-  private lambdaOnlineAgent: Function;
-  private lambdaOnlineLLMGenerate: Function;
+  // private lambdaOnlineQueryPreprocess: Function;
+  // private lambdaOnlineIntentionDetection: Function;
+  // private lambdaOnlineAgent: Function;
+  // private lambdaOnlineLLMGenerate: Function;
 
   constructor(scope: Construct, id: string, props: ChatStackProps) {
     super(scope, id);
@@ -192,129 +192,129 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.lambdaOnlineMain.addToRolePolicy(this.iamHelper.dynamodbStatement);
     openAiKey.grantRead(this.lambdaOnlineMain);
 
-    const lambdaOnlineQueryPreprocess = new LambdaFunction(this, "lambdaOnlineQueryPreprocess", {
-      runtime: Runtime.PYTHON_3_12,
-      handler: "query_preprocess.lambda_handler",
-      code: Code.fromAsset(
-        join(__dirname, "../../../lambda/online/lambda_query_preprocess"),
-      ),
-      memorySize: 4096,
-      vpc: vpc,
-      securityGroups: securityGroups,
-      layers: [apiLambdaOnlineSourceLayer],
-    });
-    this.lambdaOnlineQueryPreprocess = lambdaOnlineQueryPreprocess.function;
+    // const lambdaOnlineQueryPreprocess = new LambdaFunction(this, "lambdaOnlineQueryPreprocess", {
+    //   runtime: Runtime.PYTHON_3_12,
+    //   handler: "query_preprocess.lambda_handler",
+    //   code: Code.fromAsset(
+    //     join(__dirname, "../../../lambda/online/lambda_query_preprocess"),
+    //   ),
+    //   memorySize: 4096,
+    //   vpc: vpc,
+    //   securityGroups: securityGroups,
+    //   layers: [apiLambdaOnlineSourceLayer],
+    // });
+    // this.lambdaOnlineQueryPreprocess = lambdaOnlineQueryPreprocess.function;
 
-    this.lambdaOnlineQueryPreprocess.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "es:ESHttpGet",
-          "es:ESHttpPut",
-          "es:ESHttpPost",
-          "es:ESHttpHead",
-          "es:DescribeDomain",
-          "secretsmanager:GetSecretValue",
-          "bedrock:*",
-          "lambda:InvokeFunction",
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
-    this.lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.s3Statement);
-    this.lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.endpointStatement);
-    this.lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.dynamodbStatement);
+    // this.lambdaOnlineQueryPreprocess.addToRolePolicy(
+    //   new iam.PolicyStatement({
+    //     actions: [
+    //       "es:ESHttpGet",
+    //       "es:ESHttpPut",
+    //       "es:ESHttpPost",
+    //       "es:ESHttpHead",
+    //       "es:DescribeDomain",
+    //       "secretsmanager:GetSecretValue",
+    //       "bedrock:*",
+    //       "lambda:InvokeFunction",
+    //     ],
+    //     effect: iam.Effect.ALLOW,
+    //     resources: ["*"],
+    //   }),
+    // );
+    // this.lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.s3Statement);
+    // this.lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.endpointStatement);
+    // this.lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-    const lambdaOnlineIntentionDetection = new LambdaFunction(this, "lambdaOnlineIntentionDetection", {
-      runtime: Runtime.PYTHON_3_12,
-      handler: "intention_detection.lambda_handler",
-      code: Code.fromAsset(
-        join(__dirname, "../../../lambda/online/lambda_intention_detection"),
-      ),
-      memorySize: 4096,
-      vpc: vpc,
-      securityGroups: securityGroups,
-      layers: [apiLambdaOnlineSourceLayer],
-    });
-    this.lambdaOnlineIntentionDetection = lambdaOnlineIntentionDetection.function;
+    // const lambdaOnlineIntentionDetection = new LambdaFunction(this, "lambdaOnlineIntentionDetection", {
+    //   runtime: Runtime.PYTHON_3_12,
+    //   handler: "intention_detection.lambda_handler",
+    //   code: Code.fromAsset(
+    //     join(__dirname, "../../../lambda/online/lambda_intention_detection"),
+    //   ),
+    //   memorySize: 4096,
+    //   vpc: vpc,
+    //   securityGroups: securityGroups,
+    //   layers: [apiLambdaOnlineSourceLayer],
+    // });
+    // this.lambdaOnlineIntentionDetection = lambdaOnlineIntentionDetection.function;
 
-    const lambdaOnlineAgent = new LambdaFunction(this, "lambdaOnlineAgent", {
-      runtime: Runtime.PYTHON_3_12,
-      handler: "agent.lambda_handler",
-      code: Code.fromAsset(
-        join(__dirname, "../../../lambda/online/lambda_agent"),
-      ),
-      memorySize: 4096,
-      vpc: vpc,
-      securityGroups: securityGroups,
-      layers: [apiLambdaOnlineSourceLayer],
-    });
-    this.lambdaOnlineAgent = lambdaOnlineAgent.function;
+    // const lambdaOnlineAgent = new LambdaFunction(this, "lambdaOnlineAgent", {
+    //   runtime: Runtime.PYTHON_3_12,
+    //   handler: "agent.lambda_handler",
+    //   code: Code.fromAsset(
+    //     join(__dirname, "../../../lambda/online/lambda_agent"),
+    //   ),
+    //   memorySize: 4096,
+    //   vpc: vpc,
+    //   securityGroups: securityGroups,
+    //   layers: [apiLambdaOnlineSourceLayer],
+    // });
+    // this.lambdaOnlineAgent = lambdaOnlineAgent.function;
 
-    this.lambdaOnlineAgent.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "es:ESHttpGet",
-          "es:ESHttpPut",
-          "es:ESHttpPost",
-          "es:ESHttpHead",
-          "es:DescribeDomain",
-          "secretsmanager:GetSecretValue",
-          "bedrock:*",
-          "lambda:InvokeFunction",
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
-    this.lambdaOnlineAgent.addToRolePolicy(this.iamHelper.s3Statement);
-    this.lambdaOnlineAgent.addToRolePolicy(this.iamHelper.endpointStatement);
-    this.lambdaOnlineAgent.addToRolePolicy(this.iamHelper.dynamodbStatement);
+    // this.lambdaOnlineAgent.addToRolePolicy(
+    //   new iam.PolicyStatement({
+    //     actions: [
+    //       "es:ESHttpGet",
+    //       "es:ESHttpPut",
+    //       "es:ESHttpPost",
+    //       "es:ESHttpHead",
+    //       "es:DescribeDomain",
+    //       "secretsmanager:GetSecretValue",
+    //       "bedrock:*",
+    //       "lambda:InvokeFunction",
+    //     ],
+    //     effect: iam.Effect.ALLOW,
+    //     resources: ["*"],
+    //   }),
+    // );
+    // this.lambdaOnlineAgent.addToRolePolicy(this.iamHelper.s3Statement);
+    // this.lambdaOnlineAgent.addToRolePolicy(this.iamHelper.endpointStatement);
+    // this.lambdaOnlineAgent.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
 
-    const lambdaOnlineLLMGenerate = new LambdaFunction(this, "lambdaOnlineLLMGenerate", {
-      runtime: Runtime.PYTHON_3_12,
-      handler: "llm_generate.lambda_handler",
-      code: Code.fromAsset(
-        join(__dirname, "../../../lambda/online/lambda_llm_generate"),
-      ),
-      memorySize: 4096,
-      vpc: vpc,
-      securityGroups: securityGroups,
-      layers: [apiLambdaOnlineSourceLayer],
-    });
-    this.lambdaOnlineLLMGenerate = lambdaOnlineLLMGenerate.function;
+    // const lambdaOnlineLLMGenerate = new LambdaFunction(this, "lambdaOnlineLLMGenerate", {
+    //   runtime: Runtime.PYTHON_3_12,
+    //   handler: "llm_generate.lambda_handler",
+    //   code: Code.fromAsset(
+    //     join(__dirname, "../../../lambda/online/lambda_llm_generate"),
+    //   ),
+    //   memorySize: 4096,
+    //   vpc: vpc,
+    //   securityGroups: securityGroups,
+    //   layers: [apiLambdaOnlineSourceLayer],
+    // });
+    // this.lambdaOnlineLLMGenerate = lambdaOnlineLLMGenerate.function;
 
-    this.lambdaOnlineLLMGenerate.addToRolePolicy(
-      new iam.PolicyStatement({
-        // principals: [new iam.AnyPrincipal()],
-        actions: [
-          "es:ESHttpGet",
-          "es:ESHttpPut",
-          "es:ESHttpPost",
-          "es:ESHttpHead",
-          "es:DescribeDomain",
-          "secretsmanager:GetSecretValue",
-          "bedrock:*",
-          "lambda:InvokeFunction",
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
-    this.lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.s3Statement);
-    this.lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.endpointStatement);
-    this.lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.dynamodbStatement);
+    // this.lambdaOnlineLLMGenerate.addToRolePolicy(
+    //   new iam.PolicyStatement({
+    //     // principals: [new iam.AnyPrincipal()],
+    //     actions: [
+    //       "es:ESHttpGet",
+    //       "es:ESHttpPut",
+    //       "es:ESHttpPost",
+    //       "es:ESHttpHead",
+    //       "es:DescribeDomain",
+    //       "secretsmanager:GetSecretValue",
+    //       "bedrock:*",
+    //       "lambda:InvokeFunction",
+    //     ],
+    //     effect: iam.Effect.ALLOW,
+    //     resources: ["*"],
+    //   }),
+    // );
+    // this.lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.s3Statement);
+    // this.lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.endpointStatement);
+    // this.lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-    this.lambdaOnlineQueryPreprocess.grantInvoke(this.lambdaOnlineMain);
+    // this.lambdaOnlineQueryPreprocess.grantInvoke(this.lambdaOnlineMain);
 
-    this.lambdaOnlineIntentionDetection.grantInvoke(this.lambdaOnlineMain);
+    // this.lambdaOnlineIntentionDetection.grantInvoke(this.lambdaOnlineMain);
 
-    this.lambdaOnlineAgent.grantInvoke(this.lambdaOnlineMain);
+    // this.lambdaOnlineAgent.grantInvoke(this.lambdaOnlineMain);
 
-    this.lambdaOnlineLLMGenerate.grantInvoke(this.lambdaOnlineMain);
-    this.lambdaOnlineLLMGenerate.grantInvoke(this.lambdaOnlineQueryPreprocess);
-    this.lambdaOnlineLLMGenerate.grantInvoke(this.lambdaOnlineAgent);
+    // this.lambdaOnlineLLMGenerate.grantInvoke(this.lambdaOnlineMain);
+    // this.lambdaOnlineLLMGenerate.grantInvoke(this.lambdaOnlineQueryPreprocess);
+    // this.lambdaOnlineLLMGenerate.grantInvoke(this.lambdaOnlineAgent);
 
     // this.lambdaOnlineFunctions.grantInvoke(this.lambdaOnlineMain);
     // this.lambdaOnlineFunctions.grantInvoke(this.lambdaOnlineIntentionDetection);

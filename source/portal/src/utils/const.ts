@@ -344,6 +344,8 @@ export const OPENAI_API_EMBEDDING_MODEL_LIST = [
 ];
 
 
+//     BCE_RERANKER_BASE_V1 = "bce-reranker-base_v1"
+//     BGE_RERANKER_LARGE = "bge-reranker-large"
 // BGE_RERANKER_V2_M3 = "bge-reranker-v2-m3"   # SageMaker
 // COHERE_RERANK_V3D5 = "cohere.rerank-v3-5:0"   # Bedrock
 // AMAZON_RERANK_V1 = "amazon.rerank-v1:0"  # Bedrock
