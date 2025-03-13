@@ -291,16 +291,16 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         url: 'chatbot-management/chatbots',
         method: 'get',
       });
-      const chatbots: { ChatbotId: string; ModelProvider: string }[] =
-        data.Items;
+      const chatbots: { chatbotId: string; ModelProvider: string }[] =
+        data.items;
       const getChatbots = chatbots.map((item) => {
         setChatbotModelProvider((prev) => ({
           ...prev,
-          [item.ChatbotId]: item.ModelProvider,
+          [item.chatbotId]: item.ModelProvider,
         }));
         return {
-          label: item.ChatbotId,
-          value: item.ChatbotId,
+          label: item.chatbotId,
+          value: item.chatbotId,
         };
       });
       setChatbotList(getChatbots);

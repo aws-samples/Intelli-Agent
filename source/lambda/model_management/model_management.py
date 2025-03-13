@@ -2,9 +2,9 @@ import json
 import os
 import boto3
 from datetime import datetime, timezone
-from emd import deploy, destroy
-from emd.models import Model
-from emd.sdk.status import get_model_status
+# from emd import deploy, destroy
+# from emd.models import Model
+# from emd.sdk.status import get_model_status
 import logging
 
 logger = logging.getLogger()
@@ -229,8 +229,8 @@ def __list_endpoints(event, group_name):
     endpoint_type = get_query_parameter(event, "endpoint_type")
 
     # Validate endpoint type if provided
-    if endpoint_type and endpoint_type not in vars(EndpointType).values():
-        raise ValueError(f"Invalid endpoint_type. Must be one of: {', '.join(vars(EndpointType).values())}")
+    # if endpoint_type and endpoint_type not in vars(EndpointType).values():
+    #     raise ValueError(f"Invalid endpoint_type. Must be one of: {', '.join(vars(EndpointType).values())}")
 
     # Initialize pagination
     paginator = sagemaker_client.get_paginator("list_endpoints")
@@ -250,25 +250,23 @@ def __list_endpoints(event, group_name):
                 tags = {tag["Key"]: tag["Value"] for tag in response["Tags"]}
 
                 # Check if endpoint matches the endpoint type filter
-                if (
-                    endpoint_type
-                    and tags.get(ENDPOINT_TYPE_TAG) == endpoint_type
-                ):
+                # if (
+                #     endpoint_type
+                #     and tags.get(ENDPOINT_TYPE_TAG) == endpoint_type
+                # ):
                     # Get additional endpoint details
-                    endpoint_details = sagemaker_client.describe_endpoint(
-                        EndpointName=endpoint_name
-                    )
-
-                    endpoints.append(
-                        {
-                            "endpoint_name": endpoint_name,
-                            "endpoint_status": endpoint_details[
-                                "EndpointStatus"
-                            ],
-                            "endpoint_type": tags.get(ENDPOINT_TYPE_TAG),
-                        }
-                    )
-
+                endpoint_details = sagemaker_client.describe_endpoint(
+                       EndpointName=endpoint_name
+                )
+                endpoints.append(
+                    {
+                        "endpoint_name": endpoint_name,
+                        "endpoint_status": endpoint_details[
+                            "EndpointStatus"
+                        ],
+                        "endpoint_type": tags.get(ENDPOINT_TYPE_TAG),
+                    }
+                )
         return {"endpoints": endpoints, "count": len(endpoints)}
 
     except Exception as e:
