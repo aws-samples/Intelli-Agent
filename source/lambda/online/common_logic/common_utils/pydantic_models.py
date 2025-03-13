@@ -90,40 +90,21 @@ class QueryProcessConfig(ForbidBaseModel):
 
 ####### retriever config  ###########
 
-<<<<<<< HEAD
-class HybridSearchConfig(AllowBaseModel):
-    bm25_search_context_extend_method: ContextExtendMethod = ContextExtendMethod.WHOLE_DOC
-    bm25_search_whole_doc_max_size:int = 100
-    bm25_search_chunk_window_size: int = 10
-    bm25_search_top_k:int = 5
-    bm25_search_threshold:float = Threshold.BM25_SEARCH_THRESHOLD
-    enable_bm25_search:bool = True
-=======
->>>>>>> 9922f4f6edca83d2e8b1367a0e64497cbbfd71b3
 
 class HybridSearchConfig(AllowBaseModel):
-    bm25_search_context_extend_method: ContextExtendMethod = (
-        ContextExtendMethod.WHOLE_DOC
-    )
+    bm25_search_context_extend_method: ContextExtendMethod = ContextExtendMethod.WHOLE_DOC
     bm25_search_whole_doc_max_size: int = 100
     bm25_search_chunk_window_size: int = 10
     bm25_search_top_k: int = 5
+    bm25_search_threshold:float = Threshold.BM25_SEARCH_THRESHOLD
     enable_bm25_search: bool = True
 
-    vector_search_context_extend_method: ContextExtendMethod = (
-        ContextExtendMethod.WHOLE_DOC
-    )
+    vector_search_context_extend_method: ContextExtendMethod = ContextExtendMethod.WHOLE_DOC
     vector_search_chunk_window_size: int = 10
-<<<<<<< HEAD
     vector_search_top_k:int = 5 
     vector_search_whole_doc_max_size:int = 100
     vector_search_threshold:float = Threshold.VECTOR_SEARCH_THRESHOLD
     enable_vector_search:bool = True
-=======
-    vector_search_top_k: int = 5
-    vector_search_whole_doc_max_size: int = 100
-    enable_vector_search: bool = True
->>>>>>> 9922f4f6edca83d2e8b1367a0e64497cbbfd71b3
 
     rerank_top_k: int = 10
 
