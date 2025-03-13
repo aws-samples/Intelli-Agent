@@ -10,17 +10,15 @@
  *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions    *
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
-
 import { Runtime, Code } from "aws-cdk-lib/aws-lambda";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 import { join } from "path";
-import { LambdaFunction } from "../shared/lambda-helper";
 import * as pyLambda from "@aws-cdk/aws-lambda-python-alpha";
 import { IAMHelper } from "../shared/iam-helper";
 import { Vpc, SecurityGroup } from 'aws-cdk-lib/aws-ec2';
 import { SystemConfig } from "../shared/types";
-
+import { LambdaFunction } from "../shared/lambda-helper";
 
 export interface IntentionApiProps {
   api: apigw.RestApi;
@@ -36,6 +34,7 @@ export interface IntentionApiProps {
   domainEndpoint: string;
   config: SystemConfig;
   sharedLayer: pyLambda.PythonLayerVersion;
+  intentionLayer: pyLambda.PythonLayerVersion;
   iamHelper: IAMHelper;
   genMethodOption: any;
 }
@@ -46,6 +45,7 @@ export class IntentionApi extends Construct {
   private readonly vpc: Vpc;
   private readonly securityGroups: [SecurityGroup];
   private readonly sharedLayer: pyLambda.PythonLayerVersion;
+  private readonly intentionLayer: pyLambda.PythonLayerVersion;
   private readonly iamHelper: IAMHelper;
   private readonly intentionTableName: string;
   private readonly indexTable: string;
@@ -73,6 +73,7 @@ export class IntentionApi extends Construct {
     this.domainEndpoint = props.domainEndpoint;
     this.config = props.config;
     this.sharedLayer = props.sharedLayer;
+    this.intentionLayer = props.intentionLayer;
     this.iamHelper = props.iamHelper;
     this.genMethodOption = props.genMethodOption;
 
@@ -89,7 +90,6 @@ export class IntentionApi extends Construct {
         ].join(' && ')
         ]
       ),
-      // timeout: Duration.minutes(15),
       vpc: this.vpc,
       securityGroups: this.securityGroups,
       environment: {
@@ -104,18 +104,19 @@ export class IntentionApi extends Construct {
         KNOWLEDGE_BASE_TYPE: JSON.stringify(this.config.knowledgeBase.knowledgeBaseType || {}),
         BEDROCK_REGION: this.config.chat.bedrockRegion,
       },
-      layers: [this.sharedLayer],
+      layers: [this.sharedLayer, this.intentionLayer],
     });
-    intentionLambda.function.addToRolePolicy(this.iamHelper.dynamodbStatement);
-    intentionLambda.function.addToRolePolicy(this.iamHelper.logStatement);
-    intentionLambda.function.addToRolePolicy(this.iamHelper.secretStatement);
-    intentionLambda.function.addToRolePolicy(this.iamHelper.esStatement);
-    intentionLambda.function.addToRolePolicy(this.iamHelper.s3Statement);
-    intentionLambda.function.addToRolePolicy(this.iamHelper.bedrockStatement);
-    intentionLambda.function.addToRolePolicy(this.iamHelper.endpointStatement);
+    const intentionLambdaFunction = intentionLambda.function;
+    intentionLambdaFunction.addToRolePolicy(this.iamHelper.dynamodbStatement);
+    intentionLambdaFunction.addToRolePolicy(this.iamHelper.logStatement);
+    intentionLambdaFunction.addToRolePolicy(this.iamHelper.secretStatement);
+    intentionLambdaFunction.addToRolePolicy(this.iamHelper.esStatement);
+    intentionLambdaFunction.addToRolePolicy(this.iamHelper.s3Statement);
+    intentionLambdaFunction.addToRolePolicy(this.iamHelper.bedrockStatement);
+    intentionLambdaFunction.addToRolePolicy(this.iamHelper.endpointStatement);
 
     // API Gateway Lambda Integration to manage intention
-    const lambdaIntentionIntegration = new apigw.LambdaIntegration(intentionLambda.function, {
+    const lambdaIntentionIntegration = new apigw.LambdaIntegration(intentionLambdaFunction, {
       proxy: true,
     });
     const apiResourceIntentionManagement = this.api.root.addResource("intention");

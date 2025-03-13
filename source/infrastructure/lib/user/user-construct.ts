@@ -26,6 +26,8 @@ export interface UserConstructOutputs {
   oidcClientId: string;
   oidcLogoutUrl: string;
   userPoolId: string;
+  oidcDomain: string;
+  oidcRegion: string;
 }
 
 export class UserConstruct extends Construct implements UserConstructOutputs {
@@ -33,20 +35,14 @@ export class UserConstruct extends Construct implements UserConstructOutputs {
   public oidcClientId!: string;
   public oidcLogoutUrl!: string;
   public userPoolId!: string;
+  public oidcDomain!: string;
+  public oidcRegion!: string;
 
   constructor(scope: Construct, id: string, props: UserProps) {
     super(scope, id);
-
-    const userPoolName = props.userPoolName || `${Constants.SOLUTION_NAME}_UserPool`
-    const domainPrefix = props.domainPrefix || `${Constants.SOLUTION_NAME.toLowerCase()}-${Aws.ACCOUNT_ID}`
-    const isChinaRegion = props.deployRegion.startsWith('cn-');
-
-    // TODO: Change the condition from config
-    if (isChinaRegion) {
-      this.setupCustomOidcResources();
-    } else {
-      this.setupCognitoResources(props, userPoolName, domainPrefix);
-    }
+    const userPoolName = props.userPoolName || `${Constants.SOLUTION_NAME}_UserPool`;
+    const domainPrefix = props.domainPrefix || `${Constants.SOLUTION_NAME.toLowerCase()}-${Aws.ACCOUNT_ID}`;
+    this.setupCognitoResources(props, userPoolName, domainPrefix);
   }
 
   private setupCognitoResources(props: UserProps, userPoolName: string, domainPrefix: string) {
@@ -128,12 +124,7 @@ export class UserConstruct extends Construct implements UserConstructOutputs {
     this.oidcClientId = userPoolClient.userPoolClientId;
     this.oidcLogoutUrl = `${userPoolDomain.baseUrl()}/logout`;
     this.userPoolId = cognitoUserPool.userPoolId;
-  }
-
-  private setupCustomOidcResources() {
-    this.oidcIssuer = `https://cognito-idp.us-east-1.amazonaws.com/test`;
-    this.oidcClientId = 'test';
-    this.oidcLogoutUrl = `https://test.com/logout`;
-    this.userPoolId = 'test';
+    this.oidcDomain = userPoolDomain.baseUrl();
+    this.oidcRegion = props.deployRegion;
   }
 }

@@ -33,6 +33,7 @@ import { PromptApi } from "./prompt-management";
 import { IntentionApi } from "./intention-management";
 import { ModelApi } from "./model-management";
 import { ChatHistoryApi } from "./chat-history";
+import { AuthHub } from "../auth-hub";
 import { ChatbotManagementApi } from "./chatbot-management";
 import * as cr from 'aws-cdk-lib/custom-resources';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -43,8 +44,6 @@ interface ApiStackProps extends StackProps {
   modelConstructOutputs: ModelConstructOutputs;
   knowledgeBaseStackOutputs: KnowledgeBaseStackOutputs;
   chatStackOutputs: ChatStackOutputs;
-  userPoolId: string;
-  oidcClientId: string;
 }
 
 export interface ApiConstructOutputs {
@@ -179,6 +178,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
 
     const lambdaLayers = new LambdaLayers(this);
     const sharedLayer = lambdaLayers.createSharedLayer();
+    const intentionLayer = lambdaLayers.createIntentionLayer();
     const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
 
     // S3 bucket for storing documents
@@ -224,34 +224,52 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
           "X-Api-Key",
           "Author",
           "X-Amz-Security-Token",
+          "Oidc-Info"
         ],
         allowMethods: apigw.Cors.ALL_METHODS,
-        allowCredentials: true,
+        allowCredentials: false,
         allowOrigins: apigw.Cors.ALL_ORIGINS,
       },
-      deploy: false
+      deployOptions: {
+        stageName: "prod",
+        metricsEnabled: true,
+        loggingLevel: apigw.MethodLoggingLevel.INFO,
+        dataTraceEnabled: true,
+        tracingEnabled: true,
+      }
     });
+    new apigw.Deployment(this, 'Deployment', { api: this.api });
+    // Add delay after initial setup
+    const initialDelay = this.addDeploymentDelay('Initial');
 
-    // Create authorizer lambda and authorizer before any API resources
+    
+    const authDelay = this.addDeploymentDelay('Auth');
+    authDelay.node.addDependency(initialDelay);
+    new AuthHub(this, 'AuthHub', {
+      solutionName: Constants.SOLUTION_NAME,
+      apiGateway: this.api
+    })
+
+
     this.customAuthorizerLambda = new LambdaFunction(this, "CustomAuthorizerLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/authorizer")),
       handler: "custom_authorizer.lambda_handler",
       environment: {
-        USER_POOL_ID: props.userPoolId,
         REGION: Aws.REGION,
-        APP_CLIENT_ID: props.oidcClientId,
       },
       layers: [apiLambdaAuthorizerLayer],
       statements: [props.sharedConstructOutputs.iamHelper.logStatement],
     });
 
+    this.customAuthorizerLambda.node.addDependency(authDelay);
+    
+
     this.auth = new apigw.RequestAuthorizer(this, 'ApiAuthorizer', {
       handler: this.customAuthorizerLambda.function,
-      identitySources: [apigw.IdentitySource.header('Authorization')],
+      identitySources: [apigw.IdentitySource.header('Authorization'),apigw.IdentitySource.header('Oidc-Info')],
     });
 
-    // Add delay after initial setup
-    const initialDelay = this.addDeploymentDelay('Initial');
+   
 
     // Create all API resources and their methods
     if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
@@ -394,6 +412,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         domainEndpoint: domainEndpoint,
         config: props.config,
         sharedLayer: sharedLayer,
+        intentionLayer: intentionLayer,
         iamHelper: this.iamHelper,
         genMethodOption: this.genMethodOption,
       });
@@ -447,16 +466,6 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
       api: this.api,
     });
     deployment.node.addDependency(finalDelay);
-
-    const stage = new apigw.Stage(this, 'ProdStage', {
-      deployment,
-      stageName: 'prod',
-      tracingEnabled: true,
-      loggingLevel: apigw.MethodLoggingLevel.INFO,
-      dataTraceEnabled: true
-    });
-
-    this.api.deploymentStage = stage;
 
     // Set final outputs
     this.apiEndpoint = this.api.url;

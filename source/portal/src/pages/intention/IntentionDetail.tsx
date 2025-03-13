@@ -21,6 +21,7 @@ import { IntentionExecutionItem, IntentionExecutionResponse, QAItem } from 'src/
 import { alertMsg } from 'src/utils/utils';
 import { useTranslation } from 'react-i18next';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
+import { ROUTES } from 'src/utils/const';
 
 const IntentionDetail: React.FC = () => {
   
@@ -108,15 +109,15 @@ const IntentionDetail: React.FC = () => {
   return (
     <CommonLayout
       isLoading={loadingData}
-      activeHref="/intention"
+      activeHref={ROUTES.Intention}
       breadCrumbs={[
         {
           text: t('name'),
-          href: '/',
+          href: ROUTES.Home,
         },
         {
           text: t('intention'),
-          href: '/intention',
+          href: ROUTES.Intention,
         },
         {
           text: `${id}`,

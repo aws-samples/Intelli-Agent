@@ -1,4 +1,5 @@
 import moment from 'moment';
+import { OIDC_PREFIX, OIDC_STORAGE } from './const';
 export const TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 
 export type AlertType = 'error' | 'warning' | 'info' | 'success';
@@ -44,3 +45,31 @@ export const validateNameTagString = (input: string): boolean => {
   }
   return true;
 };
+
+export const hasPrefixKeyInLocalStorage = (prefix: string): boolean =>{
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(prefix)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export const getCredentialsFromLocalStorage = () => {
+  const oidc = localStorage.getItem(OIDC_STORAGE)
+  if (!oidc) return null
+  const oidcRes = JSON.parse(oidc)
+  const authToken = localStorage.getItem(`${OIDC_PREFIX}${oidcRes.provider}.${oidcRes.clientId}`)
+  if(!authToken) return null
+  return JSON.parse(authToken)    
+}
+
+export const getCredentials = () => {
+  const oidcInfo = JSON.parse(localStorage.getItem(OIDC_STORAGE) || '')
+  const credentials = localStorage.getItem(`oidc.${oidcInfo?.provider}.${oidcInfo?.clientId}`);
+  if (!credentials) {
+    return null;
+  }
+  return JSON.parse(credentials);
+}

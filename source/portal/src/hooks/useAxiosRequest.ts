@@ -1,23 +1,14 @@
 import axios from 'axios';
-import { User } from 'oidc-client-ts';
 import { useContext } from 'react';
-import ConfigContext from 'src/context/config-context';
-import { alertMsg } from 'src/utils/utils';
+import ConfigContext, { Config } from 'src/context/config-context';
+import { OIDC_PROVIDER, OIDC_STORAGE } from 'src/utils/const';
+import { alertMsg, getCredentials } from 'src/utils/utils';
 
-function getUser(authority?: string, clientId?: string) {
-  const oidcStorage = localStorage.getItem(
-    `oidc.user:${authority}:${clientId}`,
-  );
-  if (!oidcStorage) {
-    return null;
-  }
-  return User.fromStorageString(oidcStorage);
-}
 
 const useAxiosRequest = () => {
   const config = useContext(ConfigContext);
-  const user = getUser(config?.oidcIssuer, config?.oidcClientId);
-  const token = user?.id_token;
+  
+  const token = getCredentials();
   const sendRequest = async ({
     url = '',
     method = 'get',
@@ -39,9 +30,8 @@ const useAxiosRequest = () => {
         params: params,
         headers: {
           ...headers,
-          Authorization: `Bearer ${token}`,
-          // 'x-api-key': config?.apiKey,
-          // 'author': user?.profile.email || 'anonumous user'
+          'Authorization': `Bearer ${token.access_token || token.idToken}`,
+          'Oidc-Info': genHeaderOidcInfo(config)
         },
       });
       return response.data;
@@ -54,5 +44,24 @@ const useAxiosRequest = () => {
   };
   return sendRequest;
 };
+
+const genHeaderOidcInfo =(config: Config | null)=>{
+  const oidc = JSON.parse(localStorage.getItem(OIDC_STORAGE) || '')
+  switch(oidc.provider){
+    case OIDC_PROVIDER.AUTHING:
+      return JSON.stringify({
+        provider: oidc?.provider,
+        clientId: oidc?.clientId,
+        redirectUri: oidc?.redirectUri,
+      })
+    default:
+      return JSON.stringify({
+        provider: oidc?.provider,
+        clientId: config?.oidcClientId,
+        poolId: config?.oidcPoolId,
+  })
+}
+  
+}
 
 export default useAxiosRequest;
