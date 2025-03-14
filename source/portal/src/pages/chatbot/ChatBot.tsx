@@ -17,6 +17,7 @@ import {
   Select,
   SelectProps,
   SpaceBetween,
+  Spinner,
   StatusIndicator,
   Textarea,
   Toggle
@@ -92,6 +93,9 @@ const isValidArn = (arn: string): boolean => {
 
 const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const { historySessionId } = props;
+  const [loadingChatBots, setLoadingChatBots] = useState(false);
+  const [loadingModel, setLoadingModel] = useState(false);
+  const [loadingModelList, setLoadingModelList] = useState(false);
   // const localScenario = localStorage.getItem(MODEL_TYPE);
   const localMaxToken = localStorage.getItem(MAX_TOKEN);
   const localTemperature = localStorage.getItem(TEMPERATURE);
@@ -382,6 +386,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   };
   useEffect(() => {
     const initializeChatbot = async () => {
+      setLoadingChatBots(true)
       if (historySessionId) {
         // Wait for getSessionHistoryById to complete to set history chatbotId
         await getSessionHistoryById();
@@ -393,6 +398,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     };
 
     initializeChatbot();
+    setLoadingChatBots(false)
   }, []);
 
   useEffect(() => {
@@ -917,12 +923,13 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
 
     return (
       <>
-        <Button
-          iconName="upload"
-          variant="icon"
-          onClick={() => fileInputRef.current?.click()}
-          ariaLabel={t('button.attach')}
-        />
+        <SpaceBetween direction='horizontal' size='xxs'>
+        <div
+        style={{border: '1px solid #0972d3', borderRadius: 20, padding: 5, display: 'flex', alignItems: 'center', justifyContent: 'center',width:20,height:20}}
+      onClick={() => fileInputRef.current?.click()}
+    >
+     <img src={"/imgs/img-upload.png"} alt="attach" width={15}></img>
+    </div>
         <input
           type="file"
           ref={fileInputRef}
@@ -937,7 +944,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           ariaLabel={t('button.send')}
         >
           {t('button.send')}
-        </Button>
+        </Button></SpaceBetween>
       </>
     );
   };
@@ -1028,7 +1035,12 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
             </Header>
           }
         >
-          <Container
+          {loadingChatBots?(<Container
+            fitHeight={true}>
+              <div style={{margin:"auto", textAlign:"center", marginTop:"30%"}}>
+              <Spinner size="large" /></div>
+            </Container>):(
+            <Container
             fitHeight={true}
             footer={
               <div>
@@ -1708,6 +1720,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               </div>
             </div>
           </Container>
+          )}
+          
         </ContentLayout>
       </div>
     </CommonLayout>
