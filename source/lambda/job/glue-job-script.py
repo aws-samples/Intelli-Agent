@@ -214,12 +214,12 @@ class S3FileIterator:
 
                     # Create VLLM parameters
                     vllm_params = VLLMParameters(
-                        model_provider=vlm_model_info.get("ModelProvider"),
-                        model_id=vlm_model_info.get("ModelEndpoint"),
-                        model_api_url=vlm_model_info.get("BaseUrl"),
-                        model_secret_name=vlm_model_info.get("ApiKeyArn"),
+                        model_provider=vlm_model_info.get("modelProvider"),
+                        model_id=vlm_model_info.get("modelId"),
+                        model_api_url=vlm_model_info.get("baseUrl"),
+                        model_secret_name=vlm_model_info.get("apiKeyArn"),
                         model_sagemaker_endpoint_name=vlm_model_info.get(
-                            "ModelEndpoint"
+                            "modelEndpoint"
                         ),
                     )
 
@@ -431,10 +431,10 @@ class OpenSearchIngestionWorker:
     def __init__(
         self,
         docsearch: OpenSearchVectorSearch,
-        embedding_model_endpoint: str,
+        embedding_model_id: str,
     ):
         self.docsearch = docsearch
-        self.embedding_model_endpoint = embedding_model_endpoint
+        self.embedding_model_id = embedding_model_id
 
     @retry(
         stop=stop_after_attempt(3),
@@ -454,9 +454,7 @@ class OpenSearchIngestionWorker:
                 embeddings_vectors_list.append(
                     embeddings_vectors[0]["dense_vecs"][doc_id]
                 )
-                metadata["embedding_endpoint_name"] = (
-                    self.embedding_model_endpoint
-                )
+                metadata["embedding_model_id"] = self.embedding_model_id
                 metadata_list.append(metadata)
             embeddings_vectors = embeddings_vectors_list
             metadatas = metadata_list
@@ -572,7 +570,7 @@ def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
 
 
 def create_processors_and_workers(
-    operation_type, docsearch, embedding_model_endpoint, file_iterator
+    operation_type, docsearch, embedding_model_id, file_iterator
 ):
     """
     Create processors and workers based on the operation type.
@@ -580,7 +578,7 @@ def create_processors_and_workers(
     Args:
         operation_type (str): The type of operation to perform. Valid types are "create", "delete", "update", and "extract_only".
         docsearch: The instance of the DocSearch class.
-        embedding_model_endpoint: The endpoint of the embedding model.
+        embedding_model_id: The id of the embedding model.
         file_iterator: The instance of the file processor.
 
     Returns:
@@ -595,7 +593,7 @@ def create_processors_and_workers(
         batch_processor = BatchChunkDocumentProcessor(
             chunk_size=1024, chunk_overlap=30, batch_size=10
         )
-        worker = OpenSearchIngestionWorker(docsearch, embedding_model_endpoint)
+        worker = OpenSearchIngestionWorker(docsearch, embedding_model_id)
     elif operation_type in ["delete", "update"]:
         s3_files_iterator = file_iterator.iterate_s3_files(
             extract_content=False
@@ -638,13 +636,12 @@ def main():
         ]
 
     file_iterator = S3FileIterator(s3_bucket, s3_prefix, supported_file_types)
-    embedding_model_endpoint = embedding_model_info.get("ModelEndpoint")
+    embedding_model_id = embedding_model_info.get("modelId")
 
     if operation_type == "extract_only":
         embedding_function, docsearch = None, None
     else:
         embedding_function = sm_utils.getCustomEmbeddings(
-            embedding_model_endpoint,
             region_name=region,
             bedrock_region=bedrock_region,
             embedding_model_info=embedding_model_info,
@@ -663,7 +660,7 @@ def main():
     s3_files_iterator, batch_processor, worker = create_processors_and_workers(
         operation_type,
         docsearch,
-        embedding_model_endpoint,
+        embedding_model_id,
         file_iterator,
     )
 
@@ -682,7 +679,7 @@ def main():
         # Then ingest the documents
         s3_files_iterator, batch_processor, worker = (
             create_processors_and_workers(
-                "create", docsearch, embedding_model_endpoint, file_iterator
+                "create", docsearch, embedding_model_id, file_iterator
             )
         )
         ingestion_pipeline(s3_files_iterator, batch_processor, worker)

@@ -94,8 +94,8 @@ const isValidArn = (arn: string): boolean => {
 const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const { historySessionId } = props;
   const [loadingChatBots, setLoadingChatBots] = useState(false);
-  const [loadingModel, setLoadingModel] = useState(false);
-  const [loadingModelList, setLoadingModelList] = useState(false);
+  // const [loadingModel, setLoadingModel] = useState(false);
+  // const [loadingModelList, setLoadingModelList] = useState(false);
   // const localScenario = localStorage.getItem(MODEL_TYPE);
   const localMaxToken = localStorage.getItem(MAX_TOKEN);
   const localTemperature = localStorage.getItem(TEMPERATURE);
@@ -734,14 +734,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           provider: modelType.value,
           base_url:
             modelType.value === 'Bedrock API' ||
-            modelType.value === 'OpenAI API' ||
-            modelType.value === 'siliconflow'
+              modelType.value === 'OpenAI API' ||
+              modelType.value === 'siliconflow'
               ? apiEndpoint.trim()
               : '',
           api_key_arn:
             modelType.value === 'Bedrock API' ||
-            modelType.value === 'OpenAI API' ||
-            modelType.value === 'siliconflow'
+              modelType.value === 'OpenAI API' ||
+              modelType.value === 'siliconflow'
               ? apiKeyArn.trim()
               : '',
           model_kwargs: {
@@ -924,27 +924,27 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     return (
       <>
         <SpaceBetween direction='horizontal' size='xxs'>
-        <div
-        style={{border: '1px solid #0972d3', borderRadius: 20, padding: 5, display: 'flex', alignItems: 'center', justifyContent: 'center',width:20,height:20}}
-      onClick={() => fileInputRef.current?.click()}
-    >
-     <img src={"/imgs/img-upload.png"} alt="attach" width={15}></img>
-    </div>
-        <input
-          type="file"
-          ref={fileInputRef}
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
-          accept="image/*"
-          multiple
-        />
-        <Button
-          disabled={readyState !== ReadyState.OPEN}
-          onClick={() => handleClickSendMessage()}
-          ariaLabel={t('button.send')}
-        >
-          {t('button.send')}
-        </Button></SpaceBetween>
+          <div
+            style={{ border: '1px solid #0972d3', borderRadius: 20, padding: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20 }}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <img src={"/imgs/img-upload.png"} alt="attach" width={15}></img>
+          </div>
+          <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+            accept="image/*"
+            multiple
+          />
+          <Button
+            disabled={readyState !== ReadyState.OPEN}
+            onClick={() => handleClickSendMessage()}
+            ariaLabel={t('button.send')}
+          >
+            {t('button.send')}
+          </Button></SpaceBetween>
       </>
     );
   };
@@ -1035,73 +1035,137 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
             </Header>
           }
         >
-          {loadingChatBots?(<Container
+          {loadingChatBots ? (<Container
             fitHeight={true}>
-              <div style={{margin:"auto", textAlign:"center", marginTop:"30%"}}>
+            <div style={{ margin: "auto", textAlign: "center", marginTop: "30%" }}>
               <Spinner size="large" /></div>
-            </Container>):(
+          </Container>) : (
             <Container
-            fitHeight={true}
-            footer={
-              <div>
-                <ExpandableSection
-                  onChange={({ detail }) => {
-                    setModelSettingExpand(detail.expanded);
-                  }}
-                  expanded={modelSettingExpand}
-                  // variant="footer"
-                  headingTagOverride="h4"
-                  headerText={t('configurations')}
-                >
-                  <div
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      marginBottom: 15,
-                      marginTop: 15,
+              fitHeight={true}
+              footer={
+                <div>
+                  <ExpandableSection
+                    onChange={({ detail }) => {
+                      setModelSettingExpand(detail.expanded);
                     }}
+                    expanded={modelSettingExpand}
+                    // variant="footer"
+                    headingTagOverride="h4"
+                    headerText={t('configurations')}
                   >
-                    {t('common')}
-                  </div>
-                  <SpaceBetween size="xs" direction="vertical">
-                    <Grid gridDefinition={[{ colspan: 5 }, { colspan: 6 }]}>
-                      <FormField
-                        label={t('modelProvider')}
-                        stretch={true}
-                        description={t('scenarioDesc')}
-                        errorText={modelProviderHint}
-                      >
-                        <Select
-                          options={MODEL_TYPE_LIST}
-                          selectedOption={modelType}
-                          onChange={({ detail }) => {
-                            setModelType(detail.selectedOption);
+                    <div
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        marginBottom: 15,
+                        marginTop: 15,
+                      }}
+                    >
+                      {t('common')}
+                    </div>
+                    <SpaceBetween size="xs" direction="vertical">
+                      <Grid gridDefinition={[{ colspan: 5 }, { colspan: 6 }]}>
+                        <FormField
+                          label={t('modelProvider')}
+                          stretch={true}
+                          description={t('scenarioDesc')}
+                          errorText={modelProviderHint}
+                        >
+                          <Select
+                            options={MODEL_TYPE_LIST}
+                            selectedOption={modelType}
+                            onChange={({ detail }) => {
+                              setModelType(detail.selectedOption);
 
-                            // Check if the selected model provider matches the chatbot's model provider
-                            const selectedChatbotId =
-                              chatbotOption.value ?? 'defaultId';
-                            const expectedModelProvider =
-                              chatbotModelProvider[selectedChatbotId];
+                              // Check if the selected model provider matches the chatbot's model provider
+                              const selectedChatbotId =
+                                chatbotOption.value ?? 'defaultId';
+                              const expectedModelProvider =
+                                chatbotModelProvider[selectedChatbotId];
 
-                            if (
-                              expectedModelProvider !==
+                              if (
+                                expectedModelProvider !==
                                 detail.selectedOption.value &&
-                              detail.selectedOption.value !== 'emd' &&
-                              detail.selectedOption.value !== 'siliconflow'
-                            ) {
-                              setModelProviderHint(
-                                t('chatbotModelProviderError'),
-                              );
-                            } else {
-                              setModelProviderHint(''); // Clear hint if the selection is valid
-                            }
-                          }}
-                        />
-                      </FormField>
-                      {modelType.value === 'Bedrock API' ||
-                      modelType.value === 'OpenAI API' ||
-                      modelType.value === 'siliconflow' ? (
-                        <SpaceBetween size="xs" direction="vertical">
+                                detail.selectedOption.value !== 'emd' &&
+                                detail.selectedOption.value !== 'siliconflow'
+                              ) {
+                                setModelProviderHint(
+                                  t('chatbotModelProviderError'),
+                                );
+                              } else {
+                                setModelProviderHint(''); // Clear hint if the selection is valid
+                              }
+                            }}
+                          />
+                        </FormField>
+                        {modelType.value === 'Bedrock API' ||
+                          modelType.value === 'OpenAI API' ||
+                          modelType.value === 'siliconflow' ? (
+                          <SpaceBetween size="xs" direction="vertical">
+                            <FormField
+                              label={t('modelName')}
+                              stretch={true}
+                              errorText={t(modelError)}
+                              description={t('modelNameDesc')}
+                            >
+                              <Autosuggest
+                                onChange={({ detail }) => {
+                                  setModelError('');
+                                  setModelOption(detail.value);
+                                }}
+                                value={modelOption}
+                                options={modelList}
+                                enteredTextLabel={(value) => `Use: "${value}"`}
+                                placeholder={t('validation.requireModel')}
+                                empty={t('noModelFound')}
+                              />
+                            </FormField>
+                            <FormField
+                              label={t('apiEndpoint')}
+                              stretch={true}
+                              errorText={t(apiEndpointError)}
+                              description={t('apiEndpointDesc')}
+                            >
+                              <Input
+                                value={apiEndpoint}
+                                onChange={({ detail }) => {
+                                  const value = detail.value;
+                                  if (value === '' || isValidUrl(value)) {
+                                    setApiEndpointError('');
+                                  } else {
+                                    setApiEndpointError(
+                                      'Invalid url, please type in a valid HTTPS or HTTP url',
+                                    );
+                                  }
+                                  setApiEndpoint(value);
+                                }}
+                                placeholder="https://api.example.com/v1"
+                              />
+                            </FormField>
+                            <FormField
+                              label={t('apiKeyArn')}
+                              stretch={true}
+                              errorText={t(apiKeyArnError)}
+                              description={t('apiKeyArnDesc')}
+                            >
+                              <Input
+                                value={apiKeyArn}
+                                onChange={({ detail }) => {
+                                  const value = detail.value;
+                                  if (value === '' || isValidArn(value)) {
+                                    setApiKeyArnError('');
+                                  } else {
+                                    setApiKeyArnError(
+                                      'Invalid ARN, please type in a valid secret ARN from AWS Secrets Manager',
+                                    );
+                                  }
+                                  setApiKeyArn(value);
+                                }}
+                                placeholder="arn:aws:secretsmanager:region:account:secret:name"
+                              />
+                            </FormField>
+                          </SpaceBetween>
+                        ) : (
                           <FormField
                             label={t('modelName')}
                             stretch={true}
@@ -1115,249 +1179,185 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                               }}
                               value={modelOption}
                               options={modelList}
-                              enteredTextLabel={(value) => `Use: "${value}"`}
                               placeholder={t('validation.requireModel')}
                               empty={t('noModelFound')}
+                              enteredTextLabel={(value) => `Use: "${value}"`}
                             />
                           </FormField>
-                          <FormField
-                            label={t('apiEndpoint')}
-                            stretch={true}
-                            errorText={t(apiEndpointError)}
-                            description={t('apiEndpointDesc')}
-                          >
-                            <Input
-                              value={apiEndpoint}
-                              onChange={({ detail }) => {
-                                const value = detail.value;
-                                if (value === '' || isValidUrl(value)) {
-                                  setApiEndpointError('');
-                                } else {
-                                  setApiEndpointError(
-                                    'Invalid url, please type in a valid HTTPS or HTTP url',
-                                  );
-                                }
-                                setApiEndpoint(value);
-                              }}
-                              placeholder="https://api.example.com/v1"
-                            />
-                          </FormField>
-                          <FormField
-                            label={t('apiKeyArn')}
-                            stretch={true}
-                            errorText={t(apiKeyArnError)}
-                            description={t('apiKeyArnDesc')}
-                          >
-                            <Input
-                              value={apiKeyArn}
-                              onChange={({ detail }) => {
-                                const value = detail.value;
-                                if (value === '' || isValidArn(value)) {
-                                  setApiKeyArnError('');
-                                } else {
-                                  setApiKeyArnError(
-                                    'Invalid ARN, please type in a valid secret ARN from AWS Secrets Manager',
-                                  );
-                                }
-                                setApiKeyArn(value);
-                              }}
-                              placeholder="arn:aws:secretsmanager:region:account:secret:name"
-                            />
-                          </FormField>
-                        </SpaceBetween>
-                      ) : (
+                        )}
+                      </Grid>
+                      <Grid gridDefinition={[{ colspan: 5 }, { colspan: 6 }]}>
                         <FormField
-                          label={t('modelName')}
+                          label={t('maxTokens')}
                           stretch={true}
-                          errorText={t(modelError)}
-                          description={t('modelNameDesc')}
-                        >
-                          <Autosuggest
-                            onChange={({ detail }) => {
-                              setModelError('');
-                              setModelOption(detail.value);
-                            }}
-                            value={modelOption}
-                            options={modelList}
-                            placeholder={t('validation.requireModel')}
-                            empty={t('noModelFound')}
-                            enteredTextLabel={(value) => `Use: "${value}"`}
-                          />
-                        </FormField>
-                      )}
-                    </Grid>
-                    <Grid gridDefinition={[{ colspan: 5 }, { colspan: 6 }]}>
-                      <FormField
-                        label={t('maxTokens')}
-                        stretch={true}
-                        errorText={t(maxTokenError)}
-                        description={t('maxTokenDesc')}
-                      >
-                        <Input
-                          type="number"
-                          value={maxToken}
-                          onChange={({ detail }) => {
-                            setMaxTokenError('');
-                            setMaxToken(detail.value);
-                          }}
-                        />
-                      </FormField>
-                      <FormField
-                        label={t('maxRounds')}
-                        stretch={true}
-                        errorText={t(maxRoundsError)}
-                        description={t('maxRoundsDesc')}
-                      >
-                        <Input
-                          type="number"
-                          value={maxRounds}
-                          onChange={({ detail }) => {
-                            if (
-                              parseInt(detail.value) < 0 ||
-                              parseInt(detail.value) > 100
-                            ) {
-                              return;
-                            }
-                            setMaxRoundsError('');
-                            setMaxRounds(detail.value);
-                          }}
-                        />
-                      </FormField>
-                    </Grid>
-
-                    {showEndpoint && (
-                      <Grid gridDefinition={[{ colspan: 11 }]}>
-                        <FormField
-                          label={t('endPoint')}
-                          stretch={true}
-                          errorText={t(endPointError)}
-                          description={t('endPointDesc')}
+                          errorText={t(maxTokenError)}
+                          description={t('maxTokenDesc')}
                         >
                           <Input
+                            type="number"
+                            value={maxToken}
                             onChange={({ detail }) => {
-                              setEndPointError('');
-                              setEndPoint(detail.value);
+                              setMaxTokenError('');
+                              setMaxToken(detail.value);
                             }}
-                            value={endPoint}
-                            placeholder="QWen2-72B-XXXXX"
+                          />
+                        </FormField>
+                        <FormField
+                          label={t('maxRounds')}
+                          stretch={true}
+                          errorText={t(maxRoundsError)}
+                          description={t('maxRoundsDesc')}
+                        >
+                          <Input
+                            type="number"
+                            value={maxRounds}
+                            onChange={({ detail }) => {
+                              if (
+                                parseInt(detail.value) < 0 ||
+                                parseInt(detail.value) > 100
+                              ) {
+                                return;
+                              }
+                              setMaxRoundsError('');
+                              setMaxRounds(detail.value);
+                            }}
                           />
                         </FormField>
                       </Grid>
-                    )}
-                  </SpaceBetween>
-                  <div
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      marginBottom: 15,
-                      marginTop: 35,
-                    }}
-                  >
-                    {t('rad')}
-                  </div>
-                  <SpaceBetween size="xs" direction="vertical">
-                    <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
-                      <FormField
-                        label={t('recallByKeyword')}
-                        stretch={true}
-                        description={t('recallByKeywordDesc')}
-                      >
-                        <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
-                          <FormField
-                            stretch={true}
-                            description={t('topK')}
-                            errorText={topKKeywordError}
-                          >
-                            <Input
-                              type="number"
-                              value={topKKeyword}
-                              onChange={({ detail }) => {
-                                if (
-                                  parseInt(detail.value) < 1 ||
-                                  parseInt(detail.value) > 100
-                                ) {
-                                  return;
-                                }
-                                setTopKKeywordError('');
-                                setTopKKeyword(detail.value);
-                              }}
-                            />
-                          </FormField>
-                          <FormField
-                            stretch={true}
-                            description={t('threshold')}
-                            errorText={keywordScoreError}
-                          >
-                            <Input
-                              type="number"
-                              step={0.01}
-                              value={keywordScore}
-                              onChange={({ detail }) => {
-                                if (
-                                  parseFloat(detail.value) < 0 ||
-                                  parseFloat(detail.value) > 1
-                                ) {
-                                  return;
-                                }
-                                setKeywordScoreError('');
-                                setKeywordScore(detail.value);
-                              }}
-                            />
-                          </FormField>
-                        </Grid>
-                      </FormField>
-                      <FormField
-                        label={t('recallByEmbedding')}
-                        stretch={true}
-                        description={t('recallByEmbeddingDesc')}
-                      >
-                        <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
-                          <FormField
-                            stretch={true}
-                            description={t('topK')}
-                            errorText={topKEmbeddingError}
-                          >
-                            <Input
-                              type="number"
-                              value={topKEmbedding}
-                              onChange={({ detail }) => {
-                                if (
-                                  parseInt(detail.value) < 1 ||
-                                  parseInt(detail.value) > 100
-                                ) {
-                                  return;
-                                }
-                                setTopKEmbeddingError('');
-                                setTopKEmbedding(detail.value);
-                              }}
-                            />
-                          </FormField>
-                          <FormField
-                            stretch={true}
-                            description={t('threshold')}
-                            errorText={embeddingScoreError}
-                          >
-                            <Input
-                              type="number"
-                              step={0.01}
-                              value={embeddingScore}
-                              onChange={({ detail }) => {
-                                if (
-                                  parseFloat(detail.value) < 0 ||
-                                  parseFloat(detail.value) > 1
-                                ) {
-                                  return;
-                                }
-                                setEmbeddingScoreError('');
-                                setEmbeddingScore(detail.value);
-                              }}
-                            />
-                          </FormField>
-                        </Grid>
-                      </FormField>
-                    </Grid>
 
-                    {/* <FormField
+                      {showEndpoint && (
+                        <Grid gridDefinition={[{ colspan: 11 }]}>
+                          <FormField
+                            label={t('endPoint')}
+                            stretch={true}
+                            errorText={t(endPointError)}
+                            description={t('endPointDesc')}
+                          >
+                            <Input
+                              onChange={({ detail }) => {
+                                setEndPointError('');
+                                setEndPoint(detail.value);
+                              }}
+                              value={endPoint}
+                              placeholder="QWen2-72B-XXXXX"
+                            />
+                          </FormField>
+                        </Grid>
+                      )}
+                    </SpaceBetween>
+                    <div
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        marginBottom: 15,
+                        marginTop: 35,
+                      }}
+                    >
+                      {t('rad')}
+                    </div>
+                    <SpaceBetween size="xs" direction="vertical">
+                      <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                        <FormField
+                          label={t('recallByKeyword')}
+                          stretch={true}
+                          description={t('recallByKeywordDesc')}
+                        >
+                          <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                            <FormField
+                              stretch={true}
+                              description={t('topK')}
+                              errorText={topKKeywordError}
+                            >
+                              <Input
+                                type="number"
+                                value={topKKeyword}
+                                onChange={({ detail }) => {
+                                  if (
+                                    parseInt(detail.value) < 1 ||
+                                    parseInt(detail.value) > 100
+                                  ) {
+                                    return;
+                                  }
+                                  setTopKKeywordError('');
+                                  setTopKKeyword(detail.value);
+                                }}
+                              />
+                            </FormField>
+                            <FormField
+                              stretch={true}
+                              description={t('threshold')}
+                              errorText={keywordScoreError}
+                            >
+                              <Input
+                                type="number"
+                                step={0.01}
+                                value={keywordScore}
+                                onChange={({ detail }) => {
+                                  if (
+                                    parseFloat(detail.value) < 0 ||
+                                    parseFloat(detail.value) > 1
+                                  ) {
+                                    return;
+                                  }
+                                  setKeywordScoreError('');
+                                  setKeywordScore(detail.value);
+                                }}
+                              />
+                            </FormField>
+                          </Grid>
+                        </FormField>
+                        <FormField
+                          label={t('recallByEmbedding')}
+                          stretch={true}
+                          description={t('recallByEmbeddingDesc')}
+                        >
+                          <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                            <FormField
+                              stretch={true}
+                              description={t('topK')}
+                              errorText={topKEmbeddingError}
+                            >
+                              <Input
+                                type="number"
+                                value={topKEmbedding}
+                                onChange={({ detail }) => {
+                                  if (
+                                    parseInt(detail.value) < 1 ||
+                                    parseInt(detail.value) > 100
+                                  ) {
+                                    return;
+                                  }
+                                  setTopKEmbeddingError('');
+                                  setTopKEmbedding(detail.value);
+                                }}
+                              />
+                            </FormField>
+                            <FormField
+                              stretch={true}
+                              description={t('threshold')}
+                              errorText={embeddingScoreError}
+                            >
+                              <Input
+                                type="number"
+                                step={0.01}
+                                value={embeddingScore}
+                                onChange={({ detail }) => {
+                                  if (
+                                    parseFloat(detail.value) < 0 ||
+                                    parseFloat(detail.value) > 1
+                                  ) {
+                                    return;
+                                  }
+                                  setEmbeddingScoreError('');
+                                  setEmbeddingScore(detail.value);
+                                }}
+                              />
+                            </FormField>
+                          </Grid>
+                        </FormField>
+                      </Grid>
+
+                      {/* <FormField
                         label={t('topKRetrievals')}
                         stretch={true}
                         description={t('topKRetrievalsDesc')}
@@ -1378,7 +1378,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                           }}
                         />
                       </FormField> */}
-                    {/* <FormField
+                      {/* <FormField
                         label={t('score')}
                         stretch={true}
                         description={t('scoreDesc')}
@@ -1401,8 +1401,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         />
                       </FormField>
                     </Grid> */}
-                    <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
-                      {/* <FormField
+                      <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                        {/* <FormField
                         label={t('topKKeyword')}
                         stretch={true}
                         description={t('topKKeywordDesc')}
@@ -1440,288 +1440,288 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         />
                       </FormField> */}
 
+                        <FormField
+                          label={t('topKRerank')}
+                          stretch={true}
+                          description={t('topKRerankDesc')}
+                          errorText={t(topKRerankError)}
+                        >
+                          <Input
+                            type="number"
+                            value={topKRerank}
+                            onChange={({ detail }) => {
+                              if (
+                                parseInt(detail.value) < 0 ||
+                                parseInt(detail.value) > 100
+                              ) {
+                                return;
+                              }
+                              setTopKRerankError('');
+                              setTopKRerank(detail.value);
+                            }}
+                          />
+                        </FormField>
+                        <FormField
+                          label={t('temperature')}
+                          stretch={true}
+                          errorText={t(temperatureError)}
+                          description={t('temperatureDesc')}
+                        >
+                          <Input
+                            type="number"
+                            step={0.01}
+                            value={temperature}
+                            onChange={({ detail }) => {
+                              if (
+                                parseFloat(detail.value) < 0 ||
+                                parseFloat(detail.value) > 1
+                              ) {
+                                return;
+                              }
+                              setTemperatureError('');
+                              setTemperature(detail.value);
+                            }}
+                          />
+                        </FormField>
+                      </Grid>
                       <FormField
-                        label={t('topKRerank')}
-                        stretch={true}
-                        description={t('topKRerankDesc')}
-                        errorText={t(topKRerankError)}
+                        label={t('additionalSettings')}
+                        errorText={t(additionalConfigError)}
                       >
-                        <Input
-                          type="number"
-                          value={topKRerank}
+                        <Textarea
+                          rows={7}
+                          value={additionalConfig}
                           onChange={({ detail }) => {
-                            if (
-                              parseInt(detail.value) < 0 ||
-                              parseInt(detail.value) > 100
-                            ) {
-                              return;
-                            }
-                            setTopKRerankError('');
-                            setTopKRerank(detail.value);
+                            setAdditionalConfigError('');
+                            setAdditionalConfig(detail.value);
                           }}
+                          placeholder={JSON.stringify(
+                            {
+                              key: 'value',
+                              key2: ['value1', 'value2'],
+                            },
+                            null,
+                            4,
+                          )}
                         />
                       </FormField>
-                      <FormField
-                        label={t('temperature')}
-                        stretch={true}
-                        errorText={t(temperatureError)}
-                        description={t('temperatureDesc')}
-                      >
-                        <Input
-                          type="number"
-                          step={0.01}
-                          value={temperature}
-                          onChange={({ detail }) => {
-                            if (
-                              parseFloat(detail.value) < 0 ||
-                              parseFloat(detail.value) > 1
-                            ) {
-                              return;
-                            }
-                            setTemperatureError('');
-                            setTemperature(detail.value);
-                          }}
-                        />
-                      </FormField>
-                    </Grid>
-                    <FormField
-                      label={t('additionalSettings')}
-                      errorText={t(additionalConfigError)}
-                    >
-                      <Textarea
-                        rows={7}
-                        value={additionalConfig}
-                        onChange={({ detail }) => {
-                          setAdditionalConfigError('');
-                          setAdditionalConfig(detail.value);
-                        }}
-                        placeholder={JSON.stringify(
-                          {
-                            key: 'value',
-                            key2: ['value1', 'value2'],
-                          },
-                          null,
-                          4,
-                        )}
+                    </SpaceBetween>
+                  </ExpandableSection>
+                </div>
+              }
+            >
+              <div className="chat-container mt-10">
+                <div className="chat-message flex-v flex-1 gap-10">
+                  {messages.map((msg, index) => (
+                    <div key={identity(index)}>
+                      <Message
+                        showTrace={showTrace}
+                        type={msg.type}
+                        message={msg.message}
                       />
-                    </FormField>
-                  </SpaceBetween>
-                </ExpandableSection>
-              </div>
-            }
-          >
-            <div className="chat-container mt-10">
-              <div className="chat-message flex-v flex-1 gap-10">
-                {messages.map((msg, index) => (
-                  <div key={identity(index)}>
-                    <Message
-                      showTrace={showTrace}
-                      type={msg.type}
-                      message={msg.message}
-                    />
-                    {msg.type === 'ai' && index !== 0 && (
-                      <div
-                        className="feedback-buttons"
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'flex-end',
-                          gap: '8px',
+                      {msg.type === 'ai' && index !== 0 && (
+                        <div
+                          className="feedback-buttons"
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            gap: '8px',
+                          }}
+                        >
+                          <Button
+                            iconName="refresh"
+                            variant="icon"
+                            disabled={aiSpeaking}
+                            onClick={() => handleRegenerateMessage(index)}
+                            ariaLabel={t('regenerate')}
+                          />
+                          <Button
+                            iconName={
+                              feedbackGiven[index] === 'thumb_up'
+                                ? 'thumbs-up-filled'
+                                : 'thumbs-up'
+                            }
+                            variant="icon"
+                            onClick={() => handleThumbUpClick(index)}
+                            ariaLabel={t('feedback.helpful')}
+                          />
+                          <Button
+                            iconName={
+                              feedbackGiven[index] === 'thumb_down'
+                                ? 'thumbs-down-filled'
+                                : 'thumbs-down'
+                            }
+                            variant="icon"
+                            onClick={() => handleThumbDownClick(index)}
+                            ariaLabel={t('feedback.notHelpful')}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {aiSpeaking && (
+                    <div>
+                      <Message
+                        aiSpeaking={aiSpeaking}
+                        type="ai"
+                        showTrace={showTrace}
+                        message={{
+                          data: currentAIMessage,
+                          monitoring: currentMonitorMessage,
                         }}
-                      >
-                        <Button
-                          iconName="refresh"
-                          variant="icon"
-                          disabled={aiSpeaking}
-                          onClick={() => handleRegenerateMessage(index)}
-                          ariaLabel={t('regenerate')}
-                        />
-                        <Button
-                          iconName={
-                            feedbackGiven[index] === 'thumb_up'
-                              ? 'thumbs-up-filled'
-                              : 'thumbs-up'
-                          }
-                          variant="icon"
-                          onClick={() => handleThumbUpClick(index)}
-                          ariaLabel={t('feedback.helpful')}
-                        />
-                        <Button
-                          iconName={
-                            feedbackGiven[index] === 'thumb_down'
-                              ? 'thumbs-down-filled'
-                              : 'thumbs-down'
-                          }
-                          variant="icon"
-                          onClick={() => handleThumbDownClick(index)}
-                          ariaLabel={t('feedback.notHelpful')}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {aiSpeaking && (
-                  <div>
-                    <Message
-                      aiSpeaking={aiSpeaking}
-                      type="ai"
-                      showTrace={showTrace}
-                      message={{
-                        data: currentAIMessage,
-                        monitoring: currentMonitorMessage,
-                      }}
-                    />
-                    {isMessageEnd && (
-                      <div
-                        className="feedback-buttons"
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'flex-end',
-                          gap: '8px',
-                        }}
-                      >
-                        <Button
-                          iconName="refresh"
-                          variant="icon"
-                          disabled={aiSpeaking}
-                          onClick={() =>
-                            handleRegenerateMessage(messages.length)
-                          }
-                          ariaLabel={t('regenerate')}
-                        />
-                        <Button
-                          iconName={
-                            feedbackGiven[messages.length] === 'thumb_up'
-                              ? 'thumbs-up-filled'
-                              : 'thumbs-up'
-                          }
-                          variant="icon"
-                          onClick={() => handleThumbUpClick(messages.length)}
-                          ariaLabel={t('feedback.helpful')}
-                        />
-                        <Button
-                          iconName={
-                            feedbackGiven[messages.length] === 'thumb_down'
-                              ? 'thumbs-down-filled'
-                              : 'thumbs-down'
-                          }
-                          variant="icon"
-                          onClick={() => handleThumbDownClick(messages.length)}
-                          ariaLabel={t('feedback.notHelpful')}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                      />
+                      {isMessageEnd && (
+                        <div
+                          className="feedback-buttons"
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            gap: '8px',
+                          }}
+                        >
+                          <Button
+                            iconName="refresh"
+                            variant="icon"
+                            disabled={aiSpeaking}
+                            onClick={() =>
+                              handleRegenerateMessage(messages.length)
+                            }
+                            ariaLabel={t('regenerate')}
+                          />
+                          <Button
+                            iconName={
+                              feedbackGiven[messages.length] === 'thumb_up'
+                                ? 'thumbs-up-filled'
+                                : 'thumbs-up'
+                            }
+                            variant="icon"
+                            onClick={() => handleThumbUpClick(messages.length)}
+                            ariaLabel={t('feedback.helpful')}
+                          />
+                          <Button
+                            iconName={
+                              feedbackGiven[messages.length] === 'thumb_down'
+                                ? 'thumbs-down-filled'
+                                : 'thumbs-down'
+                            }
+                            variant="icon"
+                            onClick={() => handleThumbDownClick(messages.length)}
+                            ariaLabel={t('feedback.notHelpful')}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-              <div className="flex-v gap-10">
-                {selectedFiles.length > 0 && (
-                  <div className="image-preview">
-                    {selectedFiles.map((file, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          position: 'relative',
-                          display: 'inline-block',
-                          marginRight: '10px',
-                        }}
-                      >
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={`Preview ${index + 1}`}
-                          style={{ maxWidth: '100px', maxHeight: '100px' }}
-                        />
-                        <Button
-                          iconName="close"
-                          variant="icon"
-                          onClick={() => handleRemoveFile(index)}
-                          ariaLabel={t('button.removeImage')}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex gap-5 send-message">
-                  <Select
-                    options={chatbotList}
-                    loadingText="loading..."
-                    selectedOption={chatbotOption}
-                    onChange={({ detail }) => {
-                      setChatbotOption(detail.selectedOption);
-                      // Remove history chatbot ID from localStorage when manually changing chatbot
-                      // Next time it will only use current_chatbot in localStorage
-                      localStorage.removeItem(HISTORY_CHATBOT_ID);
-                    }}
-                  />
-                  <div className="flex-1 pr">
-                    <Textarea
-                      invalid={showMessageError}
-                      rows={1}
-                      value={userMessage}
-                      placeholder={t('typeMessage')}
-                      onChange={(e) => {
-                        setShowMessageError(false);
-                        setUserMessage(e.detail.value);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.detail.key === 'Enter' && !isComposing) {
-                          e.preventDefault();
-                          handleClickSendMessage();
-                        }
+                <div className="flex-v gap-10">
+                  {selectedFiles.length > 0 && (
+                    <div className="image-preview">
+                      {selectedFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            position: 'relative',
+                            display: 'inline-block',
+                            marginRight: '10px',
+                          }}
+                        >
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Preview ${index + 1}`}
+                            style={{ maxWidth: '100px', maxHeight: '100px' }}
+                          />
+                          <Button
+                            iconName="close"
+                            variant="icon"
+                            onClick={() => handleRemoveFile(index)}
+                            ariaLabel={t('button.removeImage')}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-5 send-message">
+                    <Select
+                      options={chatbotList}
+                      loadingText="loading..."
+                      selectedOption={chatbotOption}
+                      onChange={({ detail }) => {
+                        setChatbotOption(detail.selectedOption);
+                        // Remove history chatbot ID from localStorage when manually changing chatbot
+                        // Next time it will only use current_chatbot in localStorage
+                        localStorage.removeItem(HISTORY_CHATBOT_ID);
                       }}
                     />
-                  </div>
-                  <div>{renderSendButton()}</div>
-                </div>
-                <div>
-                  <div className="flex space-between">
-                    <div className="flex gap-10 align-center">
-                      <Toggle
-                        onChange={({ detail }) =>
-                          setUseChatHistory(detail.checked)
-                        }
-                        checked={useChatHistory}
-                      >
-                        {t('multiRound')}
-                      </Toggle>
-                      <Toggle
-                        onChange={({ detail }) =>
-                          setEnableTrace(detail.checked)
-                        }
-                        checked={enableTrace}
-                      >
-                        {t('enableTrace')}
-                      </Toggle>
-                      <Toggle
-                        onChange={({ detail }) =>
-                          setShowFigures(detail.checked)
-                        }
-                        checked={showFigures}
-                      >
-                        {t('showFigures')}
-                      </Toggle>
-                      <Toggle
-                        onChange={({ detail }) =>
-                          setOnlyRAGTool(detail.checked)
-                        }
-                        checked={onlyRAGTool}
-                      >
-                        {t('onlyUseRAGTool')}
-                      </Toggle>
+                    <div className="flex-1 pr">
+                      <Textarea
+                        invalid={showMessageError}
+                        rows={1}
+                        value={userMessage}
+                        placeholder={t('typeMessage')}
+                        onChange={(e) => {
+                          setShowMessageError(false);
+                          setUserMessage(e.detail.value);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.detail.key === 'Enter' && !isComposing) {
+                            e.preventDefault();
+                            handleClickSendMessage();
+                          }
+                        }}
+                      />
                     </div>
-                    <div className="flex align-center gap-10">
-                      <Box variant="p">{t('server')}: </Box>
-                      <StatusIndicator type={connectionStatus as any}>
-                        {t(connectionStatus)}
-                      </StatusIndicator>
+                    <div>{renderSendButton()}</div>
+                  </div>
+                  <div>
+                    <div className="flex space-between">
+                      <div className="flex gap-10 align-center">
+                        <Toggle
+                          onChange={({ detail }) =>
+                            setUseChatHistory(detail.checked)
+                          }
+                          checked={useChatHistory}
+                        >
+                          {t('multiRound')}
+                        </Toggle>
+                        <Toggle
+                          onChange={({ detail }) =>
+                            setEnableTrace(detail.checked)
+                          }
+                          checked={enableTrace}
+                        >
+                          {t('enableTrace')}
+                        </Toggle>
+                        <Toggle
+                          onChange={({ detail }) =>
+                            setShowFigures(detail.checked)
+                          }
+                          checked={showFigures}
+                        >
+                          {t('showFigures')}
+                        </Toggle>
+                        <Toggle
+                          onChange={({ detail }) =>
+                            setOnlyRAGTool(detail.checked)
+                          }
+                          checked={onlyRAGTool}
+                        >
+                          {t('onlyUseRAGTool')}
+                        </Toggle>
+                      </div>
+                      <div className="flex align-center gap-10">
+                        <Box variant="p">{t('server')}: </Box>
+                        <StatusIndicator type={connectionStatus as any}>
+                          {t(connectionStatus)}
+                        </StatusIndicator>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </Container>
+            </Container>
           )}
-          
+
         </ContentLayout>
       </div>
     </CommonLayout>

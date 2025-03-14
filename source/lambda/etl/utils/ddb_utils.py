@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timezone
 
 from constant import KBType, ModelType, UiStatus
-from utils.embeddings import get_embedding_info
+from utils.embeddings import get_embedding_dimension
 
 logger = logging.getLogger(__name__)
 
@@ -39,19 +39,27 @@ def initiate_embedding_model(
     *,
     model_table,
     group_name,
-    model_id,
-    embedding_endpoint,
-    model_provider,
+    model_item_id,
+    embedding_model_provider,
+    embedding_model_id,
+    embedding_model_endpoint,
     base_url,
     api_key_arn,
     create_time,
     additional_config,
 ):
-    embedding_info = get_embedding_info(embedding_endpoint)
-    embedding_info["ModelEndpoint"] = embedding_endpoint
-    embedding_info["ModelProvider"] = model_provider
-    embedding_info["BaseUrl"] = base_url
-    embedding_info["ApiKeyArn"] = api_key_arn
+    embedding_model_dimension = get_embedding_dimension(embedding_model_id)[
+        "modelDimension"
+    ]
+    embedding_info = {
+        "modelProvider": embedding_model_provider,
+        "modelId": embedding_model_id,
+        "modelEndpoint": embedding_model_endpoint,
+        "baseUrl": base_url,
+        "apiKeyArn": api_key_arn,
+        "modelDimension": embedding_model_dimension,
+    }
+
     try:
         additional_config_dict = json.loads(additional_config)
     except Exception as e:
@@ -63,40 +71,42 @@ def initiate_embedding_model(
 
     item_content = {
         "groupName": group_name,
-        "modelId": model_id,
+        "modelId": model_item_id,
         "modelType": ModelType.EMBEDDING.value,
         "parameter": embedding_info,
         "createTime": create_time,
         "updateTime": create_time,
         "status": UiStatus.ACTIVE.value,
     }
-    if embedding_info["ModelType"] == "bce":
-        item_content["parameter"]["TargetModel"] = "bce_embedding_model.tar.gz"
+    if embedding_info["modelId"] == "bce-embedding-base_v1":
+        item_content["parameter"]["targetModel"] = "bce_embedding_model.tar.gz"
     create_item(
         model_table,
-        {"groupName": group_name, "modelId": model_id},
+        {"groupName": group_name, "modelId": model_item_id},
         item_content,
     )
-    return embedding_info["ModelProvider"]
+    return embedding_info["modelProvider"]
 
 
 def initiate_rerank_model(
     *,
     model_table,
     group_name,
-    model_id,
-    rerank_endpoint,
-    model_provider,
+    model_item_id,
+    rerank_model_provider,
+    rerank_model_id,
+    rerank_model_endpoint,
     base_url,
     api_key_arn,
     create_time,
     additional_config,
 ):
     rerank_info = {
-        "ModelEndpoint": rerank_endpoint,
-        "ModelProvider": model_provider,
-        "BaseUrl": base_url,
-        "ApiKeyArn": api_key_arn,
+        "modelProvider": rerank_model_provider,
+        "modelId": rerank_model_id,
+        "modelEndpoint": rerank_model_endpoint,
+        "baseUrl": base_url,
+        "apiKeyArn": api_key_arn,
     }
     try:
         additional_config_dict = json.loads(additional_config)
@@ -108,7 +118,7 @@ def initiate_rerank_model(
 
     item_content = {
         "groupName": group_name,
-        "modelId": model_id,
+        "modelId": model_item_id,
         "modelType": ModelType.RERANK.value,
         "parameter": rerank_info,
         "createTime": create_time,
@@ -117,33 +127,35 @@ def initiate_rerank_model(
     }
     create_item(
         model_table,
-        {"groupName": group_name, "modelId": model_id},
+        {"groupName": group_name, "modelId": model_item_id},
         item_content,
     )
-    return rerank_info["ModelProvider"]
+    return rerank_info["modelProvider"]
 
 
 def initiate_vlm_model(
     *,
     model_table,
     group_name,
-    model_id,
-    vlm_endpoint,
-    model_provider,
+    model_item_id,
+    vlm_model_provider,
+    vlm_model_id,
+    vlm_model_endpoint,
     base_url,
     api_key_arn,
     create_time,
 ):
     vlm_info = {
-        "ModelEndpoint": vlm_endpoint,
-        "ModelProvider": model_provider,
-        "BaseUrl": base_url,
-        "ApiKeyArn": api_key_arn,
+        "modelProvider": vlm_model_provider,
+        "modelId": vlm_model_id,
+        "modelEndpoint": vlm_model_endpoint,
+        "baseUrl": base_url,
+        "apiKeyArn": api_key_arn,
     }
 
     item_content = {
         "groupName": group_name,
-        "modelId": model_id,
+        "modelId": model_item_id,
         "modelType": ModelType.VLM.value,
         "parameter": vlm_info,
         "createTime": create_time,
@@ -152,10 +164,10 @@ def initiate_vlm_model(
     }
     create_item(
         model_table,
-        {"groupName": group_name, "modelId": model_id},
+        {"groupName": group_name, "modelId": model_item_id},
         item_content,
     )
-    return vlm_info["ModelProvider"]
+    return vlm_info["modelProvider"]
 
 
 def initiate_index(
@@ -163,7 +175,8 @@ def initiate_index(
     index_table,
     group_name,
     index_id,
-    model_id,
+    embedding_model_item_id,
+    rerank_model_item_id,
     index_type,
     tag,
     description,
@@ -182,7 +195,10 @@ def initiate_index(
             "indexId": index_id,
             "indexType": index_type,
             "kbType": KBType.AOS.value,
-            "modelIds": {"embedding": model_id},
+            "modelIds": {
+                "embedding": embedding_model_item_id,
+                "rerank": rerank_model_item_id,
+            },
             "tag": tag,
             "description": description,
             "createTime": create_time,
