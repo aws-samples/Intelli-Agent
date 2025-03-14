@@ -137,7 +137,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
 
   private deployEmbeddingAndRerankerEndpoint(props: ModelConstructProps) {
     // Deploy Embedding and Reranker model
-    let embeddingAndRerankerModelPrefix = props.config.model.embeddingsModels[0].id ?? "";
+    let embeddingAndRerankerModelPrefix = (props.config.model.embeddingsModels[0].id ?? "").replace(/_/g, "-");
     let embeddingAndRerankerModelVersion = props.config.model.embeddingsModels[0].commitId ?? "";
     let embeddingAndRerankerEndpointInstanceType = "ml.g4dn.4xlarge";
     let embeddingAndRerankerModelName = embeddingAndRerankerModelPrefix + "-" + embeddingAndRerankerModelVersion.slice(0, 5)
