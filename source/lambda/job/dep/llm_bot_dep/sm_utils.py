@@ -1,7 +1,6 @@
 import io
 import json
 import logging
-import os
 from typing import Any, Dict, Iterator, List, Mapping, Optional
 
 import boto3
@@ -28,7 +27,7 @@ session = boto3.session.Session()
 secret_manager_client = session.client(service_name="secretsmanager")
 
 
-def get_model_details(group_name: str, chatbot_id: str, table_name: str):
+def get_model_details(group_name: str, chatbot_id: str, model_table):
     """Get model details from DynamoDB table
 
     Args:
@@ -39,12 +38,10 @@ def get_model_details(group_name: str, chatbot_id: str, table_name: str):
     Returns:
         dict: Model details from DynamoDB
     """
-    dynamodb = boto3.resource("dynamodb")
-    table = dynamodb.Table(table_name)
     model_id = f"{chatbot_id}-embedding"
 
     try:
-        response = table.get_item(
+        response = model_table.get_item(
             Key={"groupName": group_name, "modelId": model_id}
         )
 
@@ -513,22 +510,19 @@ def getCustomEmbeddings(
     endpoint_name: str,
     region_name: str,
     bedrock_region: str,
-    model_type: str,
-    group_name: str,
-    chatbot_id: str,
-    model_table: str,
+    embedding_model_info: Dict,
 ) -> SagemakerEndpointEmbeddings:
     embeddings = None
-    model_details = get_model_details(group_name, chatbot_id, model_table)
-    model_provider = model_details["parameter"].get("ModelProvider", "Bedrock")
-    base_url = model_details["parameter"].get("BaseUrl", "")
-    api_key_arn = model_details["parameter"].get("ApiKeyArn", "")
-    logger.info(model_details)
+    model_provider = embedding_model_info.get("ModelProvider", "Bedrock")
+    base_url = embedding_model_info.get("BaseUrl", "")
+    api_key_arn = embedding_model_info.get("ApiKeyArn", "")
+    logger.info(embedding_model_info)
 
     if model_provider not in ["Bedrock API", "OpenAI API"]:
         # Use local models
         client = boto3.client("sagemaker-runtime", region_name=region_name)
-        if model_type == "bedrock":
+        logger.info(f"model_type: {embedding_model_info.get('ModelType')}")
+        if embedding_model_info.get("ModelType") == "bedrock":
             bedrock_client = boto3.client(
                 "bedrock-runtime", region_name=bedrock_region
             )
@@ -538,7 +532,7 @@ def getCustomEmbeddings(
                 model_id=endpoint_name,
                 normalize=True,
             )
-        elif model_type == "bce":
+        elif embedding_model_info.get("ModelType") == "bce":
             content_handler = vectorContentHandler()
             embeddings = SagemakerEndpointEmbeddings(
                 client=client,

@@ -38,7 +38,7 @@ class figureUnderstand:
             model_sagemaker_endpoint_name (str): The name of the SageMaker endpoint for the model
         """
         self.model_provider = model_provider
-        if model_provider == "bedrock":
+        if model_provider == "Bedrock":
             session = boto3.session.Session()
             bedrock_region = session.region_name
 
@@ -56,7 +56,7 @@ class figureUnderstand:
             if not model_id.startswith(model_prefix):
                 model_id = model_prefix + model_id
             self.model_id = model_id
-        elif model_provider == "openai":
+        elif model_provider == "OpenAI API":
             self.openai_api_key = self._get_api_key(model_secret_name)
 
             openai.api_key = self.openai_api_key
@@ -65,12 +65,12 @@ class figureUnderstand:
 
             self.openai_client = openai
 
-        elif model_provider == "sagemaker":
+        elif model_provider == "SageMaker":
             self.sagemaker_client = boto3.client("sagemaker-runtime")
             self.model_sagemaker_endpoint_name = model_sagemaker_endpoint_name
         else:
             raise ValueError(
-                "Unsupported model provider. Choose 'bedrock' or 'openai' or 'sagemaker'"
+                "Unsupported model provider. Choose 'Bedrock' or 'OpenAI API' or 'SageMaker'"
             )
 
         self.mermaid_prompt = json.load(open("prompt/mermaid.json", "r"))
@@ -113,11 +113,11 @@ class figureUnderstand:
         return base64.b64encode(image_stream.getvalue()).decode("utf-8")
 
     def invoke_llm(self, img, prompt, prefix="<output>", stop="</output>"):
-        if self.model_provider == "bedrock":
+        if self.model_provider == "Bedrock":
             return self._invoke_bedrock(img, prompt, prefix, stop)
-        elif self.model_provider == "openai":
+        elif self.model_provider == "OpenAI API":
             return self._invoke_openai(img, prompt, prefix, stop)
-        elif self.model_provider == "sagemaker":
+        elif self.model_provider == "SageMaker":
             return self._invoke_sagemaker(img, prompt, prefix, stop)
 
     def _invoke_bedrock(self, img, prompt, prefix="<output>", stop="</output>"):
