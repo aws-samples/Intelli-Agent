@@ -454,7 +454,7 @@ class OpenSearchIngestionWorker:
                 embeddings_vectors_list.append(
                     embeddings_vectors[0]["dense_vecs"][doc_id]
                 )
-                metadata["embedding_endpoint_name"] = self.embedding_model_id
+                metadata["embedding_model_id"] = self.embedding_model_id
                 metadata_list.append(metadata)
             embeddings_vectors = embeddings_vectors_list
             metadatas = metadata_list
