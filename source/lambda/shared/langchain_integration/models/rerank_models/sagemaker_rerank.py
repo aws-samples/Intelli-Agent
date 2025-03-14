@@ -238,8 +238,8 @@ class SageMakerMultiModelRerankModelBase(RerankModelBase,BaseDocumentCompressor)
         model_kwargs = model_kwargs or None
         logger.info("Model kwargs: ")
         logger.info(kwargs)
-        target_model = kwargs.get("target_model")
-        model_id = kwargs.get("model_endpoint")
+        target_model = kwargs.get("sagemaker_target_model")
+        endpoint_name = kwargs.get("sagemaker_endpoint_name")
 
         endpoint_kwargs = cls.endpoint_kwargs.copy()
         if target_model:
@@ -253,7 +253,7 @@ class SageMakerMultiModelRerankModelBase(RerankModelBase,BaseDocumentCompressor)
             client=client,
             credentials_profile_name=credentials_profile_name,
             region_name=region_name,
-            endpoint_name=model_id,
+            endpoint_name=endpoint_name,
             content_handler=content_handler,
         )
         return rerank_model

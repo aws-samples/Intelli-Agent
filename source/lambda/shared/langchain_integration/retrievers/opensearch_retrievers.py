@@ -143,8 +143,10 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
             top_k=top_k, 
             **kwargs
         )
-
+        logger.info(f'bm25 search query:\n {search_query_dict}')
         search_res = await self.database.asearch(search_query_dict)
+        logger.info(f'bm25 search ret:\n {search_res}')
+        
         results = await self.aextend_bm25_search_results(search_res, **kwargs)
         # fileter documents 
         results = [
@@ -165,9 +167,9 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
             **kwargs
         )
         vector_search_threshold = kwargs.get("vector_search_threshold",self.vector_search_threshold)
-        print('vector search query: ',search_query_dict)
+        logger.info(f'vector search query: \n{search_query_dict}')
         search_res = await self.database.asearch(search_query_dict)
-        print('vector search ret: ',search_res)
+        logger.info(f'vector search ret: \n {search_res}')
         results = await self.aextend_vector_search_results(search_res, **kwargs)
 
         results = [
