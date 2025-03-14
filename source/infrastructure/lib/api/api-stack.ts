@@ -365,6 +365,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         scope, "ChatbotManagementApi", {
         api: this.api,
         auth: this.auth,
+        config: props.config,
         indexTableName: props.sharedConstructOutputs.indexTable.tableName,
         chatbotTableName: props.sharedConstructOutputs.chatbotTable.tableName,
         modelTableName: props.sharedConstructOutputs.modelTable.tableName,

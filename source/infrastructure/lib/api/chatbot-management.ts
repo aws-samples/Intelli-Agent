@@ -22,11 +22,13 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { Provider } from "aws-cdk-lib/custom-resources";
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { CustomResource } from "aws-cdk-lib";
+import { SystemConfig } from "../shared/types";
 
 export interface ChatbotManagementApiProps {
     api: apigw.RestApi;
     auth: apigw.RequestAuthorizer;
     indexTableName: string;
+    config: SystemConfig;
     chatbotTableName: string;
     modelTableName: string;
     defaultEmbeddingModelName: string;
@@ -157,6 +159,7 @@ export class ChatbotManagementApi extends Construct {
                 MODEL_TABLE_NAME: props.modelTableName,
                 CHATBOT_TABLE_NAME: props.chatbotTableName,
                 INDEX_TABLE_NAME: props.indexTableName,
+                MODEL_INFO: JSON.stringify(props.config.model)
             },
             layers: [props.sharedLayer]
         });
