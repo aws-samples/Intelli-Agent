@@ -49,8 +49,9 @@ def initiate_embedding_model(
     additional_config,
 ):
     embedding_info = get_embedding_info(embedding_model_id)
-    embedding_info["modelEndpoint"] = embedding_model_endpoint
     embedding_info["modelProvider"] = embedding_model_provider
+    embedding_info["modelId"] = embedding_model_id
+    embedding_info["modelEndpoint"] = embedding_model_endpoint
     embedding_info["baseUrl"] = base_url
     embedding_info["apiKeyArn"] = api_key_arn
     try:
@@ -71,14 +72,14 @@ def initiate_embedding_model(
         "updateTime": create_time,
         "status": UiStatus.ACTIVE.value,
     }
-    if embedding_info["ModelId"] == "bce-embedding-base_v1":
+    if embedding_info["modelId"] == "bce-embedding-base_v1":
         item_content["parameter"]["TargetModel"] = "bce_embedding_model.tar.gz"
     create_item(
         model_table,
         {"groupName": group_name, "modelId": model_item_id},
         item_content,
     )
-    return embedding_info["ModelProvider"]
+    return embedding_info["modelProvider"]
 
 
 def initiate_rerank_model(
