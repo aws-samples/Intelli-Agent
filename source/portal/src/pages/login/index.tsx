@@ -357,11 +357,12 @@ const Login: FC = () => {
     <div style={{ paddingTop: '20%', paddingLeft: '50%' }}>
       <Spinner size="large" />
     </div>
-  ) : (
+  ) : (<>
     <div className="login-div">
+    
       <SpaceBetween direction="vertical" size="m">
         <div className="container">
-          <div className="banner">{projectName}</div>
+        <div className="banner">{projectName}</div>
           <div className="sub-title">
             {t('auth:support-prefix')} {author} {t('auth:support-postfix')}{' '}
             <Link variant="info" onFollow={() => changeLanguage()}>
@@ -449,7 +450,7 @@ const Login: FC = () => {
           </div>
         </div>
       </SpaceBetween>
-    </div>
+    </div></>
   );
 };
 
