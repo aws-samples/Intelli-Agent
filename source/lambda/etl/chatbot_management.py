@@ -18,7 +18,6 @@ from utils.ddb_utils import (
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 region_name = os.environ.get("AWS_REGION")
-embedding_endpoint = os.environ.get("EMBEDDING_ENDPOINT")
 dynamodb = boto3.resource("dynamodb", region_name=region_name)
 dynamodb_client = boto3.client("dynamodb")
 index_table = dynamodb.Table(os.environ.get("INDEX_TABLE_NAME"))
@@ -72,9 +71,10 @@ def create_chatbot(event, group_name):
     embedding_model_provider = embedding_model_info.get(
         "modelProvider", ModelProvider.BEDROCK.value
     )
+    embedding_model_id = embedding_model_info.get("modelId")
+    embedding_model_endpoint = embedding_model_info.get("modelEndpoint", "")
     embedding_base_url = embedding_model_info.get("baseUrl", "")
     embedding_api_key_arn = embedding_model_info.get("apiKeyArn", "")
-    embedding_model_id = embedding_model_info.get("modelId", embedding_endpoint)
     embedding_additional_config = embedding_model_info.get(
         "additionalConfig", ""
     )
@@ -82,9 +82,10 @@ def create_chatbot(event, group_name):
     initiate_embedding_model(
         model_table=model_table,
         group_name=group_name,
-        model_id=f"{chatbot_id}-embedding",
-        embedding_endpoint=embedding_model_id,
-        model_provider=embedding_model_provider,
+        model_item_id=f"{chatbot_id}-embedding",
+        embedding_model_provider=embedding_model_provider,
+        embedding_model_id=embedding_model_id,
+        embedding_model_endpoint=embedding_model_endpoint,
         base_url=embedding_base_url,
         api_key_arn=embedding_api_key_arn,
         create_time=create_time,
@@ -96,17 +97,19 @@ def create_chatbot(event, group_name):
     rerank_model_provider = rerank_model_info.get(
         "modelProvider", ModelProvider.BEDROCK.value
     )
+    rerank_model_id = rerank_model_info.get("modelId", "")
+    rerank_model_endpoint = rerank_model_info.get("modelEndpoint", "")
     rerank_base_url = rerank_model_info.get("baseUrl", "")
     rerank_api_key_arn = rerank_model_info.get("apiKeyArn", "")
-    rerank_model_id = rerank_model_info.get("modelId", "")
     rerank_additional_config = rerank_model_info.get("additionalConfig", "")
 
     initiate_rerank_model(
         model_table=model_table,
         group_name=group_name,
-        model_id=f"{chatbot_id}-rerank",
-        rerank_endpoint=rerank_model_id,
-        model_provider=rerank_model_provider,
+        model_item_id=f"{chatbot_id}-rerank",
+        rerank_model_provider=rerank_model_provider,
+        rerank_model_id=rerank_model_id,
+        rerank_model_endpoint=rerank_model_endpoint,
         base_url=rerank_base_url,
         api_key_arn=rerank_api_key_arn,
         create_time=create_time,
@@ -118,16 +121,18 @@ def create_chatbot(event, group_name):
     vlm_model_provider = vlm_model_info.get(
         "modelProvider", ModelProvider.BEDROCK.value
     )
+    vlm_model_id = vlm_model_info.get("modelId", "")
+    vlm_model_endpoint = vlm_model_info.get("modelEndpoint", "")
     vlm_base_url = vlm_model_info.get("baseUrl", "")
     vlm_api_key_arn = vlm_model_info.get("apiKeyArn", "")
-    vlm_model_id = vlm_model_info.get("modelId", "")
 
     initiate_vlm_model(
         model_table=model_table,
         group_name=group_name,
-        model_id=f"{chatbot_id}-vlm",
-        vlm_endpoint=vlm_model_id,
-        model_provider=vlm_model_provider,
+        model_item_id=f"{chatbot_id}-vlm",
+        vlm_model_provider=vlm_model_provider,
+        vlm_model_id=vlm_model_id,
+        vlm_model_endpoint=vlm_model_endpoint,
         base_url=vlm_base_url,
         api_key_arn=vlm_api_key_arn,
         create_time=create_time,
@@ -176,7 +181,8 @@ def create_chatbot(event, group_name):
                 index_table=index_table,
                 group_name=group_name,
                 index_id=index_id,
-                model_id=f"{chatbot_id}-embedding",
+                embedding_model_item_id=f"{chatbot_id}-embedding",
+                rerank_model_item_id=f"{chatbot_id}-rerank",
                 index_type=index_type,
                 tag=tag,
                 description=index[index_type].get(index_id),
@@ -197,24 +203,21 @@ def create_chatbot(event, group_name):
         "chatbotId": chatbot_id,
         "updateTime": create_time,
         "embeddingModel": {
-            "modelId": f"{chatbot_id}-embedding",
-            "modelEndpoint": embedding_model_id,
-            "modelName": embedding_model_id,
             "modelProvider": embedding_model_provider,
+            "modelId": embedding_model_id,
+            "modelEndpoint": embedding_model_endpoint,
             "baseUrl": embedding_base_url,
         },
         "rerankModel": {
-            "modelId": f"{chatbot_id}-rerank",
-            "modelEndpoint": rerank_model_id,
-            "modelName": "",
             "modelProvider": rerank_model_provider,
+            "modelId": rerank_model_id,
+            "modelEndpoint": rerank_model_endpoint,
             "baseUrl": rerank_base_url,
         },
         "vlmModel": {
-            "modelId": f"{chatbot_id}-vlm",
-            "modelEndpoint": vlm_model_id,
-            "modelName": "",
             "modelProvider": vlm_model_provider,
+            "modelId": vlm_model_id,
+            "modelEndpoint": vlm_model_endpoint,
             "baseUrl": vlm_base_url,
         },
         "indexes": indexes,
@@ -242,19 +245,18 @@ def get_model_info(group_name, chatbot_id, model_type):
     Returns:
         Dict with model information
     """
-    model_id = f"{chatbot_id}-{model_type}"
+    model_item_id = f"{chatbot_id}-{model_type}"
     model_item = model_table.get_item(
-        Key={"groupName": group_name, "modelId": model_id}
+        Key={"groupName": group_name, "modelId": model_item_id}
     ).get("Item", {})
 
     model_parameter = model_item.get("parameter", {})
 
     return {
-        "modelId": model_id,
-        "modelEndpoint": model_parameter.get("ModelEndpoint", ""),
-        "modelName": model_parameter.get("ModelName", ""),
-        "modelProvider": model_parameter.get("ModelProvider", ""),
-        "baseUrl": model_parameter.get("BaseUrl", ""),
+        "modelProvider": model_parameter.get("modelProvider", ""),
+        "modelId": model_parameter.get("modelId", ""),
+        "modelEndpoint": model_parameter.get("modelEndpoint", ""),
+        "baseUrl": model_parameter.get("baseUrl", ""),
     }
 
 

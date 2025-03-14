@@ -15,42 +15,67 @@ import { LIB_VERSION } from "./version.js";
 
 const embeddingModels = [
   {
-    provider: "bedrock",
-    name: "amazon.titan-embed-text-v2:0",
+    provider: "Bedrock",
+    id: "amazon.titan-embed-text-v2:0",
     commitId: "",
     dimensions: 1024,
     default: true,
   },
   {
-    provider: "bedrock",
-    name: "cohere.embed-english-v3",
+    provider: "Bedrock",
+    id: "cohere.embed-english-v3",
     commitId: "",
     dimensions: 1024,
   },
   {
-    provider: "bedrock",
-    name: "amazon.titan-embed-text-v1",
+    provider: "Bedrock",
+    id: "amazon.titan-embed-text-v1",
     commitId: "",
     dimensions: 1024,
   },
   {
-    provider: "sagemaker",
-    name: "bce-embedding-and-bge-reranker",
+    provider: "SageMaker",
+    id: "bce-embedding-base_v1",
     commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
     dimensions: 768,
   },
 ];
 
-
-const supportedRegions = Object.values(SupportedRegion) as string[];
-const supportedBedrockRegions = Object.values(SupportedBedrockRegion) as string[];
+let rerankModels = [
+  {
+    provider: "Bedrock",
+    id: "cohere.rerank-v3-5:0",
+  },
+  {
+    provider: "SageMaker",
+    id: "bge-reranker-large",
+  },
+]
 
 let llms = [
   {
-    provider: "bedrock",
-    name: "anthropic.claude-3-sonnet-20240229-v1:0",
+    provider: "Bedrock",
+    id: "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+  },
+  {
+    provider: "SageMaker",
+    id: "DeepSeek-R1-Distill-Llama-8B",
   }
 ]
+
+let vlms = [
+  {
+    provider: "Bedrock",
+    id: "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+  },
+  {
+    provider: "SageMaker",
+    id: "Qwen2-VL-72B-Instruct",
+  }
+]
+
+const supportedRegions = Object.values(SupportedRegion) as string[];
+const supportedBedrockRegions = Object.values(SupportedBedrockRegion) as string[];
 
 const execPromise = promisify(exec);
 
@@ -128,9 +153,9 @@ async function getAwsAccountAndRegion() {
       options.enableConnect = config.chat.amazonConnect.enabled;
       options.useOpenSourceLLM = config.chat.useOpenSourceLLM;
       options.defaultEmbedding = config.model.embeddingsModels && config.model.embeddingsModels.length > 0
-        ? config.model.embeddingsModels[0].name
-        : embeddingModels[0].name;
-      options.defaultLlm = config.model.llms.find((m) => m.provider === "bedrock")?.name;
+        ? config.model.embeddingsModels[0].id
+        : embeddingModels[0].id;
+      options.defaultLlm = config.model.llms.find((m) => m.provider === "Bedrock")?.id;
       options.sagemakerModelS3Bucket = config.model.modelConfig.modelAssetsBucket;
       options.enableUI = config.ui.enabled;
       options.cognitoFederationEnabled = config.federatedAuth.enabled;
@@ -374,7 +399,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "select",
       name: "defaultEmbedding",
       message: "Select an embedding model, it is used when injecting and retrieving knowledges or intentions",
-      choices: embeddingModels.map((m) => ({ name: m.name, value: m })),
+      choices: embeddingModels.map((m) => ({ name: m.id, value: m })),
       initial: options.defaultEmbedding,
       validate(value: string) {
         if ((this as any).state.answers.enableChat) {
@@ -457,8 +482,15 @@ async function processCreateOptions(options: any): Promise<void> {
   // Modify the config for China Region
   if (deployInChina) {
     answers.bedrockRegion = "";
-    answers.defaultEmbedding = "bce-embedding-and-bge-reranker";
+    answers.defaultEmbedding = "bce-embedding-base_v1";
+    answers.defaultRerankModel = "bge-reranker-large";
+    answers.defaultLlm = "DeepSeek-R1-Distill-Llama-8B";
+    answers.defaultVlm = "Qwen2-VL-72B-Instruct";
     llms = []
+  } else {
+    answers.defaultRerankModel = "cohere.rerank-v3-5:0";
+    answers.defaultLlm = "us.anthropic.claude-3-5-sonnet-20241022-v2:0";
+    answers.defaultVlm = "us.anthropic.claude-3-5-sonnet-20241022-v2:0";
   }
 
   // Create the config object
@@ -495,8 +527,10 @@ async function processCreateOptions(options: any): Promise<void> {
       },
     },
     model: {
-      embeddingsModels: embeddingModels.filter(model => model.name === answers.defaultEmbedding),
-      llms: llms,
+      embeddingsModels: embeddingModels.filter(model => model.id === answers.defaultEmbedding),
+      rerankModels: rerankModels.filter(model => model.id === answers.defaultRerankModel),
+      llms: llms.filter(model => model.id === answers.defaultLlm),
+      vlms: vlms.filter(model => model.id === answers.defaultVlm),
       modelConfig: {
         modelAssetsBucket: answers.sagemakerModelS3Bucket,
       },

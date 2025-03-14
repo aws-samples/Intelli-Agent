@@ -81,14 +81,14 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
     this.modelIamHelper = props.sharedConstructOutputs.iamHelper;
 
     // handle embedding model name setup
-    if (props.config.model.embeddingsModels[0].provider === "bedrock") {
-      this.defaultEmbeddingModelName = props.config.model.embeddingsModels[0].name;
-    } else if (props.config.model.embeddingsModels[0].provider === "sagemaker") {
+    if (props.config.model.embeddingsModels[0].provider === "Bedrock") {
+      this.defaultEmbeddingModelName = props.config.model.embeddingsModels[0].id;
+    } else if (props.config.model.embeddingsModels[0].provider === "SageMaker") {
       // Initialize SageMaker-specific configurations
       this.initializeSageMakerConfig();
 
       // Set up embedding model if it's the BCE+BGE model
-      if (props.config.model.embeddingsModels.some(model => model.name === 'bce-embedding-and-bge-reranker')) {
+      if (props.config.model.embeddingsModels.some(model => model.id === 'bce-embedding-and-bge-reranker')) {
         const embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
         this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
       }
@@ -137,7 +137,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
 
   private deployEmbeddingAndRerankerEndpoint(props: ModelConstructProps) {
     // Deploy Embedding and Reranker model
-    let embeddingAndRerankerModelPrefix = props.config.model.embeddingsModels[0].name ?? "";
+    let embeddingAndRerankerModelPrefix = props.config.model.embeddingsModels[0].id ?? "";
     let embeddingAndRerankerModelVersion = props.config.model.embeddingsModels[0].commitId ?? "";
     let embeddingAndRerankerEndpointInstanceType = "ml.g4dn.4xlarge";
     let embeddingAndRerankerModelName = embeddingAndRerankerModelPrefix + "-" + embeddingAndRerankerModelVersion.slice(0, 5)
