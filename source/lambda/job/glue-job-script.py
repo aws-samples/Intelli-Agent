@@ -31,7 +31,6 @@ args = getResolvedOptions(
         "BATCH_FILE_NUMBER",
         "BATCH_INDICE",
         "DOCUMENT_LANGUAGE",
-        "EMBEDDING_MODEL_ENDPOINT",
         "ETL_MODEL_ENDPOINT",
         "JOB_NAME",
         "OFFLINE",
@@ -44,7 +43,6 @@ args = getResolvedOptions(
         "S3_PREFIX",
         "CHATBOT_ID",
         "INDEX_ID",
-        "EMBEDDING_MODEL_TYPE",
         "CHATBOT_TABLE",
         "INDEX_TYPE",
         "OPERATION_TYPE",
@@ -52,11 +50,6 @@ args = getResolvedOptions(
         "BEDROCK_REGION",
         "MODEL_TABLE",
         "GROUP_NAME",
-        "MODEL_PROVIDER",
-        "MODEL_ID",
-        "MODEL_API_URL",
-        "MODEL_SECRET_NAME",
-        "MODEL_SAGEMAKER_ENDPOINT_NAME",
     ],
 )
 
@@ -81,7 +74,6 @@ aosEndpoint = args["AOS_ENDPOINT"]
 batchFileNumber = args["BATCH_FILE_NUMBER"]
 batchIndice = args["BATCH_INDICE"]
 document_language = args["DOCUMENT_LANGUAGE"]
-embedding_model_endpoint = args["EMBEDDING_MODEL_ENDPOINT"]
 etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
 offline = args["OFFLINE"]
 etl_object_table_name = args["ETL_OBJECT_TABLE"]
@@ -96,30 +88,44 @@ s3_prefix = args["S3_PREFIX"]
 chatbot_id = args["CHATBOT_ID"]
 group_name = args["GROUP_NAME"]
 aos_index_name = args["INDEX_ID"]
-embedding_model_type = args["EMBEDDING_MODEL_TYPE"]
 chatbot_table = args["CHATBOT_TABLE"]
-model_table = args["MODEL_TABLE"]
+model_table_name = args["MODEL_TABLE"]
 index_type = args["INDEX_TYPE"]
 # Valid Operation types: "create", "delete", "update", "extract_only"
 operation_type = args["OPERATION_TYPE"]
 aos_secret = args.get("AOS_SECRET_NAME", "opensearch-master-user")
-model_provider = args["MODEL_PROVIDER"]
-model_id = args["MODEL_ID"]
-model_api_url = args["MODEL_API_URL"]
-model_secret_name = args["MODEL_SECRET_NAME"]
-model_sagemaker_endpoint_name = args["MODEL_SAGEMAKER_ENDPOINT_NAME"]
 
 s3_client = boto3.client("s3")
 sm_client = boto3.client("secretsmanager")
 smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
 etl_object_table = dynamodb.Table(etl_object_table_name)
+model_table = dynamodb.Table(model_table_name)
 
 ENHANCE_CHUNK_SIZE = 25000
 OBJECT_EXPIRY_TIME = 3600
 
 credentials = boto3.Session().get_credentials()
 MAX_OS_DOCS_PER_PUT = 8
+
+
+def get_model_info():
+    # Get Embedding Model Parameters
+    embedding_model_item = model_table.get_item(
+        Key={"groupName": group_name, "modelId": f"{chatbot_id}-embedding"}
+    ).get("Item")
+    embedding_model_info = embedding_model_item.get("parameter", {})
+
+    # Get VLM Model Parameters
+    vlm_model_item = model_table.get_item(
+        Key={"groupName": group_name, "modelId": f"{chatbot_id}-vlm"}
+    ).get("Item")
+    vlm_model_info = vlm_model_item.get("parameter", {})
+    return embedding_model_info, vlm_model_info
+
+
+embedding_model_info, vlm_model_info = get_model_info()
+
 
 def get_aws_auth():
     try:
@@ -149,7 +155,9 @@ def get_aws_auth():
     return aws_auth
 
 
-def update_etl_object_table(processing_params: ProcessingParameters, status: str, detail: str = ""):
+def update_etl_object_table(
+    processing_params: ProcessingParameters, status: str, detail: str = ""
+):
     """
     Update the etl object table with the processing parameters.
 
@@ -206,11 +214,13 @@ class S3FileIterator:
 
                     # Create VLLM parameters
                     vllm_params = VLLMParameters(
-                        model_provider=model_provider,
-                        model_id=model_id,
-                        model_api_url=model_api_url,
-                        model_secret_name=model_secret_name,
-                        model_sagemaker_endpoint_name=model_sagemaker_endpoint_name
+                        model_provider=vlm_model_info.get("modelProvider"),
+                        model_id=vlm_model_info.get("modelId"),
+                        model_api_url=vlm_model_info.get("baseUrl"),
+                        model_secret_name=vlm_model_info.get("apiKeyArn"),
+                        model_sagemaker_endpoint_name=vlm_model_info.get(
+                            "modelEndpoint"
+                        ),
                     )
 
                     # Create processing parameters with VLLM parameters
@@ -222,7 +232,7 @@ class S3FileIterator:
                         portal_bucket_name=portal_bucket_name,
                         document_language=document_language,
                         file_type=file_type,
-                        vllm_parameters=vllm_params
+                        vllm_parameters=vllm_params,
                     )
 
                     update_etl_object_table(processing_params, "RUNNING")
@@ -421,10 +431,10 @@ class OpenSearchIngestionWorker:
     def __init__(
         self,
         docsearch: OpenSearchVectorSearch,
-        embedding_model_endpoint: str,
+        embedding_model_id: str,
     ):
         self.docsearch = docsearch
-        self.embedding_model_endpoint = embedding_model_endpoint
+        self.embedding_model_id = embedding_model_id
 
     @retry(
         stop=stop_after_attempt(3),
@@ -444,9 +454,7 @@ class OpenSearchIngestionWorker:
                 embeddings_vectors_list.append(
                     embeddings_vectors[0]["dense_vecs"][doc_id]
                 )
-                metadata["embedding_endpoint_name"] = (
-                    self.embedding_model_endpoint
-                )
+                metadata["embedding_endpoint_name"] = self.embedding_model_id
                 metadata_list.append(metadata)
             embeddings_vectors = embeddings_vectors_list
             metadatas = metadata_list
@@ -499,7 +507,9 @@ def ingestion_pipeline(
                 )
 
             gen_chunk_flag = (
-                False if processing_params.file_type in ["csv", "xlsx", "xls"] else True
+                False
+                if processing_params.file_type in ["csv", "xlsx", "xls"]
+                else True
             )
             batches = batch_chunk_processor.batch_generator(
                 documents, gen_chunk_flag
@@ -560,7 +570,7 @@ def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
 
 
 def create_processors_and_workers(
-    operation_type, docsearch, embedding_model_endpoint, file_iterator
+    operation_type, docsearch, embedding_model_id, file_iterator
 ):
     """
     Create processors and workers based on the operation type.
@@ -568,7 +578,7 @@ def create_processors_and_workers(
     Args:
         operation_type (str): The type of operation to perform. Valid types are "create", "delete", "update", and "extract_only".
         docsearch: The instance of the DocSearch class.
-        embedding_model_endpoint: The endpoint of the embedding model.
+        embedding_model_id: The id of the embedding model.
         file_iterator: The instance of the file processor.
 
     Returns:
@@ -579,13 +589,11 @@ def create_processors_and_workers(
     """
 
     if operation_type in ["create", "extract_only"]:
-        s3_files_iterator = file_iterator.iterate_s3_files(
-            extract_content=True
-        )
+        s3_files_iterator = file_iterator.iterate_s3_files(extract_content=True)
         batch_processor = BatchChunkDocumentProcessor(
             chunk_size=1024, chunk_overlap=30, batch_size=10
         )
-        worker = OpenSearchIngestionWorker(docsearch, embedding_model_endpoint)
+        worker = OpenSearchIngestionWorker(docsearch, embedding_model_id)
     elif operation_type in ["delete", "update"]:
         s3_files_iterator = file_iterator.iterate_s3_files(
             extract_content=False
@@ -628,18 +636,15 @@ def main():
         ]
 
     file_iterator = S3FileIterator(s3_bucket, s3_prefix, supported_file_types)
+    embedding_model_id = embedding_model_info.get("modelId")
 
     if operation_type == "extract_only":
         embedding_function, docsearch = None, None
     else:
         embedding_function = sm_utils.getCustomEmbeddings(
-            embedding_model_endpoint,
             region_name=region,
             bedrock_region=bedrock_region,
-            model_type=embedding_model_type,
-            group_name=group_name,
-            chatbot_id=chatbot_id,
-            model_table=model_table,
+            embedding_model_info=embedding_model_info,
         )
         aws_auth = get_aws_auth()
         docsearch = OpenSearchVectorSearch(
@@ -653,7 +658,10 @@ def main():
         )
 
     s3_files_iterator, batch_processor, worker = create_processors_and_workers(
-        operation_type, docsearch, embedding_model_endpoint, file_iterator
+        operation_type,
+        docsearch,
+        embedding_model_id,
+        file_iterator,
     )
 
     if operation_type == "create":
@@ -671,7 +679,7 @@ def main():
         # Then ingest the documents
         s3_files_iterator, batch_processor, worker = (
             create_processors_and_workers(
-                "create", docsearch, embedding_model_endpoint, file_iterator
+                "create", docsearch, embedding_model_id, file_iterator
             )
         )
         ingestion_pipeline(s3_files_iterator, batch_processor, worker)

@@ -132,7 +132,7 @@ const Intention: React.FC = () => {
       url: `chatbot-management/chatbots/${chatbotId}`,
       method: 'get',
     });
-    setModel({label: res.model.model_name, value: res.model.model_endpoint})
+    setModel({label: res.model.modelName, value: res.model.modelEndpoint})
     res.index.forEach((item)=>{
       if(item.type==="intention"){
         if(item.description?.trim().length>0){

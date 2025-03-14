@@ -343,6 +343,42 @@ export const OPENAI_API_EMBEDDING_MODEL_LIST = [
   },
 ];
 
+
+//     BCE_RERANKER_BASE_V1 = "bce-reranker-base_v1"
+//     BGE_RERANKER_LARGE = "bge-reranker-large"
+// BGE_RERANKER_V2_M3 = "bge-reranker-v2-m3"   # SageMaker
+// COHERE_RERANK_V3D5 = "cohere.rerank-v3-5:0"   # Bedrock
+// AMAZON_RERANK_V1 = "amazon.rerank-v1:0"  # Bedrock
+export const BEDROCK_RERANK_MODEL_LIST = [
+  {
+    model_id: 'cohere.rerank-v3-5:0',
+    model_name: 'cohere.rerank-v3-5:0',
+  },
+  {
+    model_id: 'amazon.rerank-v1:0',
+    model_name: 'amazon.rerank-v1:0',
+  }
+]
+
+// export const BEDROCK_API_RERANK_MODEL_LIST = [
+  
+// ]
+
+export const BEDROCK_VLM_MODEL_LIST = [
+  {
+    model_id: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
+    model_name: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
+  }
+]
+
+export const OPENAI_API_VLM_MODEL_LIST = [
+  {
+    model_id: 'Qwen/Qwen2-VL-72B-Instruct',
+    model_name: 'Qwen/Qwen2-VL-72B-Instruct'
+  }
+]
+
+
 export const RESOURCE_QQ_TEMPLATE =
   'https://ai-customer-service-resources.s3.us-west-2.amazonaws.com/qq_match_template.xlsx';
 

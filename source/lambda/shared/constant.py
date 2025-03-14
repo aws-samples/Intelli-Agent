@@ -189,16 +189,19 @@ class LLMModelType(ConstantBase):
 
 
 class EmbeddingModelType(ConstantBase):
+    # Bedrock
     AMAZON_TITAN_V1 = "amazon.titan-embed-text-v1"
     AMAZON_TITAN_V2 = "amazon.titan-embed-text-v2:0"
     AMAZON_TITAN_IMAGE = "amazon.titan-embed-image-v1"
+    COHERE_EMBED_ENGLISH_V3 = "cohere.embed-english-v3"
+    COHERE_EMBED_MULTILINGUAL_V3 = "cohere.embed-multilingual-v3"
+    # OPENAI
     OPENAI_TEXT_EMBEDDING_3_SMALL = "text-embedding-3-small"
     OPENAI_TEXT_EMBEDDING_3_LARGE = "text-embedding-3-large"
     OPENAI_TEXT_EMBEDDING_ADA_002 = "text-embedding-ada-002"
+    # SageMaker
     BCE_EMBEDDING = "bce-embedding-base_v1"
     BGE_M3_EMBEDDING = "bge-m3"
-    COHERE_EMBED_ENGLISH_V3 = "cohere.embed-english-v3"
-    COHERE_EMBED_MULTILINGUAL_V3 = "cohere.embed-multilingual-v3"
 
 class RerankModelType(ConstantBase):
     BGE_RERANKER_V2_M3 = "bge-reranker-v2-m3"
