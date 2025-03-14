@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from datetime import datetime, timezone
-from typing import Dict, List, TypedDict
+from typing import Dict
 
 import boto3
 from constant import ExecutionStatus, IndexType, UiStatus
@@ -52,14 +52,9 @@ def get_etl_info(group_name: str, chatbot_id: str, index_type: str):
         Key={"groupName": group_name, "chatbotId": chatbot_id}
     ).get("Item")
 
-    model_item = model_table.get_item(
-        Key={"groupName": group_name, "modelId": f"{chatbot_id}-embedding"}
-    ).get("Item")
+    if not chatbot_item:
+        raise ValueError("Chatbot not found")
 
-    if not (chatbot_item and model_item):
-        raise ValueError("Chatbot or model not found")
-
-    model = model_item.get("parameter", {})
     specific_type_indices = (
         chatbot_item.get("indexIds", {}).get(index_type, {}).get("value", {})
     )
@@ -67,11 +62,7 @@ def get_etl_info(group_name: str, chatbot_id: str, index_type: str):
     if not specific_type_indices:
         raise ValueError("No indices found for the given index type")
 
-    return (
-        next(iter(specific_type_indices.values())),  # First index ID
-        model.get("ModelType"),
-        model.get("ModelEndpoint"),
-    )
+    return next(iter(specific_type_indices.values()))
 
 
 def create_execution_record(
@@ -117,20 +108,24 @@ def handler(event: Dict, context) -> Dict:
                 "headers": CORS_HEADERS,
                 "body": f"Invalid indexType, valid values are {', '.join([t.value for t in IndexType])}",
             }
-            
+
         # Validate model provider requirements
         provider_required_fields = {
             "bedrock": ["modelId"],
             "openai": ["modelId", "modelSecretName", "modelApiUrl"],
-            "sagemaker": ["modelSagemakerEndpointName"]
+            "sagemaker": ["modelSagemakerEndpointName"],
         }
-        
+
         model_provider = input_body.get("modelProvider")
         if model_provider in provider_required_fields:
             required_fields = provider_required_fields[model_provider]
-            missing_fields = [field for field in required_fields if not input_body.get(field)]
+            missing_fields = [
+                field for field in required_fields if not input_body.get(field)
+            ]
             if missing_fields:
-                raise ValueError(f"When using {model_provider.capitalize()} provider, the following fields are required: {', '.join(missing_fields)}")
+                raise ValueError(
+                    f"When using {model_provider.capitalize()} provider, the following fields are required: {', '.join(missing_fields)}"
+                )
 
         group_name = input_body.get("groupName") or (
             "Admin"
@@ -138,9 +133,7 @@ def handler(event: Dict, context) -> Dict:
             else cognito_groups_list[0]
         )
         chatbot_id = input_body.get("chatbotId", group_name.lower())
-        index_id, embedding_model_type, embedding_endpoint = get_etl_info(
-            group_name, chatbot_id, index_type
-        )
+        index_id = get_etl_info(group_name, chatbot_id, index_type)
 
         # Update input body with processed values
         input_body.update(
@@ -149,8 +142,6 @@ def handler(event: Dict, context) -> Dict:
                 "groupName": group_name,
                 "tableItemId": context.aws_request_id,
                 "indexId": index_id,
-                "embeddingModelType": embedding_model_type,
-                "embeddingEndpoint": embedding_endpoint,
             }
         )
 

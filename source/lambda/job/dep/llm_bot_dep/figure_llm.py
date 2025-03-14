@@ -96,7 +96,7 @@ class figureUnderstand:
 
     def __init__(
         self,
-        model_provider="bedrock",
+        model_provider="Bedrock",
         model_id="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
         model_api_url="",
         model_secret_name="",
@@ -105,14 +105,14 @@ class figureUnderstand:
         """Initialize the figureUnderstand class with appropriate client.
 
         Args:
-            model_provider (str): The LLM provider to use ('bedrock' or 'openai')
+            model_provider (str): The LLM provider to use ('Bedrock' or 'OpenAI API' or 'SageMaker')
             model_id (str): The model ID to use
             model_api_url (str): The API URL for OpenAI
             model_secret_name (str): Secret name for OpenAI API key (required for OpenAI)
             model_sagemaker_endpoint_name (str): The name of the SageMaker endpoint for the model
         """
         self.model_provider = model_provider
-        if model_provider == "bedrock":
+        if model_provider == "Bedrock":
             session = boto3.session.Session()
             bedrock_region = session.region_name
 
@@ -130,7 +130,7 @@ class figureUnderstand:
             if not model_id.startswith(model_prefix):
                 model_id = model_prefix + model_id
             self.model_id = model_id
-        elif model_provider == "openai":
+        elif model_provider == "OpenAI API":
             self.openai_api_key = get_api_key(model_secret_name)
             if not self.openai_api_key:
                 raise ValueError(
@@ -142,7 +142,7 @@ class figureUnderstand:
             self.model_id = model_id
 
             self.openai_client = openai
-        elif model_provider == "sagemaker":
+        elif model_provider == "SageMaker":
             if (
                 not model_sagemaker_endpoint_name
                 or model_sagemaker_endpoint_name == "-"
@@ -154,7 +154,7 @@ class figureUnderstand:
             self.model_sagemaker_endpoint_name = model_sagemaker_endpoint_name
         else:
             raise ValueError(
-                "Unsupported model provider. Choose 'bedrock' or 'openai'"
+                "Unsupported model provider. Choose 'Bedrock' or 'OpenAI API' or 'SageMaker'"
             )
 
         self.mermaid_prompt = load_prompt_file("mermaid.json", is_json=True)
@@ -175,11 +175,11 @@ class figureUnderstand:
         Returns:
             str: The model's response with prefix and stop tags
         """
-        if self.model_provider == "bedrock":
+        if self.model_provider == "Bedrock":
             return self._invoke_bedrock(img, prompt, prefix, stop)
-        elif self.model_provider == "openai":
+        elif self.model_provider == "OpenAI API":
             return self._invoke_openai(img, prompt, prefix, stop)
-        elif self.model_provider == "sagemaker":
+        elif self.model_provider == "SageMaker":
             return self._invoke_sagemaker(img, prompt, prefix, stop)
 
     def _invoke_bedrock(self, img, prompt, prefix="<output>", stop="</output>"):
