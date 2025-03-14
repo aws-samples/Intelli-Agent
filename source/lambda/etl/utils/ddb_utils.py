@@ -79,7 +79,7 @@ def initiate_embedding_model(
         "status": UiStatus.ACTIVE.value,
     }
     if embedding_info["modelId"] == "bce-embedding-base_v1":
-        item_content["parameter"]["TargetModel"] = "bce_embedding_model.tar.gz"
+        item_content["parameter"]["targetModel"] = "bce_embedding_model.tar.gz"
     create_item(
         model_table,
         {"groupName": group_name, "modelId": model_item_id},
