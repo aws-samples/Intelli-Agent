@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timezone
 
 from constant import KBType, ModelType, UiStatus
-from utils.embeddings import get_embedding_info
+from utils.embeddings import get_embedding_dimension
 
 logger = logging.getLogger(__name__)
 
@@ -48,12 +48,18 @@ def initiate_embedding_model(
     create_time,
     additional_config,
 ):
-    embedding_info = get_embedding_info(embedding_model_id)
-    embedding_info["modelProvider"] = embedding_model_provider
-    embedding_info["modelId"] = embedding_model_id
-    embedding_info["modelEndpoint"] = embedding_model_endpoint
-    embedding_info["baseUrl"] = base_url
-    embedding_info["apiKeyArn"] = api_key_arn
+    embedding_model_dimension = get_embedding_dimension(embedding_model_id)[
+        "modelDimension"
+    ]
+    embedding_info = {
+        "modelProvider": embedding_model_provider,
+        "modelId": embedding_model_id,
+        "modelEndpoint": embedding_model_endpoint,
+        "baseUrl": base_url,
+        "apiKeyArn": api_key_arn,
+        "modelDimension": embedding_model_dimension,
+    }
+
     try:
         additional_config_dict = json.loads(additional_config)
     except Exception as e:
@@ -96,8 +102,9 @@ def initiate_rerank_model(
     additional_config,
 ):
     rerank_info = {
-        "modelEndpoint": rerank_model_endpoint,
         "modelProvider": rerank_model_provider,
+        "modelId": rerank_model_id,
+        "modelEndpoint": rerank_model_endpoint,
         "baseUrl": base_url,
         "apiKeyArn": api_key_arn,
     }
@@ -139,8 +146,9 @@ def initiate_vlm_model(
     create_time,
 ):
     vlm_info = {
-        "modelEndpoint": vlm_model_endpoint,
         "modelProvider": vlm_model_provider,
+        "modelId": vlm_model_id,
+        "modelEndpoint": vlm_model_endpoint,
         "baseUrl": base_url,
         "apiKeyArn": api_key_arn,
     }

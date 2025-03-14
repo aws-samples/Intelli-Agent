@@ -1,6 +1,6 @@
-def get_embedding_info(embeddings_model_id):
+def get_embedding_dimension(embeddings_model_id):
     """
-    Get the embedding info from the endpoint name
+    Get the embedding dimension from the endpoint name
     """
     # Get the embedding info from the endpoint name
     if "bge-large-zh" in embeddings_model_id:

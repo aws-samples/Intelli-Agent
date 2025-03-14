@@ -72,7 +72,7 @@ def create_chatbot(event, group_name):
         "modelProvider", ModelProvider.BEDROCK.value
     )
     embedding_model_id = embedding_model_info.get("modelId")
-    embedding_model_endpoint = embedding_model_info.get("modelEndpoint")
+    embedding_model_endpoint = embedding_model_info.get("modelEndpoint", "")
     embedding_base_url = embedding_model_info.get("baseUrl", "")
     embedding_api_key_arn = embedding_model_info.get("apiKeyArn", "")
     embedding_additional_config = embedding_model_info.get(
@@ -98,7 +98,7 @@ def create_chatbot(event, group_name):
         "modelProvider", ModelProvider.BEDROCK.value
     )
     rerank_model_id = rerank_model_info.get("modelId", "")
-    rerank_model_endpoint = rerank_model_info.get("modelEndpoint")
+    rerank_model_endpoint = rerank_model_info.get("modelEndpoint", "")
     rerank_base_url = rerank_model_info.get("baseUrl", "")
     rerank_api_key_arn = rerank_model_info.get("apiKeyArn", "")
     rerank_additional_config = rerank_model_info.get("additionalConfig", "")
@@ -122,7 +122,7 @@ def create_chatbot(event, group_name):
         "modelProvider", ModelProvider.BEDROCK.value
     )
     vlm_model_id = vlm_model_info.get("modelId", "")
-    vlm_model_endpoint = vlm_model_info.get("modelEndpoint")
+    vlm_model_endpoint = vlm_model_info.get("modelEndpoint", "")
     vlm_base_url = vlm_model_info.get("baseUrl", "")
     vlm_api_key_arn = vlm_model_info.get("apiKeyArn", "")
 
