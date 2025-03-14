@@ -88,7 +88,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
       this.initializeSageMakerConfig();
 
       // Set up embedding model if it's the BCE+BGE model
-      if (props.config.model.embeddingsModels.some(model => model.id === 'bce-embedding-and-bge-reranker')) {
+      if (props.config.model.embeddingsModels.some(model => model.id === 'bce-embedding-base_v1')) {
         const embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
         this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
       }
