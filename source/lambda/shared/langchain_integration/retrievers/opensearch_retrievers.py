@@ -246,6 +246,16 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
             return merged_documents
     
 
+    def docs_filter(self,docs:List[Document]):
+        page_content_set = set()
+        ret = []
+        for doc in doc:
+            page_content = doc.page_content
+            if page_content not in page_content_set:
+                page_content_set.add(page_content)
+                ret.append(doc)
+        return doc
+
     async def _aget_relevant_documents(
         self, query: str, *, 
         run_manager: AsyncCallbackManagerForRetrieverRun,
@@ -254,7 +264,11 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
         current_config = {**self.model_dump(),**kwargs}
         logger.info(f"retriever config: {current_config}")
         result = await self.__aget_relevant_documents(query, run_manager=run_manager, **kwargs)
-        logger.info(f"retrievered: {result}")
+        logger.info(f"retrievered docs: {result}")
+        # docments filter
+        result = self.docs_filter(result)
+        logger.info(f"filtered retrievered docs: {result}")
+
         return result
 
     
@@ -515,16 +529,6 @@ class OpensearchHybridQueryDocumentRetriever(OpensearchHybridRetrieverBase):
                     "detail": hit["_source"],
                 }
             ))
-
-            # result = {"data": {}}
-            # source = hit["_source"]["metadata"][self.database.source_field]
-            # result['chunk_id'] = hit["_source"]["metadata"]['chunk_id']
-            # result["source"] = source
-            # result["score"] = hit["_score"]
-            # result["detail"] = hit["_source"]
-            # result["content"] = hit["_source"][self.database.text_field]
-            # result["doc"] = result["content"]
-            # results.append(result)
         
         if context_extend_method == ContextExtendMethod.NONE:
             return results
@@ -632,11 +636,7 @@ class OpensearchHybridQueryQuestionRetriever(OpensearchHybridRetrieverBase):
                 size=1
             )
         ) 
-        #     index_name=index_name,
-        #     query_type="basic",
-        #     query_term=source,
-        #     field=f"metadata.{source_field}",
-        # )
+
         for r in opensearch_query_response["hits"]["hits"]:
             if (
                 "field" in r["_source"]["metadata"]
