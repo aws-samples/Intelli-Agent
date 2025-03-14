@@ -533,6 +533,7 @@ const ChatbotManagement: React.FC = () => {
       setLoadingSave(false);
       return;
     }
+    // bce-embedding-base_v1
     try {
       const createRes: CreEditChatbotResponse = await fetchData({
         url: 'chatbot-management/chatbots',
@@ -541,19 +542,22 @@ const ChatbotManagement: React.FC = () => {
           chatbotId: chatbotName,
           embeddingModelInfo: {
             "modelProvider": embeddingModelType.value,
-            "modelId": embeddingModelOption.value,
+            "modelId": embeddingModelType.value === "SageMaker" ? "bce-embedding-base_v1":embeddingModelOption.value,
+            "modelEndpoint": embeddingModelType.value === "SageMaker" ? embeddingModelOption.value:"",
             "baseUrl": "",
             "apiKeyArn": ""
           },
           rerankModelInfo: {
             "modelProvider": rerankModelType.value,
-            "modelId": rerankModelOption.value,
+            "modelId": rerankModelType.value === "SageMaker" ? "bce-embedding-base_v1":rerankModelOption.value,
+            "modelEndpoint": rerankModelType.value === "SageMaker" ? rerankModelOption.value:"",
             "baseUrl": "",
             "apiKeyArn": ""
           },
           vlmModelInfo: {
             "modelProvider": vlmModelType.value,
-            "modelId": vlmModelOption.value,
+            "modelId": vlmModelType.value === "SageMaker" ? "bce-embedding-base_v1":vlmModelOption.value,
+            "modelEndpoint": vlmModelType.value === "SageMaker" ? vlmModelOption.value:"",
             "baseUrl": "",
             "apiKeyArn": ""
           },
