@@ -93,3 +93,4 @@ source/infrastructure/lib/**/*.js
 source/model/model_temp/
 source/lambda/job/dep/glue-job-script-debug.py
 source/lambda/deployment_assets/
+source/lambda/job/dep/dist/llm_bot_dep-0.1.0-py3-none-any.whl
