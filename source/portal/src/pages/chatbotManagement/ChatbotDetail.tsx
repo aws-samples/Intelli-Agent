@@ -175,7 +175,7 @@ const ChatbotDetail: React.FC = () => {
         },
       });
       // const createRes: CreateChatbotResponse = data;
-      if (createRes.Message === 'OK') {
+      if (createRes.message === 'OK') {
         setLoadingSave(false);
         alertMsg(t('updated'), 'success');
         setTimeout(() => {
@@ -224,11 +224,11 @@ const ChatbotDetail: React.FC = () => {
       });
       const chatbotDetail: ChatbotItemDetail = {
         chatbotId: data.chatbotId,
-        model: data.model?.model_name,
-        index: data.index,
+        model: data.embeddingModel?.modelName,
+        index: data.indexes,
         updateTime: data.updateTime,
-        modelProvider: data.model?.model_provider,
-        baseUrl: data.model?.base_url,
+        modelProvider: data.embeddingModel?.modelProvider,
+        baseUrl: data.embeddingModel?.baseUrl,
       };
       setChatbotDetail(chatbotDetail);
       // setIndexList(chatbotDetail.index)

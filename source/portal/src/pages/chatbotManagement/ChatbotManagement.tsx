@@ -20,7 +20,6 @@ import {
 } from '@cloudscape-design/components';
 import {
   ChatbotDetailResponse,
-  ChatbotItem,
   ChatbotResponse,
   CreEditChatbotResponse,
   SelectedOption,
@@ -181,9 +180,9 @@ const ChatbotManagement: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [loadingSave, setLoadingSave] = useState(false);
-  const [loadingEmbeddingModels, setLoadingEmbeddingModels] = useState(false);
-  const [loadingRerankModels, setLoadingRerankModels] = useState(false);
-  const [loadingVlmModels, setLoadingVlmModels] = useState(false);
+  // const [loadingEmbeddingModels, setLoadingEmbeddingModels] = useState(false);
+  // const [loadingRerankModels, setLoadingRerankModels] = useState(false);
+  // const [loadingVlmModels, setLoadingVlmModels] = useState(false);
   const [embeddingModelList, setEmbeddingModelList] = useState<SelectProps.Option[]>([]);
   const [embeddingModelOption, setEmbeddingModelOption] = useState<{
     label: string;
@@ -945,7 +944,6 @@ const ChatbotManagement: React.FC = () => {
                     options={embeddingModelList}
                     placeholder={t('validation.requireModel')}
                     empty={t('noModelFound')}
-                    {...(embeddingModelType.value === "SageMaker" && loadingEmbeddingModels ? { statusType: 'loading' } : {})}
                   />
                 </FormField>
                 </Grid>
@@ -1071,7 +1069,6 @@ const ChatbotManagement: React.FC = () => {
                     options={rerankModelList}
                     placeholder={t('validation.requireModel')}
                     empty={t('noModelFound')}
-                    {...(rerankModelType.value === "SageMaker" && loadingRerankModels ? { statusType: 'loading' } : {})}
                   />
                 </FormField>
                 </Grid>
@@ -1196,7 +1193,6 @@ const ChatbotManagement: React.FC = () => {
                     options={vlmModelList}
                     placeholder={t('validation.requireModel')}
                     empty={t('noModelFound')}
-                    {...(vlmModelType.value === "SageMaker" && loadingVlmModels ? { statusType: 'loading' } : {})}
                   />
                 </FormField>
                 </Grid>
