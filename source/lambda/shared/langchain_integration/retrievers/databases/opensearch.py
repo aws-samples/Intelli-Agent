@@ -307,6 +307,7 @@ def _get_hybrid_search_index_body(
 ):
 
     settings = {
+        "index.knn": True,
         "analysis": {"analyzer": {"default": {"type": analyzer_type}}},
         "similarity": {
             "custom_bm25": {
@@ -319,123 +320,6 @@ def _get_hybrid_search_index_body(
 
     mapping = {
         "properties": {
-            # "metadata": {
-            #     "properties": {
-            #     "chunk_id": {
-            #         "type": "text",
-            #         "fields": {
-            #         "keyword": {
-            #             "type": "keyword",
-            #             "ignore_above": 256
-            #             }
-            #             }
-            #         },
-            #     "complete_heading": {
-            #         "type": "text",
-            #         "fields": {
-            #         "keyword": {
-            #             "type": "keyword",
-            #             "ignore_above": 256
-            #         }
-            #         }
-            #     },
-            #     "content_type": {
-            #         "type": "text",
-            #         "fields": {
-            #         "keyword": {
-            #             "type": "keyword",
-            #             "ignore_above": 256
-            #         }
-            #         }
-            #     },
-            #     "current_heading": {
-            #         "type": "text",
-            #         "fields": {
-            #         "keyword": {
-            #             "type": "keyword",
-            #             "ignore_above": 256
-            #         }
-            #         }
-            #     },
-            #     "figure": {
-            #         "properties": {
-            #         "content_type": {
-            #             "type": "text",
-            #             "fields": {
-            #             "keyword": {
-            #                 "type": "keyword",
-            #                 "ignore_above": 256
-            #             }
-            #             }
-            #         },
-            #         "figure_path": {
-            #             "type": "text",
-            #             "fields": {
-            #             "keyword": {
-            #                 "type": "keyword",
-            #                 "ignore_above": 256
-            #             }
-            #             }
-            #         }
-            #         }
-            #     },
-            #     "file_path": {
-            #         "type": "text",
-            #         "fields": {
-            #         "keyword": {
-            #             "type": "keyword",
-            #             "ignore_above": 256
-            #         }
-            #         }
-            #     },
-            #     "file_type": {
-            #         "type": "text",
-            #         "fields": {
-            #         "keyword": {
-            #             "type": "keyword",
-            #             "ignore_above": 256
-            #         }
-            #         }
-            #     },
-            #     "heading_hierarchy": {
-            #         "properties": {
-            #         "level": {
-            #             "type": "long"
-            #         },
-            #         "next": {
-            #             "type": "text",
-            #             "fields": {
-            #             "keyword": {
-            #                 "type": "keyword",
-            #                 "ignore_above": 256
-            #             }
-            #             }
-            #         },
-            #         "previous": {
-            #             "type": "text",
-            #             "fields": {
-            #             "keyword": {
-            #                 "type": "keyword",
-            #                 "ignore_above": 256
-            #             }
-            #             }
-            #         },
-            #         "size": {
-            #             "type": "long"
-            #         },
-            #         "title": {
-            #             "type": "text",
-            #             "fields": {
-            #             "keyword": {
-            #                 "type": "keyword",
-            #                 "ignore_above": 256
-            #             }
-            #             }
-            #         }
-            #         }
-            #     }
-            #     }
-            # },
             text_field: {
                 "type": "text",
                 "similarity": "custom_bm25",
