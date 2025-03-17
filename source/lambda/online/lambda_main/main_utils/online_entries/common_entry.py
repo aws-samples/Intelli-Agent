@@ -271,12 +271,14 @@ def intention_detection(state: ChatbotState):
     all_knowledge_retrieved_list = []
     markdown_table = format_intention_output(intent_fewshot_examples)
 
-    group_name = state["chatbot_config"]["group_name"]
-    chatbot_id = state["chatbot_config"]["chatbot_id"]
-    custom_qd_index = custom_index_desc(group_name, chatbot_id)
+    # group_name = state["chatbot_config"]["group_name"]
+    # chatbot_id = state["chatbot_config"]["chatbot_id"]
+    # custom_qd_index = custom_index_desc(group_name, chatbot_id)
 
     # TODO need to modify with new intent logic
-    if not intention_ready and not custom_qd_index:
+    # 1. no intention configuration
+    # 2. has configured intention, and intention not valid
+    if not intent_fewshot_examples:
         # if not intention_ready:
         # retrieve all knowledge
         # retriever_params = state["chatbot_config"]["private_knowledge_config"]
