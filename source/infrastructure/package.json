@@ -52,7 +52,7 @@
     "@aws-sdk/credential-providers": "^3.750.0",
     "@aws-sdk/shared-ini-file-loader": "^3.370.0",
     "@aws-solutions-constructs/aws-cloudfront-s3": "2.9.0",
-    "aws-cdk-lib": "^2.118.0",
+    "aws-cdk-lib": "^2.184.1",
     "commander": "^11.0.0",
     "constructs": "^10.0.5",
     "dotenv": "^16.0.3",

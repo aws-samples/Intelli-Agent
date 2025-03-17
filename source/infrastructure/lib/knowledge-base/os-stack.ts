@@ -36,7 +36,7 @@ export class AOSConstruct extends Construct {
     } else {
 
       const devDomain = new Domain(this, "Domain", {
-        version: EngineVersion.OPENSEARCH_2_5,
+        version: EngineVersion.OPENSEARCH_2_17,
         removalPolicy: RemovalPolicy.DESTROY,
         vpc: props.osVpc,
         zoneAwareness: {

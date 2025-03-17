@@ -143,8 +143,10 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
             top_k=top_k, 
             **kwargs
         )
-
+        logger.info(f'bm25 search query:\n {search_query_dict}')
         search_res = await self.database.asearch(search_query_dict)
+        logger.info(f'bm25 search ret:\n {search_res}')
+        
         results = await self.aextend_bm25_search_results(search_res, **kwargs)
         # fileter documents 
         results = [
@@ -165,9 +167,9 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
             **kwargs
         )
         vector_search_threshold = kwargs.get("vector_search_threshold",self.vector_search_threshold)
-        print('vector search query: ',search_query_dict)
+        logger.info(f'vector search query: \n{search_query_dict}')
         search_res = await self.database.asearch(search_query_dict)
-        print('vector search ret: ',search_res)
+        logger.info(f'vector search ret: \n {search_res}')
         results = await self.aextend_vector_search_results(search_res, **kwargs)
 
         results = [
@@ -215,17 +217,25 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
         )
         bm25_search_results = []
         vector_search_results = []
+        bm25_search_task = None 
+        vector_search_task = None
         if not (enable_bm25_search or enable_vector_search):
             raise ValueError("At least one of enable_bm25_search or enable_vector_search must be True")
         
         if enable_bm25_search:
-            bm25_search_results:List[Document] = await self.abm25_search(query,**kwargs)
+            bm25_search_task = asyncio.create_task(self.abm25_search(query,**kwargs))
 
         if enable_vector_search:
-            vector_search_results: List[Document] = await self.avector_search(
+            vector_search_task = asyncio.create_task(self.avector_search(
                     query=query,
                     **kwargs
-            )
+            ))
+        
+        if bm25_search_task is not None:
+            bm25_search_results = await bm25_search_task
+        if vector_search_task is not None:
+            vector_search_results = await vector_search_task   
+
         # rerank
         if self.reranker is not None:
             output_docs = bm25_search_results + vector_search_results
@@ -244,6 +254,16 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
             return merged_documents
     
 
+    def docs_filter(self,docs:List[Document]):
+        page_content_set = set()
+        ret = []
+        for doc in docs:
+            page_content = doc.page_content
+            if page_content not in page_content_set:
+                page_content_set.add(page_content)
+                ret.append(doc)
+        return ret
+
     async def _aget_relevant_documents(
         self, query: str, *, 
         run_manager: AsyncCallbackManagerForRetrieverRun,
@@ -252,7 +272,11 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
         current_config = {**self.model_dump(),**kwargs}
         logger.info(f"retriever config: {current_config}")
         result = await self.__aget_relevant_documents(query, run_manager=run_manager, **kwargs)
-        logger.info(f"retrievered: {result}")
+        logger.info(f"retrievered docs: {result}")
+        # docments filter
+        result = self.docs_filter(result)
+        logger.info(f"filtered retrievered docs: {result}")
+
         return result
 
     
@@ -513,16 +537,6 @@ class OpensearchHybridQueryDocumentRetriever(OpensearchHybridRetrieverBase):
                     "detail": hit["_source"],
                 }
             ))
-
-            # result = {"data": {}}
-            # source = hit["_source"]["metadata"][self.database.source_field]
-            # result['chunk_id'] = hit["_source"]["metadata"]['chunk_id']
-            # result["source"] = source
-            # result["score"] = hit["_score"]
-            # result["detail"] = hit["_source"]
-            # result["content"] = hit["_source"][self.database.text_field]
-            # result["doc"] = result["content"]
-            # results.append(result)
         
         if context_extend_method == ContextExtendMethod.NONE:
             return results
@@ -630,11 +644,7 @@ class OpensearchHybridQueryQuestionRetriever(OpensearchHybridRetrieverBase):
                 size=1
             )
         ) 
-        #     index_name=index_name,
-        #     query_type="basic",
-        #     query_term=source,
-        #     field=f"metadata.{source_field}",
-        # )
+
         for r in opensearch_query_response["hits"]["hits"]:
             if (
                 "field" in r["_source"]["metadata"]
