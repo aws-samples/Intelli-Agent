@@ -6,11 +6,6 @@ import {
   Link,
   SpaceBetween,
 } from '@cloudscape-design/components';
-import {
-  ChallengeNameType,
-  CognitoIdentityProviderClient,
-  RespondToAuthChallengeCommand,
-} from '@aws-sdk/client-cognito-identity-provider';
 import { FC, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import yaml from 'yaml';
@@ -18,7 +13,7 @@ import './style.scss';
 import { EN_LANG, ROUTES, ZH_LANG, ZH_LANGUAGE_LIST } from 'src/utils/const';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage } from 'src/utils/utils';
-ttimport { fetchAuthSession, getCurrentUser, signIn, updatePassword } from '@aws-amplify/auth';
+import { fetchAuthSession, getCurrentUser, signIn, updatePassword } from '@aws-amplify/auth';
 // import { changePassword, currentAuthenticatedUser } from '@aws-amplify/auth';
 // import { Auth } from '@aws-amplify/auth';
 
