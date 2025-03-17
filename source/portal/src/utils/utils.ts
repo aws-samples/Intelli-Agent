@@ -1,5 +1,6 @@
 import moment from 'moment';
-import { OIDC_PREFIX, OIDC_STORAGE } from './const';
+import { EN_LANG, OIDC_PREFIX, OIDC_STORAGE, ZH_LANG } from './const';
+import { Dispatch, SetStateAction } from 'react';
 export const TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 
 export type AlertType = 'error' | 'warning' | 'info' | 'success';
@@ -73,3 +74,13 @@ export const getCredentials = () => {
   }
   return JSON.parse(credentials);
 }
+
+export  const changeLanguage = (lang: string, setLang: Dispatch<SetStateAction<string>>, i18n: any) => {
+  if (lang === EN_LANG) {
+    setLang(ZH_LANG);
+    i18n.changeLanguage(ZH_LANG);
+  } else {
+    setLang(EN_LANG);
+    i18n.changeLanguage(EN_LANG);
+  }
+};
