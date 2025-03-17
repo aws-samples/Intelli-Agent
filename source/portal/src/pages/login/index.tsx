@@ -28,6 +28,7 @@ import useAxiosAuthRequest from 'src/hooks/useAxiosAuthRequest';
 import ConfigContext from 'src/context/config-context';
 import { Amplify } from 'aws-amplify';
 import { signIn, fetchAuthSession } from '@aws-amplify/auth';
+import { changeLanguage } from 'src/utils/utils';
 
 
 
@@ -191,15 +192,15 @@ const Login: FC = () => {
     }
   };
 
-  const changeLanguage = () => {
-    if (lang === EN_LANG) {
-      setLang(ZH_LANG);
-      i18n.changeLanguage(ZH_LANG);
-    } else {
-      setLang(EN_LANG);
-      i18n.changeLanguage(EN_LANG);
-    }
-  };
+  // const changeLanguage = () => {
+  //   if (lang === EN_LANG) {
+  //     setLang(ZH_LANG);
+  //     i18n.changeLanguage(ZH_LANG);
+  //   } else {
+  //     setLang(EN_LANG);
+  //     i18n.changeLanguage(EN_LANG);
+  //   }
+  // };
 
   const forgetPwd = () => {
     navigate(ROUTES.FindPWD);
@@ -272,7 +273,11 @@ const Login: FC = () => {
       console.log(session)
     } catch (error: any) {
       if(error.name === 'NotAuthorizedException') {
-      res = t('auth:incorrectPWD');
+        if(error.message === 'Temporary password has expired and must be reset by an administrator.') {
+          res = "first-login"
+        } else {
+          res = t('auth:incorrectPWD');
+        }
     } else if(error.name === 'UserNotFoundException') {
       res = t('auth:userNotExists');
     } else {
@@ -332,6 +337,20 @@ const Login: FC = () => {
     } else {
       returnMsg = await loginWithAuthing(currentProvider, provider);
     }
+    if (returnMsg === "first-login") {
+      navigate(ROUTES.ChangePWD, { state: 
+        {
+          // session: location.state?.session,
+          username: username,
+          reason: "first-login",
+          loginType: 'OIDC',
+          provider: 'Cognito',
+          author: author,
+          // region: region,
+          // clientId: location.state?.clientId
+        }});
+      return
+    }
     if (returnMsg) {
       setError(returnMsg);
       setLogging(false);
@@ -365,7 +384,7 @@ const Login: FC = () => {
         <div className="banner">{projectName}</div>
           <div className="sub-title">
             {t('auth:support-prefix')} {author} {t('auth:support-postfix')}{' '}
-            <Link variant="info" onFollow={() => changeLanguage()}>
+            <Link variant="info" onFollow={() => changeLanguage(lang, setLang, i18n)}>
               {t('auth:changeLang')}
             </Link>
           </div>
