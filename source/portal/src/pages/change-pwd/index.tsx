@@ -18,7 +18,7 @@ import './style.scss';
 import { EN_LANG, ROUTES, ZH_LANG, ZH_LANGUAGE_LIST } from 'src/utils/const';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage } from 'src/utils/utils';
-import { updatePassword } from '@aws-amplify/auth';
+import { fetchAuthSession, getCurrentUser, signIn, updatePassword } from '@aws-amplify/auth';
 // import { changePassword, currentAuthenticatedUser } from '@aws-amplify/auth';
 // import { Auth } from '@aws-amplify/auth';
 
@@ -106,17 +106,55 @@ const ChangePWD: FC = () => {
     setConfirmPass(target);
   };
 
+  const handleSignIn = async (username: string, password: string) => {
+    try {
+      const user = await signIn({ username, password });
+      console.log('User signed in:', user);
+      return user;
+    } catch (error: any) {
+      // NotAuthorizedException: Temporary password has expired and must be reset by an administrator.
+      if(error.name === "NotAuthorizedException" && error.message.includes("Temporary password has expired and must be reset by an administrator.")){
+        console.error('Sign-in failed:', error);
+        return null;
+      } else {
+        console.error('Sign-in failed:', error);
+        return null;
+      }
+      }
+  };
+  
+
   const changePWD = async () => {
+    let user;
     if (error !== '' || confirmPassError !== '') return;
     if (newPass === '') {
       setError('New password is required.');
       return;
     }
+
     try {
-      const response = await updatePassword({oldPassword: oldPass, newPassword: newPass});
-      console.log(response);
+      // Step 1: Check if the user has a valid session
+      await fetchAuthSession();
+      user = await getCurrentUser();
+      
+      // Step 2: If user is not authenticated, prompt login
     } catch (error) {
-      console.log(error);
+      console.log('User session expired, signing in again...');
+      user = await handleSignIn(params.username, oldPass);
+      if (!user) return; // Stop if login fails
+    }
+
+    try {
+      // await fetchAuthSession();
+      // const user = await getCurrentUser();
+      // console.log('User fetch successfully:', user);
+      const response = await updatePassword({oldPassword: oldPass, newPassword: newPass});
+      console.log('Password updated successfully:', response);
+    } catch (error: any) {
+      console.error("Error updating password:", error);
+      if (error.name === 'UserUnAuthenticatedException') {
+        setError('Please sign in again.');
+      }
     }
   };
 
@@ -135,7 +173,7 @@ const ChangePWD: FC = () => {
           </Link>
         </div>
         <div className="tab" style={{ paddingLeft: '10%' }}>
-          <div style={{ height: 270, width: '90%' }}>
+          <div style={{ height: 320, width: '90%' }}>
             <div className="action">
               {t('auth:changePassword')}{' '}
               <span className="reason">
