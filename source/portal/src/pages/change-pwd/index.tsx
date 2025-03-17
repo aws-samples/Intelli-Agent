@@ -18,7 +18,7 @@ import './style.scss';
 import { EN_LANG, ROUTES, ZH_LANG, ZH_LANGUAGE_LIST } from 'src/utils/const';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage } from 'src/utils/utils';
-import { fetchAuthSession, getCurrentUser, signIn, updatePassword } from '@aws-amplify/auth';
+ttimport { fetchAuthSession, getCurrentUser, signIn, updatePassword } from '@aws-amplify/auth';
 // import { changePassword, currentAuthenticatedUser } from '@aws-amplify/auth';
 // import { Auth } from '@aws-amplify/auth';
 
@@ -279,25 +279,25 @@ const ChangePWD: FC = () => {
 };
 
 export default ChangePWD;
-const respondToNewPasswordChallenge = async (
-  session: any,
-  region: string,
-  clientId: string,
-  username: any,
-  newPass: string,
-) => {
-  const params = {
-    ChallengeName: ChallengeNameType.NEW_PASSWORD_REQUIRED,
-    ClientId: clientId,
-    Session: session,
-    ChallengeResponses: {
-      USERNAME: username,
-      NEW_PASSWORD: newPass,
-    },
-  };
-  const client = new CognitoIdentityProviderClient({
-    region,
-  });
-  const command = new RespondToAuthChallengeCommand(params);
-  return await client.send(command);
-};
+// const respondToNewPasswordChallenge = async (
+//   session: any,
+//   region: string,
+//   clientId: string,
+//   username: any,
+//   newPass: string,
+// ) => {
+//   const params = {
+//     ChallengeName: ChallengeNameType.NEW_PASSWORD_REQUIRED,
+//     ClientId: clientId,
+//     Session: session,
+//     ChallengeResponses: {
+//       USERNAME: username,
+//       NEW_PASSWORD: newPass,
+//     },
+//   };
+//   const client = new CognitoIdentityProviderClient({
+//     region,
+//   });
+//   const command = new RespondToAuthChallengeCommand(params);
+//   return await client.send(command);
+// };
