@@ -39,14 +39,14 @@ interface WorkspaceProps extends StackProps {
   readonly apiConstructOutputs: ApiConstructOutputs;
   readonly modelConstructOutputs: ModelConstructOutputs;
   readonly sharedConstructOutputs: SharedConstructOutputs;
-  readonly userPoolId?: string;
-  readonly oidcClientId?: string;
-  readonly oidcIssuer?: string;
-  readonly oidcLogoutUrl?: string;
   readonly portalBucketName: string;
   readonly clientPortalBucketName: string;
   readonly portalUrl: string;
   readonly clientPortalUrl: string;
+  readonly userPoolId?: string;
+  readonly oidcClientId?: string;
+  readonly oidcIssuer?: string;
+  readonly oidcLogoutUrl?: string;
   readonly oidcDomain?: string;
   readonly oidcRegion?: string;
 }
