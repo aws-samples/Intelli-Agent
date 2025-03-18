@@ -10,9 +10,9 @@ import { FC, useContext, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import yaml from 'yaml';
 import './style.scss';
-import { EN_LANG, ROUTES, ZH_LANG, ZH_LANGUAGE_LIST } from 'src/utils/const';
+import { EN_LANG, OIDC_STORAGE, ROUTES, ZH_LANG, ZH_LANGUAGE_LIST } from 'src/utils/const';
 import { useTranslation } from 'react-i18next';
-import { changeLanguage } from 'src/utils/utils';
+import { changeLanguage, removeKeysWithPrefix } from 'src/utils/utils';
 import { confirmSignIn, fetchAuthSession, getCurrentUser, signIn } from '@aws-amplify/auth';
 import { Amplify } from 'aws-amplify';
 import ConfigContext from 'src/context/config-context';
@@ -44,6 +44,7 @@ const ChangePWD: FC = () => {
     thirdLogin: location.state?.thirdLogin,
     region: location.state?.region,
     clientId: location.state?.clientId,
+    redirectUri: location.state?.redirectUri,
   };
 
   useEffect(() => {
@@ -108,7 +109,8 @@ const ChangePWD: FC = () => {
       console.log('User signed in:', user);
       if (!user.isSignedIn && user.nextStep.signInStep === "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED") {
         console.log('Temporary password expired, resetting to new password...');
-        await confirmSignIn({challengeResponse: newPass}); 
+        await confirmSignIn({challengeResponse: newPass});
+        // await Auth.signOut(); 
         return "success!";
       }
       return user;
@@ -152,8 +154,32 @@ const ChangePWD: FC = () => {
       res = await handleSignIn(params.username, oldPass, newPass);
 
       if (res){
-        console.log("password changed successfully, navigate to login page...")
-        navigate(ROUTES.Login)
+        console.log("password changed successfully, navigate to home page...")
+        // let session = fetchAuthSession()
+        const currentUser = await getCurrentUser()
+        console.log("!!!!!!!current user: ", currentUser)
+        let session = currentUser.signInDetails
+        localStorage.setItem(
+          OIDC_STORAGE,
+          JSON.stringify({
+            username: params.username,
+            provider: params.provider,
+            clientId: params.clientId,
+            redirectUri: params.redirectUri,
+          }),
+        );
+        localStorage.setItem(
+          `oidc.${params.provider}.${params.clientId}`,
+          JSON.stringify({
+            accessToken: session.tokens?.accessToken.toString(),
+            idToken: session.tokens?.idToken?.toString(),
+            username: session.tokens?.signInDetails?.loginId
+          }),
+        );
+        removeKeysWithPrefix("CognitoIdentityServiceProvider")
+        
+        navigate(ROUTES.Home);
+        // navigate(ROUTES.Login)
       } else {
         console.log("password changed failed!")
       }
