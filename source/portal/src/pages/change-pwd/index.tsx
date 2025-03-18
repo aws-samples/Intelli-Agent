@@ -6,14 +6,16 @@ import {
   Link,
   SpaceBetween,
 } from '@cloudscape-design/components';
-import { FC, useEffect, useState } from 'react';
+import { FC, useContext, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import yaml from 'yaml';
 import './style.scss';
-import { EN_LANG, ROUTES, ZH_LANG, ZH_LANGUAGE_LIST } from 'src/utils/const';
+import { EN_LANG, OIDC_STORAGE, ROUTES, ZH_LANG, ZH_LANGUAGE_LIST } from 'src/utils/const';
 import { useTranslation } from 'react-i18next';
-import { changeLanguage } from 'src/utils/utils';
-import { fetchAuthSession, getCurrentUser, signIn, updatePassword } from '@aws-amplify/auth';
+import { changeLanguage, removeKeysWithPrefix } from 'src/utils/utils';
+import { confirmSignIn, fetchAuthSession, getCurrentUser, signIn } from '@aws-amplify/auth';
+import { Amplify } from 'aws-amplify';
+import ConfigContext from 'src/context/config-context';
 // import { changePassword, currentAuthenticatedUser } from '@aws-amplify/auth';
 // import { Auth } from '@aws-amplify/auth';
 
@@ -22,17 +24,17 @@ const ChangePWD: FC = () => {
   const navigate = useNavigate();
   // const { t } = useTranslation();
   const { t, i18n } = useTranslation();
-  const [projectName, setProjectName] = useState('' as string);
+  // const [projectName, setProjectName] = useState('' as string);
   const [oldPass, setOldPass] = useState('' as string);
   const [newPass, setNewPass] = useState('' as string);
   const [error, setError] = useState('' as string);
   const [confirmPass, setConfirmPass] = useState('' as string);
-  const [confirmPassError, setConfirmPassError] = useState('' as string);
   const [lang, setLang] = useState('');
-  // const [reasonTxt, setReasonTxt] = useState("" as string);
-  // const [items, setItems] = useState([] as any[]);
-  // const [config]=useState(null as any);
-  // const [isLoading, setIsloading] = useState(true)
+  const [oldPassError, setOldPassError] = useState('' as string);
+  const [newPassError, setNewPassError] = useState('' as string);
+  const [confirmPassError, setConfirmPassError] = useState('' as string);
+  const [loading, setLoading] = useState(false);
+  const builtInConfig = useContext(ConfigContext);
   const params = {
     session: location.state?.session,
     username: location.state?.username,
@@ -43,6 +45,8 @@ const ChangePWD: FC = () => {
     thirdLogin: location.state?.thirdLogin,
     region: location.state?.region,
     clientId: location.state?.clientId,
+    redirectUri: location.state?.redirectUri,
+    projectName: location.state?.projectName
   };
 
   useEffect(() => {
@@ -54,14 +58,14 @@ const ChangePWD: FC = () => {
       i18n.changeLanguage(EN_LANG);
     }
 
-    const loadConfig = async () => {
-      let response = await fetch('/config.yaml');
-      let data = await response.text();
-      return yaml.parse(data);
-    };
-    loadConfig().then((configData) => {
-      setProjectName(configData.project);
-    });
+    // const loadConfig = async () => {
+    //   let response = await fetch('/config.yaml');
+    //   let data = await response.text();
+    //   return yaml.parse(data);
+    // };
+    // loadConfig().then((configData) => {
+    //   setProjectName(configData.project);
+    // });
   }, []);
   const toLogin = () => {
     navigate(ROUTES.Login);
@@ -74,81 +78,114 @@ const ChangePWD: FC = () => {
   const changeOldPass = (target: string) => {
     if (target === null || target === '') {
       setOldPass(target);
-      setError('Old password is required.');
+      setOldPassError(t('auth:changePWD.requireOldPassword'));
       return;
     }
-    setError('');
+    setOldPassError('');
     setOldPass(target);
   };
 
   const changeNewPass = (target: string) => {
     if (target === null || target === '') {
       setNewPass(target);
-      setError('New password is required.');
+      setNewPassError(t('auth:changePWD.requireNewPassword'));
       return;
     }
-    setError('');
+    setNewPassError('');
     setNewPass(target);
   };
 
   const changeConfirmPass = (target: string) => {
     if (target !== newPass) {
       setConfirmPass(target);
-      setConfirmPassError('The two entered passwords do not match.');
+      setConfirmPassError(t('auth:changePWD.requireConfirmPassword'));
       return;
     }
     setConfirmPassError('');
     setConfirmPass(target);
   };
 
-  const handleSignIn = async (username: string, password: string) => {
+  const handleSignIn = async (username: string, password: string, newPass: string) => {
     try {
-      const user = await signIn({ username, password });
+      const user: any = await signIn({ username, password });
       console.log('User signed in:', user);
+      if (!user.isSignedIn && user.nextStep.signInStep === "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED") {
+        console.log('Temporary password expired, resetting to new password...');
+        await confirmSignIn({challengeResponse: newPass});
+        // await Auth.signOut(); 
+        return "success!";
+      }
       return user;
     } catch (error: any) {
-      // NotAuthorizedException: Temporary password has expired and must be reset by an administrator.
-      if(error.name === "NotAuthorizedException" && error.message.includes("Temporary password has expired and must be reset by an administrator.")){
-        console.error('Sign-in failed:', error);
-        return null;
-      } else {
-        console.error('Sign-in failed:', error);
+    if (
+      error.name === 'NotAuthorizedException' &&
+      error.message.includes('Temporary password has expired and must be reset by an administrator.')
+    ) {
+        console.log('Temporary password expired, attempting to reset password...');
+        setError(t('auth:changePWD.invalidTempPassword'));
         return null;
       }
-      }
+      setError(error.message);
+      return null;
+    }
   };
   
 
   const changePWD = async () => {
-    let user;
+    let res
+    setLoading(true);
     if (error !== '' || confirmPassError !== '') return;
     if (newPass === '') {
-      setError('New password is required.');
+      setNewPassError('New password is required.');
       return;
     }
 
     try {
-      // Step 1: Check if the user has a valid session
+      Amplify.configure({
+        Auth: {
+          Cognito: {
+            userPoolId: builtInConfig?.oidcPoolId || '',
+            userPoolClientId: builtInConfig?.oidcClientId || ''
+          },
+        },
+      });
       await fetchAuthSession();
-      user = await getCurrentUser();
-      
-      // Step 2: If user is not authenticated, prompt login
+      res = await getCurrentUser();
+
     } catch (error) {
       console.log('User session expired, signing in again...');
-      user = await handleSignIn(params.username, oldPass);
-      if (!user) return; // Stop if login fails
-    }
+      res = await handleSignIn(params.username, oldPass, newPass);
 
-    try {
-      // await fetchAuthSession();
-      // const user = await getCurrentUser();
-      // console.log('User fetch successfully:', user);
-      const response = await updatePassword({oldPassword: oldPass, newPassword: newPass});
-      console.log('Password updated successfully:', response);
-    } catch (error: any) {
-      console.error("Error updating password:", error);
-      if (error.name === 'UserUnAuthenticatedException') {
-        setError('Please sign in again.');
+      if (res){
+        console.log("password changed successfully, navigate to home page...")
+        let session = await fetchAuthSession()
+        console.log("!!!!!!!session: ", session)
+        // const currentUser = await getCurrentUser()
+        // console.log("!!!!!!!current user: ", currentUser)
+        // let session = currentUser.signInDetails
+        localStorage.setItem(
+          OIDC_STORAGE,
+          JSON.stringify({
+            username: params.username,
+            provider: params.provider,
+            clientId: params.clientId,
+            redirectUri: params.redirectUri,
+          }),
+        );
+        localStorage.setItem(
+          `oidc.${params.provider}.${params.clientId}`,
+          JSON.stringify({
+            accessToken: session.tokens?.accessToken.toString(),
+            idToken: session.tokens?.idToken?.toString(),
+            username: session.tokens?.signInDetails?.loginId
+          }),
+        );
+        removeKeysWithPrefix("CognitoIdentityServiceProvider")
+        
+        navigate(ROUTES.Home);
+        // navigate(ROUTES.Login)
+      } else {
+        console.log("password changed failed!")
       }
     }
   };
@@ -157,7 +194,7 @@ const ChangePWD: FC = () => {
     <div className="changepwd-div">
       <div className="container">
         {/* <img src={banner} alt='banner' className='banner'/> */}
-        <div className="banner">{projectName}</div>
+        <div className="banner">{params.projectName}</div>
         <div className="sub-title">
           {t('auth:support-prefix')} {params.author} {t('auth:support-postfix')}{' '}
           <Link
@@ -180,7 +217,7 @@ const ChangePWD: FC = () => {
               </span>
             </div>
             <div style={{ width: '100%' }}>
-              <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+              {/* <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
                 <FormField description="" label={t('auth:changePWD.loginType')}>
                   {params.loginType} - {params.provider}
                 </FormField>
@@ -190,47 +227,50 @@ const ChangePWD: FC = () => {
                 >
                   {params.username}
                 </FormField>
-              </Grid>
+              </Grid> */}
               {
                 <div style={{ marginTop: 15 }}>
                   <SpaceBetween size={'m'} direction="vertical">
                   <FormField
-                      description={t('auth:changePWD.oldPWDDesc')}
+                      // description={t('auth:changePWD.oldPWDDesc')}
                       label={t('auth:changePWD.oldPWD')}
-                      errorText={error}
+                      errorText={oldPassError}
                     >
                       <Input
                         value={oldPass}
                         placeholder={t('auth:changePWD.oldPWDDesc')}
+                        type='password'
                         onChange={({ detail }) => changeOldPass(detail.value)}
                       />
                     </FormField>
-                    <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                    {/* <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}> */}
                     <FormField
-                      description={t('auth:changePWD.newPWDDesc')}
+                      // description={t('auth:changePWD.newPWDDesc')}
                       label={t('auth:changePWD.newPWD')}
-                      errorText={error}
+                      errorText={newPassError}
                     >
                       <Input
                         value={newPass}
+                        type='password'
                         placeholder={t('auth:changePWD.newPWDDesc')}
                         onChange={({ detail }) => changeNewPass(detail.value)}
                       />
                     </FormField>
                     <FormField
-                      description={t('auth:changePWD.confirmPWDDesc')}
+                      // description={t('auth:changePWD.confirmPWDDesc')}
                       label={t('auth:changePWD.confirmPWD')}
                       errorText={confirmPassError}
                     >
                       <Input
                         value={confirmPass}
+                        type='password'
                         placeholder={t('auth:changePWD.confirmPWDDesc')}
                         onChange={(event) =>
                           changeConfirmPass(event.detail.value)
                         }
                       />
                     </FormField>
-                    </Grid>
+                    {/* </Grid> */}
                   </SpaceBetween>
                 </div>
               }
@@ -239,6 +279,7 @@ const ChangePWD: FC = () => {
           <div className="bottom-button">
             <Button
               variant="primary"
+              loading={loading}
               className="submit"
               onClick={() => changePWD()}
             >
@@ -266,6 +307,19 @@ const ChangePWD: FC = () => {
                 <Link onFollow={toLogin}>{t('auth:login')}</Link>
               </div>
             </Grid>
+            <div
+                style={{
+                  marginTop: 10,
+                  fontFamily:'Open Sans',
+                  fontSize: 14,
+                  textAlign: 'right',
+                  color: 'red',
+                  fontWeight: 800,
+                  height: 16,
+                }}
+              >
+                {error}
+              </div>
           </div>
         </div>
       </div>

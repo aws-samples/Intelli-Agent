@@ -84,3 +84,12 @@ export  const changeLanguage = (lang: string, setLang: Dispatch<SetStateAction<s
     i18n.changeLanguage(EN_LANG);
   }
 };
+
+export const removeKeysWithPrefix = (prefix: string) => {
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(prefix)) {
+      localStorage.removeItem(key);
+    }
+  }
+}

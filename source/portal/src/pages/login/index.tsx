@@ -28,7 +28,7 @@ import useAxiosAuthRequest from 'src/hooks/useAxiosAuthRequest';
 import ConfigContext from 'src/context/config-context';
 import { Amplify } from 'aws-amplify';
 import { signIn, fetchAuthSession } from '@aws-amplify/auth';
-import { changeLanguage } from 'src/utils/utils';
+import { changeLanguage, removeKeysWithPrefix } from 'src/utils/utils';
 
 
 
@@ -234,14 +234,7 @@ const Login: FC = () => {
     oidcLogin(currentProvider);
   };
 
-  function removeKeysWithPrefix(prefix: string) {
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(prefix)) {
-        localStorage.removeItem(key);
-      }
-    }
-  }
+
 
   const loginWithCognito = async (currentProvider: any) => {
     let res = '';
@@ -258,6 +251,7 @@ const Login: FC = () => {
         username, 
         password
       });
+      if(!user.isSignedIn && user.nextStep.signInStep === "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED") return "first-login"
       console.log(`user is ${user}`);
       const session = await fetchAuthSession();
       localStorage.setItem(
@@ -344,10 +338,12 @@ const Login: FC = () => {
           username: username,
           reason: "first-login",
           loginType: 'OIDC',
-          provider: 'Cognito',
+          provider: 'cognito',
           author: author,
+          projectName: projectName,
           // region: region,
-          // clientId: location.state?.clientId
+          clientId: currentProvider.clientId,
+          redirectUri: currentProvider.redirectUri
         }});
       return
     }
