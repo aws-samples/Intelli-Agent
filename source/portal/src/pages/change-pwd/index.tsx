@@ -13,7 +13,7 @@ import './style.scss';
 import { EN_LANG, ROUTES, ZH_LANG, ZH_LANGUAGE_LIST } from 'src/utils/const';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage } from 'src/utils/utils';
-import { confirmSignIn, fetchAuthSession, getCurrentUser, resetPassword, signIn, updatePassword } from '@aws-amplify/auth';
+import { confirmSignIn, fetchAuthSession, getCurrentUser, signIn } from '@aws-amplify/auth';
 import { Amplify } from 'aws-amplify';
 import ConfigContext from 'src/context/config-context';
 // import { changePassword, currentAuthenticatedUser } from '@aws-amplify/auth';
