@@ -17,11 +17,11 @@ def handler(event, context):
     index_table = dynamodb.Table(index_table_name)
     time_str = str(datetime.now(timezone.utc))
     embeddings_models = model.get("embeddingsModels")
-    embeddings_model = embeddings_models[0] if embeddings_models and isinstance(embeddings_models, list) and len(embeddings_models) > 0 else None
+    embeddings_model = embeddings_models[0] if embeddings_models and isinstance(embeddings_models, list) and len(embeddings_models) > 0 else {}
     rerank_models = model.get("rerankModels")
-    rerank_model = rerank_models[0] if rerank_models and isinstance(rerank_models, list) and len(rerank_models) > 0 else None
+    rerank_model = rerank_models[0] if rerank_models and isinstance(rerank_models, list) and len(rerank_models) > 0 else {}
     vlm_models = model.get("vlms")
-    vlm_model = vlm_models[0] if vlm_models and isinstance(vlm_models, list) and len(vlm_models) > 0 else None
+    vlm_model = vlm_models[0] if vlm_models and isinstance(vlm_models, list) and len(vlm_models) > 0 else {}
     
     try:
         # Item={**item_key, **body}
