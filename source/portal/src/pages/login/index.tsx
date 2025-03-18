@@ -258,6 +258,7 @@ const Login: FC = () => {
         username, 
         password
       });
+      if(!user.isSignedIn && user.nextStep.signInStep === "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED") return "first-login"
       console.log(`user is ${user}`);
       const session = await fetchAuthSession();
       localStorage.setItem(
