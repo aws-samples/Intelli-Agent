@@ -158,7 +158,7 @@ const ChangePWD: FC = () => {
         // let session = fetchAuthSession()
         const currentUser = await getCurrentUser()
         console.log("!!!!!!!current user: ", currentUser)
-        let session = currentUser.signInDetails
+        // let session = currentUser.signInDetails
         localStorage.setItem(
           OIDC_STORAGE,
           JSON.stringify({
@@ -168,14 +168,14 @@ const ChangePWD: FC = () => {
             redirectUri: params.redirectUri,
           }),
         );
-        localStorage.setItem(
-          `oidc.${params.provider}.${params.clientId}`,
-          JSON.stringify({
-            accessToken: session.tokens?.accessToken.toString(),
-            idToken: session.tokens?.idToken?.toString(),
-            username: session.tokens?.signInDetails?.loginId
-          }),
-        );
+        // localStorage.setItem(
+        //   `oidc.${params.provider}.${params.clientId}`,
+        //   JSON.stringify({
+        //     accessToken: session.tokens?.accessToken.toString(),
+        //     idToken: session.tokens?.idToken?.toString(),
+        //     username: session.tokens?.signInDetails?.loginId
+        //   }),
+        // );
         removeKeysWithPrefix("CognitoIdentityServiceProvider")
         
         navigate(ROUTES.Home);
