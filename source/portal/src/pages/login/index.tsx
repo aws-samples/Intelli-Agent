@@ -340,6 +340,7 @@ const Login: FC = () => {
           loginType: 'OIDC',
           provider: 'cognito',
           author: author,
+          projectName: projectName,
           // region: region,
           clientId: currentProvider.clientId,
           redirectUri: currentProvider.redirectUri

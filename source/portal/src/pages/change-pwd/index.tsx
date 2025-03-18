@@ -24,7 +24,7 @@ const ChangePWD: FC = () => {
   const navigate = useNavigate();
   // const { t } = useTranslation();
   const { t, i18n } = useTranslation();
-  const [projectName, setProjectName] = useState('' as string);
+  // const [projectName, setProjectName] = useState('' as string);
   const [oldPass, setOldPass] = useState('' as string);
   const [newPass, setNewPass] = useState('' as string);
   const [error, setError] = useState('' as string);
@@ -33,6 +33,7 @@ const ChangePWD: FC = () => {
   const [oldPassError, setOldPassError] = useState('' as string);
   const [newPassError, setNewPassError] = useState('' as string);
   const [confirmPassError, setConfirmPassError] = useState('' as string);
+  const [loading, setLoading] = useState(false);
   const builtInConfig = useContext(ConfigContext);
   const params = {
     session: location.state?.session,
@@ -45,6 +46,7 @@ const ChangePWD: FC = () => {
     region: location.state?.region,
     clientId: location.state?.clientId,
     redirectUri: location.state?.redirectUri,
+    projectName: location.state?.projectName
   };
 
   useEffect(() => {
@@ -56,14 +58,14 @@ const ChangePWD: FC = () => {
       i18n.changeLanguage(EN_LANG);
     }
 
-    const loadConfig = async () => {
-      let response = await fetch('/config.yaml');
-      let data = await response.text();
-      return yaml.parse(data);
-    };
-    loadConfig().then((configData) => {
-      setProjectName(configData.project);
-    });
+    // const loadConfig = async () => {
+    //   let response = await fetch('/config.yaml');
+    //   let data = await response.text();
+    //   return yaml.parse(data);
+    // };
+    // loadConfig().then((configData) => {
+    //   setProjectName(configData.project);
+    // });
   }, []);
   const toLogin = () => {
     navigate(ROUTES.Login);
@@ -131,6 +133,7 @@ const ChangePWD: FC = () => {
 
   const changePWD = async () => {
     let res
+    setLoading(true);
     if (error !== '' || confirmPassError !== '') return;
     if (newPass === '') {
       setNewPassError('New password is required.');
@@ -155,9 +158,10 @@ const ChangePWD: FC = () => {
 
       if (res){
         console.log("password changed successfully, navigate to home page...")
-        // let session = fetchAuthSession()
-        const currentUser = await getCurrentUser()
-        console.log("!!!!!!!current user: ", currentUser)
+        let session = await fetchAuthSession()
+        console.log("!!!!!!!session: ", session)
+        // const currentUser = await getCurrentUser()
+        // console.log("!!!!!!!current user: ", currentUser)
         // let session = currentUser.signInDetails
         localStorage.setItem(
           OIDC_STORAGE,
@@ -168,14 +172,14 @@ const ChangePWD: FC = () => {
             redirectUri: params.redirectUri,
           }),
         );
-        // localStorage.setItem(
-        //   `oidc.${params.provider}.${params.clientId}`,
-        //   JSON.stringify({
-        //     accessToken: session.tokens?.accessToken.toString(),
-        //     idToken: session.tokens?.idToken?.toString(),
-        //     username: session.tokens?.signInDetails?.loginId
-        //   }),
-        // );
+        localStorage.setItem(
+          `oidc.${params.provider}.${params.clientId}`,
+          JSON.stringify({
+            accessToken: session.tokens?.accessToken.toString(),
+            idToken: session.tokens?.idToken?.toString(),
+            username: session.tokens?.signInDetails?.loginId
+          }),
+        );
         removeKeysWithPrefix("CognitoIdentityServiceProvider")
         
         navigate(ROUTES.Home);
@@ -190,7 +194,7 @@ const ChangePWD: FC = () => {
     <div className="changepwd-div">
       <div className="container">
         {/* <img src={banner} alt='banner' className='banner'/> */}
-        <div className="banner">{projectName}</div>
+        <div className="banner">{params.projectName}</div>
         <div className="sub-title">
           {t('auth:support-prefix')} {params.author} {t('auth:support-postfix')}{' '}
           <Link
@@ -275,6 +279,7 @@ const ChangePWD: FC = () => {
           <div className="bottom-button">
             <Button
               variant="primary"
+              loading={loading}
               className="submit"
               onClick={() => changePWD()}
             >
