@@ -106,33 +106,23 @@ const ChangePWD: FC = () => {
     try {
       const user: any = await signIn({ username, password });
       console.log('User signed in:', user);
-      // 检查是否有挑战
-    if (user.challengeName === 'NEW_PASSWORD_REQUIRED') {
-      console.log('Temporary password expired, resetting to new password...');
-      await confirmSignIn({challengeResponse: newPass}); 
-      return "success!";
-    }
-
-    return user;
+      if (!user.isSignedIn && user.nextStep.signInStep === "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED") {
+        console.log('Temporary password expired, resetting to new password...');
+        await confirmSignIn({challengeResponse: newPass}); 
+        return "success!";
+      }
+      return user;
     } catch (error: any) {
     if (
       error.name === 'NotAuthorizedException' &&
       error.message.includes('Temporary password has expired and must be reset by an administrator.')
     ) {
-      console.log('Temporary password expired, attempting to reset password...');
-      
-      try {
-        // await resetPassword(username, newPass);
+        console.log('Temporary password expired, attempting to reset password...');
         setError(t('auth:changePWD.invalidTempPassword'));
-        // return 'success!';
-      } catch (confirmError) {
-        console.error('Error during password reset:', confirmError);
+        return null;
       }
-      return null;
-    }
       setError(error.message);
       return null;
-
     }
   };
   
