@@ -16,9 +16,12 @@ def handler(event, context):
     model_table = dynamodb.Table(model_table_name)
     index_table = dynamodb.Table(index_table_name)
     time_str = str(datetime.now(timezone.utc))
-    embeddingsModel = model.get("embeddingsModels")[0]
-    rerankModel = model.get("rerankModels")[0]
-    vlmModel = model.get("vlms")[0]
+    embeddings_models = model.get("embeddingsModels")
+    embeddings_model = embeddings_models[0] if embeddings_models and isinstance(embeddings_models, list) and len(embeddings_models) > 0 else None
+    rerank_models = model.get("rerankModels")
+    rerank_model = rerank_models[0] if rerank_models and isinstance(rerank_models, list) and len(rerank_models) > 0 else None
+    vlm_models = model.get("vlms")
+    vlm_model = vlm_models[0] if vlm_models and isinstance(vlm_models, list) and len(vlm_models) > 0 else None
     
     try:
         # Item={**item_key, **body}
@@ -28,12 +31,12 @@ def handler(event, context):
             "createTime": time_str,
             "modelType": "embedding",
             "parameter": {
-                "modelId": embeddingsModel.get("id"),
+                "modelId": embeddings_model.get("id"),
                 "apiKeyArn": "",
                 "baseUrl": "",
-                "modelDimension": embeddingsModel.get("dimensions"),
+                "modelDimension": embeddings_model.get("dimensions"),
                 "modelEndpoint": "",
-                "modelProvider": embeddingsModel.get("provider")
+                "modelProvider": embeddings_model.get("provider")
             },
             "status": "ACTIVE",
             "updateTime": time_str
@@ -44,11 +47,11 @@ def handler(event, context):
             "createTime": time_str,
             "modelType": "embedding",
             "parameter": {
-                "modelId": rerankModel.get("id"),
+                "modelId": rerank_model.get("id"),
                 "apiKeyArn": "",
                 "baseUrl": "",
                 "modelEndpoint": "",
-                "modelProvider": rerankModel.get("provider")
+                "modelProvider": rerank_model.get("provider")
             },
             "status": "ACTIVE",
             "updateTime": time_str
@@ -59,11 +62,11 @@ def handler(event, context):
             "createTime": time_str,
             "modelType": "vlm",
             "parameter": {
-                "modelId": vlmModel.get("id"),
+                "modelId": vlm_model.get("id"),
                 "apiKeyArn": "",
                 "baseUrl": "",
                 "modelEndpoint": "",
-                "modelProvider": vlmModel.get("provider")
+                "modelProvider": vlm_model.get("provider")
             },
             "status": "ACTIVE",
             "updateTime": time_str
