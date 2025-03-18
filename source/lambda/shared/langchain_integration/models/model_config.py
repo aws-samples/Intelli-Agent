@@ -168,9 +168,22 @@ DEEPSEEK_MODEL_CONFIGS = [
     )
 ]
 
+BEDROCK_DEEPSEEK_MODEL_CONFIGS = [
+    ModelConfig(
+        model_id=LLMModelType.DEEPSEEK_R1_BEDROCK_US,
+        model="us.deepseek.r1-v1:0",
+        default_model_kwargs={"max_tokens": 2000,"temperature": 0.6,"disable_streaming":False},
+        enable_any_tool_choice=False,
+        enable_prefill=False,
+        is_reasoning_model = True
+    )
+
+]
+
 
 BEDROCK_MODEL_CONFIGS = CLAUDE_MODEL_CONFIG + NOVA_MODEL_CONFIGS + \
-    MISTRAL_MODEL_CONFIGS + LLAMA_MODEL_CONFIGS + CORHERE_MODEL_CONFIGS + DEEPSEEK_MODEL_CONFIGS
+    MISTRAL_MODEL_CONFIGS + LLAMA_MODEL_CONFIGS + CORHERE_MODEL_CONFIGS + DEEPSEEK_MODEL_CONFIGS  + \
+        BEDROCK_DEEPSEEK_MODEL_CONFIGS
 
 
 
@@ -259,6 +272,7 @@ SILICONFLOW_DEEPSEEK_MODEL_CONFIGS = [
         is_reasoning_model = True
     )
 ]
+
 
 
 OPENAI_MODEL_CONFIGS = [

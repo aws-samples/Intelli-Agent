@@ -10,10 +10,15 @@ from shared.utils.logger_utils import (
     get_logger,
     llm_messages_print_decorator
 )
-from . import ChatModelBase
+from . import (
+    ChatModelBase,
+    BedrockConverseReasonModelResult,
+    BedrockConverseReasonModelStreamResult
+)
 from ..model_config import (
     BEDROCK_MODEL_CONFIGS
 )
+from pydantic import Field
 
 logger = get_logger("bedrock_model")
 
@@ -23,6 +28,11 @@ class ChatBedrockConverse(_ChatBedrockConverse):
     any_tool_choice_value: str = 'any'
     enable_prefill: bool = True
     is_reasoning_model: bool = False
+    reason_model_result_cls = BedrockConverseReasonModelResult
+    reason_model_result_cls_init_kwargs = Field(default_factory=dict)
+    reason_model_stream_result_cls = BedrockConverseReasonModelStreamResult
+    reason_model_stream_result_cls_init_kwargs = Field(default_factory=dict)
+
 
 
 class BedrockBaseModel(ChatModelBase):

@@ -163,6 +163,7 @@ class LLMModelType(ConstantBase):
     DEEPSEEK_R1_DISTILL_QWEN_14B = "DeepSeek-R1-Distill-Qwen-14B"
     DEEPSEEK_R1_DISTILL_QWEN_32B = "DeepSeek-R1-Distill-Qwen-32B"
     DEEPSEEK_R1 = "DeepSeek-R1"
+    DEEPSEEK_R1_BEDROCK_US = "us.deepseek.r1-v1:0"
     DEEPSEEK_V3 = "DeepSeek-V3"
     BEDROCK_DEEPSEEK_R1 = "deepseek.r1-v1:0"
 

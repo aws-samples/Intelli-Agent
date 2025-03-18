@@ -232,14 +232,21 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
             ))
         
         if bm25_search_task is not None:
+            logger.info('await bm25 search...')
             bm25_search_results = await bm25_search_task
+            logger.info('completed bm25 search...')
         if vector_search_task is not None:
+            logger.info('await vector search...')
             vector_search_results = await vector_search_task   
+            logger.info('completed vector search...')
 
         # rerank
         if self.reranker is not None:
             output_docs = bm25_search_results + vector_search_results
-            return await self.acompress_documents(query,output_docs,**kwargs)
+            logger.info('await rerank...')
+            ret = await self.acompress_documents(query,output_docs,**kwargs)
+            logger.info('completed rerank...')
+            return ret
         else:
             # altertively to merge the retriverd docs
             # print('bm25_search_results',bm25_search_results)
