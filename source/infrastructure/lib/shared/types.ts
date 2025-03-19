@@ -56,6 +56,7 @@ export interface SystemConfig {
     vlms: {
       provider: ModelProvider;
       id: string;
+      modelEndpoint?: string;
     }[];
     modelConfig: {
       modelAssetsBucket: string;
