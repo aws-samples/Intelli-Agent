@@ -7,7 +7,7 @@ import {
   Header,
   SpaceBetween,
 } from '@cloudscape-design/components';
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import CommonLayout from 'src/layout/CommonLayout';
 import GetStarted from './comps/GetStarted';
@@ -231,7 +231,7 @@ const Home: React.FC = () => {
       <CommonLayout activeHref="/home">
         <ContentLayout
           header={
-            <div style={{marginTop:25}}>
+            <div style={{ marginTop: 25 }}>
               <Box variant="p">
                 {t('common:awsSolutionGuidance')} | {t('mead')}
               </Box>
@@ -258,7 +258,7 @@ const Home: React.FC = () => {
                     </Button>
                   </SpaceBetween>
                 }
-                // description={t('projectDescription')}
+              // description={t('projectDescription')}
               >
                 <Box variant="h1">{t('common:solutionName')}</Box>
                 {/* <Box fontSize="heading-l">{t('subTitle')}</Box> */}
@@ -274,12 +274,12 @@ const Home: React.FC = () => {
               ]}
             >
               <SpaceBetween direction="vertical" size="l">
-                
+
                 {/* <Container
         className="fix-mid-screen common-header"
       > */}
-        {/* <SpaceBet direction='horizontal' size='m'> */}
-          {/* <Grid gridDefinition={[{ colspan: 3 }, { colspan: 3 },{colspan: 3},{colspan: 3}]}>
+                {/* <SpaceBet direction='horizontal' size='m'> */}
+                {/* <Grid gridDefinition={[{ colspan: 3 }, { colspan: 3 },{colspan: 3},{colspan: 3}]}>
               <div>
                 <Box variant="h4" >
                   {t('modelCnt')}
@@ -301,14 +301,14 @@ const Home: React.FC = () => {
                 <Link variant='awsui-value-large' className="no-link">18</Link>
               </div>
             </Grid> */}
-            
-            {/* </SpaceBet ween> */}
-       
-      {/* </Container> */}
-      <Container header={<Header variant="h2">{t('architecture')}</Header>}>
-                <div className="home-banner">
-                  <img alt="banner" src={BANNER} width="100%" />
-                </div>
+
+                {/* </SpaceBet ween> */}
+
+                {/* </Container> */}
+                <Container header={<Header variant="h2">{t('architecture')}</Header>}>
+                  <div className="home-banner">
+                    <img alt="banner" src={BANNER} width="100%" />
+                  </div>
                 </Container>
                 <BenefitsFeatures />
                 {/* <UseCases /> */}

@@ -39,12 +39,9 @@ def get_client_kwargs():
         }
 
     except secrets_manager_client.exceptions.ResourceNotFoundException:
-        logger.info("ResourceNotFoundException. Using IAM authentication")
+        logger.info("Using IAM authentication to connect to OpenSearch Domain")
     except secrets_manager_client.exceptions.InvalidRequestException:
-        logger.info(
-            "InvalidRequestException. It might caused by getting secret value from a deleting secret"
-        )
-        logger.info("Fallback to authentication with IAM")
+        logger.info("Using IAM authentication to connect to OpenSearch Domain")
     except Exception as e:
         logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
         raise
