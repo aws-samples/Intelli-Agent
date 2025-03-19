@@ -142,7 +142,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
   const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
   const [chatbotOption, setChatbotOption] = useState<SelectProps.Option>(
-    null as any,
+    {label: 'admin', value: 'admin'} as any,
   );
   const [useChatHistory, setUseChatHistory] = useState(
     localStorage.getItem(USE_CHAT_HISTORY) == null ||
