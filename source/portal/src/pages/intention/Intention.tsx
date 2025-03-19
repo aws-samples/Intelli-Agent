@@ -16,7 +16,7 @@ import {
   Table,
   TableProps,
 } from '@cloudscape-design/components';
-import { ChatbotsItem, CreEditChatbotResponse, IntentionsItem, IntentionsResponse, SelectedOption } from 'src/types';
+import { CreEditChatbotResponse, IntentionsItem, IntentionsResponse, SelectedOption } from 'src/types';
 import { alertMsg, formatTime } from 'src/utils/utils';
 import TableLink from 'src/comps/link/TableLink';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';

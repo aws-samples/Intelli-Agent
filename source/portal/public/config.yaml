@@ -15,13 +15,6 @@ login:
         label: Authing
         clientId: 66b769cf5c2d439dfd37f237
         redirectUri: https://demo-center.authing.cn
-      # - name: cognito
-      #   label: Cognito
-        # client_id: 6fsdfdsdddddsadsf434ssd3
-        # user_pool_id: us-east-1_VeItKBhLQ
-        # domain: us-east-1veitkbhlq.auth.us-east-1.amazoncognito.com
-        # region: us-east-1
-        # diabled: true
   sso:
     midway:
       provider: auth-hub-midway

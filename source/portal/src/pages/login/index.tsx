@@ -36,7 +36,6 @@ const Login: FC = () => {
   const [password, setPassword] = useState(null as any);
   const [keep, setKeep] = useState(false);
   const navigate = useNavigate();
-  // const { i18n } = useTranslation();
   const { t, i18n } = useTranslation();
   const fetchData = useAxiosAuthRequest();
   const [error, setError] = useState('' as string);
@@ -121,6 +120,7 @@ const Login: FC = () => {
         });
       }
       if (config.login?.oidc && config.login.oidc.providers.length > 0) {
+        if (builtInConfig?.oidcRegion.startsWith('cn-')){
         config.login.oidc.providers.forEach((item: any) => {
           let description = '';
           switch (item.name) {
@@ -146,17 +146,17 @@ const Login: FC = () => {
           });
           // tmp_login_params.set(item.name, item)
         });
-        if (!builtInConfig?.oidcRegion.startsWith('cn-')) {
-          oidcOptions.push({
-            label: 'Cognito',
-            iconUrl: 'imgs/cognito.png',
-            value: 'cognito',
-            clientId: builtInConfig?.oidcClientId,
-            // clientSecret: item.clientSecret,
-            redirectUri: builtInConfig?.oidcRedirectUrl,
-            tags: [t('auth:cognitoDesc')],
-          });
-        }
+      } else {
+        oidcOptions.push({
+        label: 'Cognito',
+        iconUrl: 'imgs/cognito.png',
+        value: 'cognito',
+        clientId: builtInConfig?.oidcClientId,
+        // clientSecret: item.clientSecret,
+        redirectUri: builtInConfig?.oidcRedirectUrl,
+        tags: [t('auth:cognitoDesc')],
+        });
+      }
 
         setOidcList(oidcOptions);
 
