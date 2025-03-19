@@ -30,9 +30,6 @@ const ChangePWD: FC = () => {
   const [error, setError] = useState('' as string);
   const [confirmPass, setConfirmPass] = useState('' as string);
   const [lang, setLang] = useState('');
-  const [oldPassError, setOldPassError] = useState('' as string);
-  const [newPassError, setNewPassError] = useState('' as string);
-  const [confirmPassError, setConfirmPassError] = useState('' as string);
   const [loading, setLoading] = useState(false);
   const builtInConfig = useContext(ConfigContext);
   const params = {
@@ -78,30 +75,30 @@ const ChangePWD: FC = () => {
   const changeOldPass = (target: string) => {
     if (target === null || target === '') {
       setOldPass(target);
-      setOldPassError(t('auth:changePWD.requireOldPassword'));
+      setError(t('auth:changePWD.requireOldPassword'));
       return;
     }
-    setOldPassError('');
+    setError('');
     setOldPass(target);
   };
 
   const changeNewPass = (target: string) => {
     if (target === null || target === '') {
       setNewPass(target);
-      setNewPassError(t('auth:changePWD.requireNewPassword'));
+      setError(t('auth:changePWD.requireNewPassword'));
       return;
     }
-    setNewPassError('');
+    setError('');
     setNewPass(target);
   };
 
   const changeConfirmPass = (target: string) => {
     if (target !== newPass) {
       setConfirmPass(target);
-      setConfirmPassError(t('auth:changePWD.requireConfirmPassword'));
+      setError(t('auth:changePWD.notSamePwd'));
       return;
     }
-    setConfirmPassError('');
+    setError('');
     setConfirmPass(target);
   };
 
@@ -134,9 +131,9 @@ const ChangePWD: FC = () => {
   const changePWD = async () => {
     let res
     setLoading(true);
-    if (error !== '' || confirmPassError !== '') return;
+    if (error !== '') return;
     if (newPass === '') {
-      setNewPassError('New password is required.');
+      setError('New password is required.');
       return;
     }
 
@@ -217,7 +214,7 @@ const ChangePWD: FC = () => {
               </span>
             </div>
             <div style={{ width: '100%' }}>
-              {/* <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+              <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
                 <FormField description="" label={t('auth:changePWD.loginType')}>
                   {params.loginType} - {params.provider}
                 </FormField>
@@ -227,14 +224,14 @@ const ChangePWD: FC = () => {
                 >
                   {params.username}
                 </FormField>
-              </Grid> */}
+              </Grid>
               {
                 <div style={{ marginTop: 15 }}>
                   <SpaceBetween size={'m'} direction="vertical">
                   <FormField
                       // description={t('auth:changePWD.oldPWDDesc')}
                       label={t('auth:changePWD.oldPWD')}
-                      errorText={oldPassError}
+                      // errorText={oldPassError}
                     >
                       <Input
                         value={oldPass}
@@ -247,7 +244,7 @@ const ChangePWD: FC = () => {
                     <FormField
                       // description={t('auth:changePWD.newPWDDesc')}
                       label={t('auth:changePWD.newPWD')}
-                      errorText={newPassError}
+                      // errorText={newPassError}
                     >
                       <Input
                         value={newPass}
@@ -259,7 +256,7 @@ const ChangePWD: FC = () => {
                     <FormField
                       // description={t('auth:changePWD.confirmPWDDesc')}
                       label={t('auth:changePWD.confirmPWD')}
-                      errorText={confirmPassError}
+                      // errorText={confirmPassError}
                     >
                       <Input
                         value={confirmPass}

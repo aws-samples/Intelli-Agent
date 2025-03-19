@@ -925,7 +925,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       <>
         <SpaceBetween direction='horizontal' size='xxs'>
           <div
-            style={{ border: '1px solid #0972d3', borderRadius: 20, padding: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20 }}
+            style={{ border: '2px solid #0972d3', borderRadius: 20, padding: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20 }}
             onClick={() => fileInputRef.current?.click()}
           >
             <img src={"/imgs/img-upload.png"} alt="attach" width={15}></img>

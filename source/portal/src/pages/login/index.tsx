@@ -29,9 +29,6 @@ import ConfigContext from 'src/context/config-context';
 import { Amplify } from 'aws-amplify';
 import { signIn, fetchAuthSession } from '@aws-amplify/auth';
 import { changeLanguage, removeKeysWithPrefix } from 'src/utils/utils';
-
-
-
 const Login: FC = () => {
   const [activeTabId, setActiveTabId] = useState(LOGIN_TYPE.OIDC);
   const [logging, setLogging] = useState(false as boolean);
@@ -124,7 +121,6 @@ const Login: FC = () => {
         });
       }
       if (config.login?.oidc && config.login.oidc.providers.length > 0) {
-        // const tmp_login_params = new Map<string, any>();
         config.login.oidc.providers.forEach((item: any) => {
           let description = '';
           switch (item.name) {
@@ -192,22 +188,24 @@ const Login: FC = () => {
     }
   };
 
-  // const changeLanguage = () => {
-  //   if (lang === EN_LANG) {
-  //     setLang(ZH_LANG);
-  //     i18n.changeLanguage(ZH_LANG);
-  //   } else {
-  //     setLang(EN_LANG);
-  //     i18n.changeLanguage(EN_LANG);
-  //   }
-  // };
-
   const forgetPwd = () => {
-    navigate(ROUTES.FindPWD);
+    navigate(ROUTES.FindPWD, { state: 
+      {
+        loginType: 'OIDC',
+        provider: 'cognito',
+        author: author,
+        projectName: projectName
+      }});
   };
 
   const toRegister = () => {
-    navigate(ROUTES.Register);
+    navigate(ROUTES.Register, { state: 
+      {
+        loginType: 'OIDC',
+        provider: 'cognito',
+        author: author,
+        projectName: projectName
+      }});
   };
 
   const loginSystem = () => {
@@ -233,8 +231,6 @@ const Login: FC = () => {
     }
     oidcLogin(currentProvider);
   };
-
-
 
   const loginWithCognito = async (currentProvider: any) => {
     let res = '';
@@ -263,7 +259,6 @@ const Login: FC = () => {
         }),
       );
       removeKeysWithPrefix("CognitoIdentityServiceProvider")
-      // localStorage.removeItem("CognitoIdentityServiceProvider.aded2oqehr9748gg29ds24ic5.LastAuthUser")
       console.log(session)
     } catch (error: any) {
       if(error.name === 'NotAuthorizedException') {
@@ -272,12 +267,11 @@ const Login: FC = () => {
         } else {
           res = t('auth:incorrectPWD');
         }
-    } else if(error.name === 'UserNotFoundException') {
-      res = t('auth:userNotExists');
-    } else {
-      res = t('auth:unknownError');
-    }
-
+      } else if(error.name === 'UserNotFoundException') {
+        res = t('auth:userNotExists');
+      } else {
+        res = t('auth:unknownError');
+      }
     }
     return res;
   };
@@ -317,12 +311,10 @@ const Login: FC = () => {
       } else {
         res = t('auth:unknownError').toString();
       }
-      // return
     }
     return res;
   };
 
-  // let userInfo: any= {}
   const oidcLogin = async (currentProvider: any) => {
     let returnMsg = '';
     const provider = currentProvider.value;
@@ -334,14 +326,12 @@ const Login: FC = () => {
     if (returnMsg === "first-login") {
       navigate(ROUTES.ChangePWD, { state: 
         {
-          // session: location.state?.session,
           username: username,
           reason: "first-login",
           loginType: 'OIDC',
           provider: 'cognito',
           author: author,
           projectName: projectName,
-          // region: region,
           clientId: currentProvider.clientId,
           redirectUri: currentProvider.redirectUri
         }});
@@ -374,7 +364,6 @@ const Login: FC = () => {
     </div>
   ) : (<>
     <div className="login-div">
-    
       <SpaceBetween direction="vertical" size="m">
         <div className="container">
         <div className="banner">{projectName}</div>
@@ -459,7 +448,6 @@ const Login: FC = () => {
               >
                 {error}
               </div>
-              {/* <div style={{height:20, marginTop: 16, color:"#d93a7f7a", fontWeight:"bold", fontSize:12}}>{(error!==""&& error!==null)?(<><span style={{fontWeight: 800}}>·</span>&nbsp;{error}</>):""}</div> */}
             </div>
             <div style={{ display: 'none' }}>{selectedProviderName}</div>
           </div>
