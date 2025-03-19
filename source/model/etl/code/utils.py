@@ -55,15 +55,18 @@ def check_and_read(img_path):
     # Handle PDF files
     elif ext == "pdf":
         import fitz
+        MAX_PIXELS = 6000000  # 最大像素数限制
         with fitz.open(img_path) as pdf:
             for pg in range(0, pdf.page_count):
                 page = pdf[pg]
-                mat = fitz.Matrix(3, 3)
+                rect = page.rect
+                w, h = rect.width, rect.height
+                scale = min(1.0, np.sqrt(MAX_PIXELS / (w * h * 9)))  # 9是因为原来的Matrix(3, 3)
+                mat = fitz.Matrix(3 * scale, 3 * scale)
                 pm = page.get_pixmap(matrix=mat, alpha=False)
                 img = Image.frombytes("RGB", [pm.width, pm.height], pm.samples)
                 img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
                 yield img
-                
     # Handle common image formats (JPG, PNG, etc.)
     else:
         img = cv2.imread(img_path)
