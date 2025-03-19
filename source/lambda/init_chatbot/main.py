@@ -31,11 +31,12 @@ def handler(event, context):
             "createTime": time_str,
             "modelType": "embedding",
             "parameter": {
-                "modelId": embeddings_model.get("id"),
                 "apiKeyArn": "",
                 "baseUrl": "",
+                "modelId": embeddings_model.get("id"),
+                "targetModel": embeddings_model.get("targetModel"),
                 "modelDimension": embeddings_model.get("dimensions"),
-                "modelEndpoint": "",
+                "modelEndpoint": embeddings_model.get("modelEndpoint"),
                 "modelProvider": embeddings_model.get("provider")
             },
             "status": "ACTIVE",
@@ -45,12 +46,13 @@ def handler(event, context):
             "groupName": "Admin",
             "modelId": "admin-rerank",
             "createTime": time_str,
-            "modelType": "embedding",
+            "modelType": "rerank",
             "parameter": {
-                "modelId": rerank_model.get("id"),
                 "apiKeyArn": "",
                 "baseUrl": "",
-                "modelEndpoint": "",
+                "modelId": rerank_model.get("id"),
+                "targetModel": rerank_model.get("targetModel"),
+                "modelEndpoint": rerank_model.get("modelEndpoint"),
                 "modelProvider": rerank_model.get("provider")
             },
             "status": "ACTIVE",
@@ -62,10 +64,10 @@ def handler(event, context):
             "createTime": time_str,
             "modelType": "vlm",
             "parameter": {
-                "modelId": vlm_model.get("id"),
                 "apiKeyArn": "",
                 "baseUrl": "",
-                "modelEndpoint": "",
+                "modelId": vlm_model.get("id"),
+                "modelEndpoint": rerank_model.get("modelEndpoint"),
                 "modelProvider": vlm_model.get("provider")
             },
             "status": "ACTIVE",
