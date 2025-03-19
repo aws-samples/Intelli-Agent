@@ -79,6 +79,8 @@ class RagBaseChain(LLMChain):
             lambda x: print_llm_messages(f"rag messages: {x.messages}") or x)
         
         chain = chain | llm
+        print(llm.is_reasoning_model)
+        # print(dfbfdh)
         if not llm.is_reasoning_model:
             chain = chain | StrOutputParser()
             if stream:
@@ -93,10 +95,12 @@ class RagBaseChain(LLMChain):
 
             reason_model_stream_result_cls = getattr(llm, "reason_model_stream_result_cls", ReasonModelStreamResult)
             reason_model_stream_result_cls_init_kwargs = getattr(llm,'reason_model_stream_result_cls_init_kwargs',{})
+            print('reason_model_stream_result_cls: ',reason_model_stream_result_cls)
+            # print(xffdh)
             if stream:
-                final_chain = RunnableLambda(lambda x: reason_model_result_cls(chain.stream(x),**reason_model_result_cls_init_kwargs))
+                final_chain = RunnableLambda(lambda x: reason_model_stream_result_cls(chain.stream(x),**reason_model_stream_result_cls_init_kwargs))
             else:
-                final_chain = RunnableLambda(lambda x: reason_model_stream_result_cls(chain.invoke(x),**reason_model_stream_result_cls_init_kwargs))
+                final_chain = RunnableLambda(lambda x: reason_model_result_cls(chain.invoke(x),**reason_model_result_cls_init_kwargs))
             return final_chain
 
 class DeepSeekR1RagBaseChain(RagBaseChain):

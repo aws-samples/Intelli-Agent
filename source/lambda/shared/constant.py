@@ -185,6 +185,8 @@ class LLMModelType(ConstantBase):
     CLAUDE_3_HAIKU_EU = "eu.anthropic.claude-3-haiku-20240307-v1:0"
     CLAUDE_3_SONNET_APAC = "apac.anthropic.claude-3-sonnet-20240229-v1:0"
     CLAUDE_3_5_SONNET_APAC = "apac.anthropic.claude-3-5-sonnet-20240620-v1:0"
+    CLAUDE_3_7_SONNET_THINKING_US = "us.anthropic.claude-3-7-sonnet-20250219-v1:0-thinking"
+    CLAUDE_3_7_SONNET_US = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
     CLAUDE_3_HAIKU_APAC = "apac.anthropic.claude-3-haiku-20240307-v1:0"
     LLAMA3_1_70B_INSTRUCT_US = "us.meta.llama3-1-70b-instruct-v1:0"
 

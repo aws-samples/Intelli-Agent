@@ -1,4 +1,4 @@
-langchain-aws==0.2.13
+langchain-aws==0.2.15
 langgraph==0.2.43
 langchain-community==0.3.5
 opensearch-py==2.2.0

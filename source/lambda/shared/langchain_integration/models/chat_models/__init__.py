@@ -216,8 +216,6 @@ class ReasonModelStreamResult:
             yield from self.generate_stream(self.message_stream)
 
 
-
-
 class BedrockConverseReasonModelStreamResult:
     def __init__(
         self,
@@ -235,6 +233,7 @@ class BedrockConverseReasonModelStreamResult:
         self.think_stream = self.create_think_stream(message_stream)
         self.content_stream = self.create_content_stream(message_stream)
         self.new_stream = None
+        
     def create_think_stream(self,message_stream: Iterator[BaseMessageChunk]):
         think_start_flag = False
         for message in message_stream:
@@ -245,6 +244,10 @@ class BedrockConverseReasonModelStreamResult:
             assert len(content_blocks) == 1, content_blocks
 
             content_block = content_blocks[0]
+
+            if 'type' not in content_block:
+                continue
+
             reasoning_content = None 
             if content_block['type'] == self.reasoning_content_type:
                 reasoning_content = content_block[self.reasoning_content_type][self.text_content_type]
@@ -274,9 +277,11 @@ class BedrockConverseReasonModelStreamResult:
             assert len(content_blocks) == 1, content_blocks
 
             content_block = content_blocks[0]
+            if 'type' not in content_block:
+                continue
             reasoning_content = None 
             if content_block['type'] == self.reasoning_content_type:
-                reasoning_content = content_block[self.reasoning_content_type][self.text_content_type]
+                reasoning_content = content_block[self.reasoning_content_type].get(self.text_content_type)
 
             if reasoning_content is not None:
                 if not think_start_flag:

@@ -92,6 +92,27 @@ CLAUDE_MODEL_CONFIG = [
         model_id=LLMModelType.CLAUDE_21,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
     ),
+    ModelConfig(
+        model_id=LLMModelType.CLAUDE_3_7_SONNET_THINKING_US,
+        model="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+        is_reasoning_model=True,
+        default_model_kwargs={
+            "max_tokens": 4096,
+            "temperature": 1.0,
+            "additional_model_request_fields":{
+                "thinking": {
+                    "type": "enabled",
+                    "budget_tokens": 1024
+                }
+            }
+        }
+    ),
+    ModelConfig(
+        model_id=LLMModelType.CLAUDE_3_7_SONNET_US,
+        model="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+        is_reasoning_model=False,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()  
+    ),
 ]
 
 NOVA_MODEL_CONFIGS = [
