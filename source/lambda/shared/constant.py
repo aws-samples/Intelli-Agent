@@ -163,6 +163,7 @@ class LLMModelType(ConstantBase):
     DEEPSEEK_R1_DISTILL_QWEN_14B = "DeepSeek-R1-Distill-Qwen-14B"
     DEEPSEEK_R1_DISTILL_QWEN_32B = "DeepSeek-R1-Distill-Qwen-32B"
     DEEPSEEK_R1 = "DeepSeek-R1"
+    DEEPSEEK_R1_BEDROCK_US = "us.deepseek.r1-v1:0"
     DEEPSEEK_V3 = "DeepSeek-V3"
     BEDROCK_DEEPSEEK_R1 = "deepseek.r1-v1:0"
 
@@ -184,6 +185,8 @@ class LLMModelType(ConstantBase):
     CLAUDE_3_HAIKU_EU = "eu.anthropic.claude-3-haiku-20240307-v1:0"
     CLAUDE_3_SONNET_APAC = "apac.anthropic.claude-3-sonnet-20240229-v1:0"
     CLAUDE_3_5_SONNET_APAC = "apac.anthropic.claude-3-5-sonnet-20240620-v1:0"
+    CLAUDE_3_7_SONNET_THINKING_US = "us.anthropic.claude-3-7-sonnet-20250219-v1:0-thinking"
+    CLAUDE_3_7_SONNET_US = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
     CLAUDE_3_HAIKU_APAC = "apac.anthropic.claude-3-haiku-20240307-v1:0"
     LLAMA3_1_70B_INSTRUCT_US = "us.meta.llama3-1-70b-instruct-v1:0"
 

@@ -8,7 +8,7 @@ import {
 } from '@cloudscape-design/components';
 import { FC, useContext, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import yaml from 'yaml';
+// import yaml from 'yaml';
 import './style.scss';
 import { EN_LANG, OIDC_STORAGE, ROUTES, ZH_LANG, ZH_LANGUAGE_LIST } from 'src/utils/const';
 import { useTranslation } from 'react-i18next';
