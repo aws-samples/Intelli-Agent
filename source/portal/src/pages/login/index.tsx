@@ -28,9 +28,7 @@ import useAxiosAuthRequest from 'src/hooks/useAxiosAuthRequest';
 import ConfigContext from 'src/context/config-context';
 import { Amplify } from 'aws-amplify';
 import { signIn, fetchAuthSession } from '@aws-amplify/auth';
-
-
-
+import { changeLanguage, removeKeysWithPrefix } from 'src/utils/utils';
 const Login: FC = () => {
   const [activeTabId, setActiveTabId] = useState(LOGIN_TYPE.OIDC);
   const [logging, setLogging] = useState(false as boolean);
@@ -38,7 +36,6 @@ const Login: FC = () => {
   const [password, setPassword] = useState(null as any);
   const [keep, setKeep] = useState(false);
   const navigate = useNavigate();
-  // const { i18n } = useTranslation();
   const { t, i18n } = useTranslation();
   const fetchData = useAxiosAuthRequest();
   const [error, setError] = useState('' as string);
@@ -123,7 +120,7 @@ const Login: FC = () => {
         });
       }
       if (config.login?.oidc && config.login.oidc.providers.length > 0) {
-        // const tmp_login_params = new Map<string, any>();
+        if (builtInConfig?.oidcRegion.startsWith('cn-')){
         config.login.oidc.providers.forEach((item: any) => {
           let description = '';
           switch (item.name) {
@@ -149,17 +146,17 @@ const Login: FC = () => {
           });
           // tmp_login_params.set(item.name, item)
         });
-        if (!builtInConfig?.oidcRegion.startsWith('cn-')) {
-          oidcOptions.push({
-            label: 'Cognito',
-            iconUrl: 'imgs/cognito.png',
-            value: 'cognito',
-            clientId: builtInConfig?.oidcClientId,
-            // clientSecret: item.clientSecret,
-            redirectUri: builtInConfig?.oidcRedirectUrl,
-            tags: [t('auth:cognitoDesc')],
-          });
-        }
+      } else {
+        oidcOptions.push({
+        label: 'Cognito',
+        iconUrl: 'imgs/cognito.png',
+        value: 'cognito',
+        clientId: builtInConfig?.oidcClientId,
+        // clientSecret: item.clientSecret,
+        redirectUri: builtInConfig?.oidcRedirectUrl,
+        tags: [t('auth:cognitoDesc')],
+        });
+      }
 
         setOidcList(oidcOptions);
 
@@ -191,22 +188,24 @@ const Login: FC = () => {
     }
   };
 
-  const changeLanguage = () => {
-    if (lang === EN_LANG) {
-      setLang(ZH_LANG);
-      i18n.changeLanguage(ZH_LANG);
-    } else {
-      setLang(EN_LANG);
-      i18n.changeLanguage(EN_LANG);
-    }
-  };
-
   const forgetPwd = () => {
-    navigate(ROUTES.FindPWD);
+    navigate(ROUTES.FindPWD, { state: 
+      {
+        loginType: 'OIDC',
+        provider: 'cognito',
+        author: author,
+        projectName: projectName
+      }});
   };
 
   const toRegister = () => {
-    navigate(ROUTES.Register);
+    navigate(ROUTES.Register, { state: 
+      {
+        loginType: 'OIDC',
+        provider: 'cognito',
+        author: author,
+        projectName: projectName
+      }});
   };
 
   const loginSystem = () => {
@@ -233,15 +232,6 @@ const Login: FC = () => {
     oidcLogin(currentProvider);
   };
 
-  function removeKeysWithPrefix(prefix: string) {
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(prefix)) {
-        localStorage.removeItem(key);
-      }
-    }
-  }
-
   const loginWithCognito = async (currentProvider: any) => {
     let res = '';
     try {
@@ -257,6 +247,7 @@ const Login: FC = () => {
         username, 
         password
       });
+      if(!user.isSignedIn && user.nextStep.signInStep === "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED") return "first-login"
       console.log(`user is ${user}`);
       const session = await fetchAuthSession();
       localStorage.setItem(
@@ -268,17 +259,19 @@ const Login: FC = () => {
         }),
       );
       removeKeysWithPrefix("CognitoIdentityServiceProvider")
-      // localStorage.removeItem("CognitoIdentityServiceProvider.aded2oqehr9748gg29ds24ic5.LastAuthUser")
       console.log(session)
     } catch (error: any) {
       if(error.name === 'NotAuthorizedException') {
-      res = t('auth:incorrectPWD');
-    } else if(error.name === 'UserNotFoundException') {
-      res = t('auth:userNotExists');
-    } else {
-      res = t('auth:unknownError');
-    }
-
+        if(error.message === 'Temporary password has expired and must be reset by an administrator.') {
+          res = "first-login"
+        } else {
+          res = t('auth:incorrectPWD');
+        }
+      } else if(error.name === 'UserNotFoundException') {
+        res = t('auth:userNotExists');
+      } else {
+        res = t('auth:unknownError');
+      }
     }
     return res;
   };
@@ -318,12 +311,10 @@ const Login: FC = () => {
       } else {
         res = t('auth:unknownError').toString();
       }
-      // return
     }
     return res;
   };
 
-  // let userInfo: any= {}
   const oidcLogin = async (currentProvider: any) => {
     let returnMsg = '';
     const provider = currentProvider.value;
@@ -331,6 +322,20 @@ const Login: FC = () => {
       returnMsg = await loginWithCognito(currentProvider);
     } else {
       returnMsg = await loginWithAuthing(currentProvider, provider);
+    }
+    if (returnMsg === "first-login") {
+      navigate(ROUTES.ChangePWD, { state: 
+        {
+          username: username,
+          reason: "first-login",
+          loginType: 'OIDC',
+          provider: 'cognito',
+          author: author,
+          projectName: projectName,
+          clientId: currentProvider.clientId,
+          redirectUri: currentProvider.redirectUri
+        }});
+      return
     }
     if (returnMsg) {
       setError(returnMsg);
@@ -359,13 +364,12 @@ const Login: FC = () => {
     </div>
   ) : (<>
     <div className="login-div">
-    
       <SpaceBetween direction="vertical" size="m">
         <div className="container">
         <div className="banner">{projectName}</div>
           <div className="sub-title">
             {t('auth:support-prefix')} {author} {t('auth:support-postfix')}{' '}
-            <Link variant="info" onFollow={() => changeLanguage()}>
+            <Link variant="info" onFollow={() => changeLanguage(lang, setLang, i18n)}>
               {t('auth:changeLang')}
             </Link>
           </div>
@@ -444,7 +448,6 @@ const Login: FC = () => {
               >
                 {error}
               </div>
-              {/* <div style={{height:20, marginTop: 16, color:"#d93a7f7a", fontWeight:"bold", fontSize:12}}>{(error!==""&& error!==null)?(<><span style={{fontWeight: 800}}>·</span>&nbsp;{error}</>):""}</div> */}
             </div>
             <div style={{ display: 'none' }}>{selectedProviderName}</div>
           </div>

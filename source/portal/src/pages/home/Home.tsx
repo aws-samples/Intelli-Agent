@@ -86,12 +86,12 @@ const Home: React.FC = () => {
     setRunTour(true);
   };
 
-  useEffect(() => {
-    const tourCompleted = localStorage.getItem('tourCompleted');
-    if (!tourCompleted) {
-      setRunTour(true);
-    }
-  }, []);
+  // useEffect(() => {
+  //   const tourCompleted = localStorage.getItem('tourCompleted');
+  //   if (!tourCompleted) {
+  //     setRunTour(true);
+  //   }
+  // }, []);
 
   const joyrideStyles = {
     options: {

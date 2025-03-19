@@ -1,4 +1,4 @@
-import { Button, Checkbox, FormField, Grid, Input, Link, Select, SpaceBetween } from '@cloudscape-design/components';
+import { Button, Checkbox, FormField, Grid, Input, Link, Select } from '@cloudscape-design/components';
 import { FC, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import yaml from 'yaml';
@@ -119,14 +119,6 @@ const FindPWD: FC = () => {
   const toRegister =()=>{
     navigate(ROUTES.Register)
   }
-
-  // const handleMouseEnter =(target: string)=>{
-  //   setSelectedThird(target)
-  // }
-
-  // const handleMouseLeave =(target: string)=>{
-  //   setSelectedThird("")
-  // }
   
   const sendEmail=()=> {
     setError(t('auth:waiting'))
@@ -206,27 +198,19 @@ const FindPWD: FC = () => {
         <div style={{color: 'rgb(128, 128, 128)', fontSize: 14,marginTop: 30, width:'90%'}}>
           {(thirdLogin && thirdLogin.length>0)?(
           <Grid gridDefinition={[{colspan:4},{colspan:8}]}>
-            <SpaceBetween direction='horizontal' size='s'>
-              {/* {thirdLogin.map(item=>{
-                return (<div key={item.type} onMouseEnter={()=>handleMouseEnter(item.type)} onMouseLeave={()=>handleMouseLeave(item.type)}>
-                          <img src={selectedThird===item.type? `../imgs/${item.iconUrlSelected}.png`:`../imgs/${item.iconUrl}.png`} alt="" style={item.iconStyle}/>
-                        </div>)
-                })
-              } */}
-            </SpaceBetween>
             <div style={{paddingTop:15, textAlign:'right'}}>
-              <span style={{color: 'rgb(128, 128, 128)'}}>{t('auth:findPWD.needAccount')}</span>
-              <Link onFollow={toRegister}>{t('auth:findPWD.register')}</Link>
-              <span style={{color: 'rgb(128, 128, 128)'}}> {t('auth:findPWD.or')} </span>
-              <Link onFollow={toLogin}>{t('auth:findPWD.login')}</Link>
+              <span style={{color: 'rgb(128, 128, 128)'}}>{t('auth:needAccount')}</span>
+              <Link onFollow={toRegister}>{t('auth:register')}</Link>
+              <span style={{color: 'rgb(128, 128, 128)'}}> {t('auth:or')} </span>
+              <Link onFollow={toLogin}>{t('auth:login')}</Link>
             </div>
           </Grid>):(
           <Grid gridDefinition={[{colspan:12}]}>
             <div style={{paddingTop:5, textAlign:'right'}}>
-              <span style={{color: 'rgb(128, 128, 128)'}}>{t('auth:findPWD.needAccount')}</span>
-              <Link onFollow={toRegister}>{t('auth:findPWD.register')}</Link>
-              <span style={{color: 'rgb(128, 128, 128)'}}> {t('auth:findPWD.or')} </span>
-              <Link onFollow={toLogin}>{t('auth:findPWD.login')}</Link>
+              <span style={{color: 'rgb(128, 128, 128)'}}>{t('auth:needAccount')}</span>
+              <Link onFollow={toRegister}>{t('auth:register')}</Link>
+              <span style={{color: 'rgb(128, 128, 128)'}}> {t('auth:or')} </span>
+              <Link onFollow={toLogin}>{t('auth:login')}</Link>
             </div>
           </Grid>)}
           <div style={{marginTop:10,textAlign:'right',color:'red',fontWeight:800,height:16}}>{error}</div>

@@ -217,21 +217,36 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
         )
         bm25_search_results = []
         vector_search_results = []
+        bm25_search_task = None 
+        vector_search_task = None
         if not (enable_bm25_search or enable_vector_search):
             raise ValueError("At least one of enable_bm25_search or enable_vector_search must be True")
         
         if enable_bm25_search:
-            bm25_search_results:List[Document] = await self.abm25_search(query,**kwargs)
+            bm25_search_task = asyncio.create_task(self.abm25_search(query,**kwargs))
 
         if enable_vector_search:
-            vector_search_results: List[Document] = await self.avector_search(
+            vector_search_task = asyncio.create_task(self.avector_search(
                     query=query,
                     **kwargs
-            )
+            ))
+        
+        if bm25_search_task is not None:
+            logger.info('await bm25 search...')
+            bm25_search_results = await bm25_search_task
+            logger.info('completed bm25 search...')
+        if vector_search_task is not None:
+            logger.info('await vector search...')
+            vector_search_results = await vector_search_task   
+            logger.info('completed vector search...')
+
         # rerank
         if self.reranker is not None:
             output_docs = bm25_search_results + vector_search_results
-            return await self.acompress_documents(query,output_docs,**kwargs)
+            logger.info('await rerank...')
+            ret = await self.acompress_documents(query,output_docs,**kwargs)
+            logger.info('completed rerank...')
+            return ret
         else:
             # altertively to merge the retriverd docs
             # print('bm25_search_results',bm25_search_results)
@@ -249,12 +264,12 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
     def docs_filter(self,docs:List[Document]):
         page_content_set = set()
         ret = []
-        for doc in doc:
+        for doc in docs:
             page_content = doc.page_content
             if page_content not in page_content_set:
                 page_content_set.add(page_content)
                 ret.append(doc)
-        return doc
+        return ret
 
     async def _aget_relevant_documents(
         self, query: str, *, 

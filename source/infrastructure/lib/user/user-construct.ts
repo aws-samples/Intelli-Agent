@@ -1,4 +1,4 @@
-import { Aws, StackProps, RemovalPolicy } from 'aws-cdk-lib';
+import { Aws, StackProps, RemovalPolicy, Duration } from 'aws-cdk-lib';
 import {
   AccountRecovery,
   CfnUserPoolGroup,
@@ -89,6 +89,9 @@ export class UserConstruct extends Construct implements UserConstructOutputs {
         logoutUrls: props.logoutUrls,
         scopes: [OAuthScope.OPENID, OAuthScope.PROFILE, OAuthScope.EMAIL],
       },
+      accessTokenValidity: Duration.days(1),
+      idTokenValidity: Duration.days(1),
+      refreshTokenValidity: Duration.days(7),
     });
 
     const adminUser = new CfnUserPoolUser(this, 'AdminUser', {

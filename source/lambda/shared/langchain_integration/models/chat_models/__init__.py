@@ -124,6 +124,46 @@ class ReasonModelResult:
     def __str__(self):
         return f"{self.think_start_tag}{self.reasoning_content}{self.think_end_tag}{self.content}"
 
+
+class BedrockConverseReasonModelResult:
+    def __init__(self,
+                 ai_message:BaseMessage,
+                 think_start_tag="<think>",
+                 think_end_tag="</think>",
+                 reasoning_content_type="reasoning_content",
+                 text_content_type="text"
+        ):
+        self.ai_message = ai_message
+        self.think_start_tag = think_start_tag
+        self.think_end_tag = think_end_tag
+        self.reasoning_content_type = reasoning_content_type
+        self.text_content_type = text_content_type
+
+        self.content,self.reasoning_content = self.parese_reasoning_content(
+            ai_message
+        )
+        
+    def parese_reasoning_content(self,ai_message:BaseMessage):
+        content = ai_message.content
+        text_contents = []
+        reasoning_contents = []
+        assert isinstance(content,list),content
+        for item in content:
+            assert isinstance(item, dict),item
+            item_type = item['type']
+            if item_type == self.text_content_type:
+                text_contents.append(item[self.text_content_type])
+            elif item_type == self.reasoning_content_type:
+                reasoning_content_type = item[self.reasoning_content_type]['type']
+                if reasoning_content_type == self.text_content_type:
+                    reasoning_contents.append(item[self.reasoning_content_type][self.text_content_type])
+                
+        return "".join(text_contents),"".join(reasoning_contents)
+
+    def __str__(self):
+        return f"{self.think_start_tag}{self.reasoning_content}{self.think_end_tag}{self.content}"
+
+
 class ReasonModelStreamResult:
     def __init__(
         self,
@@ -175,3 +215,87 @@ class ReasonModelStreamResult:
         else:
             yield from self.generate_stream(self.message_stream)
 
+
+class BedrockConverseReasonModelStreamResult:
+    def __init__(
+        self,
+        message_stream: Iterator[BaseMessageChunk],
+        think_start_tag="<think>",
+        think_end_tag="</think>\n",
+        reasoning_content_type="reasoning_content",
+        text_content_type="text"
+    ):
+        self.message_stream = message_stream
+        self.think_start_tag = think_start_tag
+        self.think_end_tag = think_end_tag
+        self.reasoning_content_type = reasoning_content_type
+        self.text_content_type = text_content_type
+        self.think_stream = self.create_think_stream(message_stream)
+        self.content_stream = self.create_content_stream(message_stream)
+        self.new_stream = None
+        
+    def create_think_stream(self,message_stream: Iterator[BaseMessageChunk]):
+        think_start_flag = False
+        for message in message_stream:
+            content_blocks:list = message.content 
+            if not content_blocks:
+                continue
+
+            assert len(content_blocks) == 1, content_blocks
+
+            content_block = content_blocks[0]
+
+            if 'type' not in content_block:
+                continue
+
+            reasoning_content = None 
+            if content_block['type'] == self.reasoning_content_type:
+                reasoning_content = content_block[self.reasoning_content_type][self.text_content_type]
+            # reasoning_content = message.additional_kwargs.get(
+            #     self.reasoning_content_key,
+            #     None
+            # )
+            if reasoning_content is None and think_start_flag:
+                return
+            if reasoning_content is not None:
+                if not think_start_flag:
+                    think_start_flag = True
+                yield reasoning_content
+
+    def create_content_stream(self, message_stream: Iterator[BaseMessageChunk]):
+        for message in message_stream:
+            yield message.text()
+
+    def generate_stream(self,message_stream: Iterator[BaseMessageChunk]):
+        think_start_flag = False
+        for message in message_stream:
+            # reasoning_content = message.additional_kwargs.get(self.reasoning_content_key, None)
+            content_blocks:list = message.content 
+            if not content_blocks:
+                continue
+
+            assert len(content_blocks) == 1, content_blocks
+
+            content_block = content_blocks[0]
+            if 'type' not in content_block:
+                continue
+            reasoning_content = None 
+            if content_block['type'] == self.reasoning_content_type:
+                reasoning_content = content_block[self.reasoning_content_type].get(self.text_content_type)
+
+            if reasoning_content is not None:
+                if not think_start_flag:
+                    think_start_flag = True
+                    yield self.think_start_tag
+                yield reasoning_content
+                continue
+            if reasoning_content is None and think_start_flag:
+                think_start_flag = False
+                yield self.think_end_tag
+            yield message.text()
+
+    def __iter__(self):
+        if self.new_stream is not None:
+            yield from self.new_stream
+        else:
+            yield from self.generate_stream(self.message_stream)

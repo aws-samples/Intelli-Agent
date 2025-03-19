@@ -696,7 +696,7 @@ const ChatbotManagement: React.FC = () => {
             {
               id: 'modelId',
               header: t('modelName'),
-              cell: (item: ChatbotDetailResponse) => item.embeddingModel.modelName,
+              cell: (item: ChatbotDetailResponse) => item.embeddingModel.modelId,
               isRowHeader: true,
             },
             {

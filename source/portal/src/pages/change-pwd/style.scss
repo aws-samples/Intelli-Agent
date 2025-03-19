@@ -8,16 +8,28 @@
 }
 
 .changepwd-div .container {
-  width: 600px;
-  // height: 450px;
+  width: 620px;
   background-color: white;
   padding: 15px;
   padding-bottom: 25px;
-  // box-shadow: 3px 5px 10px -5px rgba(0, 0, 0, 0.6);
   border-radius: 8px;
-  
-  // box-shadow: 10px 10px 5px 0px rgba(240, 238, 238, 0.75);
 }
+
+.changepwd-div .reason {
+  font-family: 'Open Sans';
+  font-size: 14px;
+  text-align: right;
+  color: red;
+  font-weight: 800;
+}
+
+.changepwd-div .action {
+  color:#000000a6;
+  font-size:18px;
+  font-weight:800;
+  margin-bottom:20px
+}
+
 .banner {
   font-family: 'Open Sans';
   display: flex;
@@ -48,11 +60,9 @@
   .awsui_tabs-header-with-divider_14rmt_b9m39_352 {
     border-bottom: none !important;
   }
-// }
+
 .bottom-setting {
-  width:90%;
-  // margin-left: 10%;
-  
+  width:90%;  
 }
 .tab-name {
   text-align: center;
@@ -72,16 +82,20 @@
 
 .selected {
   color: #0972d3;
-  // border-bottom: 2px solid #0972d3;
 }
 
 .changepwd-div .bottom-button {
-  margin-top: 35px;
+  margin-top: 45px;
   width:90%;
-  // margin-left: 10%;
 }
 
-.login-buttom {
+[class^="submit awsui_button"] {
+  text-align: center !important;
+  width: 100%;
+  height: 40px;
+}
+
+.changepwd-div .login-buttom {
   width: 100%;
   text-align: center;
   height: 40px;
@@ -91,11 +105,6 @@
   padding-top: 20px;
   text-align: center;
 }
-
-// .bottom-button .awsui_variant-primary_vjswe_jz1q6_210 {
-//   text-align: center !important;
-
-// }
 
 .error {
   position: fixed;

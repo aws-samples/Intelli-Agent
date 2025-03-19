@@ -16,7 +16,7 @@ import {
   Table,
   TableProps,
 } from '@cloudscape-design/components';
-import { ChatbotsItem, IntentionsItem, IntentionsResponse, SelectedOption } from 'src/types';
+import { CreEditChatbotResponse, IntentionsItem, IntentionsResponse, SelectedOption } from 'src/types';
 import { alertMsg, formatTime } from 'src/utils/utils';
 import TableLink from 'src/comps/link/TableLink';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
@@ -76,11 +76,6 @@ const Intention: React.FC = () => {
       return;
     }
     setLoadingDelete(true)
-    // const deleteRes = await fetchData({
-    //   url: 'intention/executions',
-    //   method: 'delete',
-    //   data: {executionIds : selectedItems.map(item => item.executionId)}
-    // });
 
     try {
       const deleteRes = await fetchData({
@@ -128,29 +123,26 @@ const Intention: React.FC = () => {
     // setLoadingChangeDetailData(true)
     let intentionNameOptions: any[] = []
     let indexDesc = ""
-    const res: ChatbotsItem = await fetchData({
+    const res: CreEditChatbotResponse = await fetchData({
       url: `chatbot-management/chatbots/${chatbotId}`,
       method: 'get',
     });
-    setModel({label: res.model.modelName, value: res.model.modelEndpoint})
-    res.index.forEach((item)=>{
+    setModel({label: res.embeddingModel?.modelId, value: res.embeddingModel?.modelId})
+    res.indexes.forEach((item)=>{
       if(item.type==="intention"){
         if(item.description?.trim().length>0){
           intentionNameOptions.push({
-            value: item.name,
-            label: item.name, 
+            value: item.id,
+            label: item.id, 
             tags: [item.description]
          })
         } else {
           intentionNameOptions.push({
-            value: item.name,
-            label: item.name, 
+            value: item.id,
+            label: item.id, 
          })
         }
         indexDesc = item.description
-        // intention = {name: item.name, desc: item.description}
-
-        // return
       }
     }
     )
@@ -207,7 +199,7 @@ const Intention: React.FC = () => {
       method: 'get',
     });
     const options: SelectedOption[] = [];
-    (data.chatbot_ids||[]).forEach((item:any)=>{
+    (data.chatbotIds||[]).forEach((item:any)=>{
       options.push({
          label: item,
          value: item
