@@ -73,6 +73,7 @@ let vlms = [
   {
     provider: "SageMaker",
     id: "Qwen2-VL-72B-Instruct",
+    modelEndpoint: "",
   }
 ]
 
@@ -431,6 +432,24 @@ async function processCreateOptions(options: any): Promise<void> {
     },
     {
       type: "confirm",
+      name: "useSageMakerVlm",
+      message: "Do you have a VLM model hosted on SageMaker?",
+      initial: options.useSageMakerVlm ?? false,
+      skip(): boolean {
+        return (!deployInChina);
+      },
+    },
+    {
+      type: "input",
+      name: "sagemakerVlmModelEndpoint",
+      message: "Please enter the endpoint of the SageMaker VLM model",
+      initial: options.sagemakerVlmModelEndpoint ?? "",
+      skip(): boolean {
+        return (!deployInChina || !(this as any).state.answers.useSageMakerVlm);
+      },
+    },
+    {
+      type: "confirm",
       name: "enableUI",
       message: "Do you want to create a UI for the chatbot",
       initial: options.enableUI ?? true,
@@ -488,7 +507,15 @@ async function processCreateOptions(options: any): Promise<void> {
     answers.defaultRerankModel = "bge-reranker-large";
     answers.defaultLlm = "DeepSeek-R1-Distill-Llama-8B";
     answers.defaultVlm = "Qwen2-VL-72B-Instruct";
-    llms = []
+    llms = [];
+    vlms = [
+      {
+        provider: "SageMaker",
+        id: "Qwen2-VL-72B-Instruct",
+        modelEndpoint: answers.sagemakerVlmModelEndpoint,
+      }
+    ]
+
   } else {
     answers.defaultRerankModel = "cohere.rerank-v3-5:0";
     answers.defaultLlm = "us.anthropic.claude-3-5-sonnet-20241022-v2:0";
