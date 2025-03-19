@@ -172,7 +172,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
         ],
       },
       endpointProps: {
-        endpointName: embeddingAndRerankerModelName + "-endpoint",
+        endpointName: props.config.model.embeddingsModels[0].modelEndpoint,
         endpointConfigName: embeddingAndRerankerModelName + "-endpoint-config",
         tags: [
           {
