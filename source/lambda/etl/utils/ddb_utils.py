@@ -125,6 +125,8 @@ def initiate_rerank_model(
         "updateTime": create_time,
         "status": UiStatus.ACTIVE.value,
     }
+    if rerank_info["modelId"] == "bge-reranker-large":
+        item_content["parameter"]["targetModel"] = "bge_reranker_model.tar.gz"
     create_item(
         model_table,
         {"groupName": group_name, "modelId": model_item_id},

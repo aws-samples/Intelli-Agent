@@ -41,11 +41,13 @@ export interface SystemConfig {
       id: string;
       commitId: string;
       dimensions: number;
+      modelEndpoint?: string;
       default?: boolean;
     }[];
     rerankModels: {
       provider: ModelProvider;
       id: string;
+      modelEndpoint?: string;
     }[];
     llms: {
       provider: ModelProvider;
