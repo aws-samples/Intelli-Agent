@@ -120,7 +120,7 @@ const Login: FC = () => {
         });
       }
       if (config.login?.oidc && config.login.oidc.providers.length > 0) {
-        if (builtInConfig?.oidcRegion.startsWith('cn-')){
+        if (!(builtInConfig?.oidcRegion) || builtInConfig?.oidcRegion.startsWith('cn-')){
         config.login.oidc.providers.forEach((item: any) => {
           let description = '';
           switch (item.name) {
