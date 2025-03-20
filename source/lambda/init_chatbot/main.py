@@ -23,6 +23,8 @@ def handler(event, context):
     vlm_models = model.get("vlms")
     vlm_model = vlm_models[0] if vlm_models and isinstance(vlm_models, list) and len(vlm_models) > 0 else {}
     embedding_model_id = embeddings_model.get("id")
+    rerank_model_id = rerank_model.get("id")
+    vlm_model_id = vlm_model.get("id")
     try:
         # Item={**item_key, **body}
         model_table.put_item(Item={
@@ -50,8 +52,8 @@ def handler(event, context):
             "parameter": {
                 "apiKeyArn": "",
                 "baseUrl": "",
-                "modelId": rerank_model.get("id"),
-                "targetModel": rerank_model.get("targetModel"),
+                "modelId": rerank_model_id,
+                "targetModel": __gen_target_model(rerank_model_id),
                 "modelEndpoint": rerank_model.get("modelEndpoint"),
                 "modelProvider": rerank_model.get("provider")
             },
@@ -66,8 +68,8 @@ def handler(event, context):
             "parameter": {
                 "apiKeyArn": "",
                 "baseUrl": "",
-                "modelId": vlm_model.get("id"),
-                "modelEndpoint": rerank_model.get("modelEndpoint"),
+                "modelId": vlm_model_id,
+                "modelEndpoint": __gen_target_model(vlm_model_id),
                 "modelProvider": vlm_model.get("provider")
             },
             "status": "ACTIVE",
@@ -159,4 +161,4 @@ def __gen_target_model(model_id: str):
     elif model_id == "bge-reranker-large":
         return "bge_reranker_model.tar.gz"
     else:
-        return ""
+        return None
