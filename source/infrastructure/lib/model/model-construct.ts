@@ -142,7 +142,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
     let embeddingAndRerankerEndpointInstanceType = "ml.g4dn.4xlarge";
     let embeddingAndRerankerModelName = embeddingAndRerankerModelPrefix + "-" + embeddingAndRerankerModelVersion.slice(0, 5)
     let embeddingAndRerankerImageUrl = this.modelPublicEcrAccount + this.modelRegion + this.modelImageUrlDomain + "djl-inference:0.21.0-deepspeed0.8.3-cu117";
-    let embeddingAndRerankerModelDataUrl = `s3://${props.config.model.modelConfig.modelAssetsBucket}/${embeddingAndRerankerModelPrefix}_deploy_code/`;
+    let embeddingAndRerankerModelDataUrl = `s3://${props.config.model.modelConfig.modelAssetsBucket}/bce-embedding-and-bge-reranker_deploy_code/`;
     let codePrefix = embeddingAndRerankerModelPrefix + "_deploy_code";
 
     const embeddingAndRerankerModelResources = this.deploySagemakerEndpoint({
