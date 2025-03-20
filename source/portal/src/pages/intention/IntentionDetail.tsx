@@ -126,6 +126,7 @@ const IntentionDetail: React.FC = () => {
       ]}
     >
       <ContentLayout>
+      <div style={{marginTop: '25px'}} />
       <SpaceBetween direction="vertical" size="m">
         <Container
           variant="default"
@@ -145,23 +146,8 @@ const IntentionDetail: React.FC = () => {
               executionFileList.map((item) => (
                 <div className="flex align-center" key={item.s3Prefix}>
                   <StatusIndicator type={showIngestStatus(item.status)}>
-                    {item.s3Prefix}
+                    {item.s3Prefix}&nbsp;&nbsp;(Failed:  {item.detail?.split("/")[0]}/Total: {item.detail?.split("/")[1]})
                   </StatusIndicator>
-                  {item.status === 'FAILED' && (
-                    <Popover
-                      dismissButton={false}
-                      position="top"
-                      size="large"
-                      triggerType="custom"
-                      content={
-                        <StatusIndicator type="error">
-                          {item.detail}
-                        </StatusIndicator>
-                      }
-                    >
-                      <Button iconName="status-info" variant="icon" />
-                    </Popover>
-                  )}
                 </div>
               ))
             ) : (
@@ -178,6 +164,7 @@ const IntentionDetail: React.FC = () => {
           }
         >
           <Table
+          variant="embedded"
       columnDefinitions={[
         {
           id: "question",
@@ -221,18 +208,20 @@ const IntentionDetail: React.FC = () => {
               </span>
             }
           ><StatusIndicator type="error">{t("intentionFail")}</StatusIndicator></Popover>
-          } else if(executionFileList[0]?.status === "FAILED"){
-            return <Popover
-            dismissButton={false}
-            position="top"
-            size="small"
-            triggerType="custom"
-            content={
-              <span style={{color: "red"}}>
-                {executionFileList[0]?.detail}
-              </span>
-            }><StatusIndicator type="error">{t("intentionFail")}</StatusIndicator></Popover>
-          } else {
+          } 
+          // else if(executionFileList[0]?.status === "FAILED"){
+          //   return <Popover
+          //   dismissButton={false}
+          //   position="top"
+          //   size="small"
+          //   triggerType="custom"
+          //   content={
+          //     <span style={{color: "red"}}>
+          //       {executionFileList[0]?.detail}
+          //     </span>
+          //   }><StatusIndicator type="error">{t("intentionFail")}</StatusIndicator></Popover>
+          // } 
+          else {
             return <StatusIndicator>{t("intentionSuccess")}</StatusIndicator>
           }
           }

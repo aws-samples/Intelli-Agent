@@ -359,7 +359,7 @@ def __create_execution(event, context, email, group_name):
     excel_file = BytesIO(file_content)
     workbook = load_workbook(excel_file)
     sheet = workbook.active
-    qaList = []
+    qa_list = []
 
     # Query current chatbot's qd index
     chatbot_item = chatbot_table.get_item(
@@ -379,7 +379,7 @@ def __create_execution(event, context, email, group_name):
         )
         if not question:
             continue
-        qaList.append(
+        qa_list.append(
             {
                 "question": question,
                 "intention": intention,
@@ -388,10 +388,10 @@ def __create_execution(event, context, email, group_name):
             }
         )
 
-    valid_qa_list = [qa for qa in qaList if qa.get("is_valid")]
+    valid_qa_list = [qa for qa in qa_list if qa.get("is_valid")]
 
     # write to aos(vectorData)
-    details = json.dumps(qaList)
+    details = json.dumps(qa_list)
     result = "success"
     error_msg = ""
 
@@ -425,7 +425,7 @@ def __create_execution(event, context, email, group_name):
             )[0],
             "details": details,
             "error": error_msg,
-            "validRatio": f"{len(valid_qa_list)} / {len(qaList)}" if result=="success" else f"0 / {len(qaList)}",
+            "validRatio": f"{len(valid_qa_list)} / {len(qa_list)}" if result=="success" else f"0 / {len(qa_list)}",
         }
     )
 
@@ -624,7 +624,6 @@ def __get_execution(event, group_name):
         elif key == "validRatio":
             result_list = value.split("/")
             item_json["status"] = "COMPLETED" if result_list[0].strip() == result_list[1].strip() else "FAILED"
-        elif key == "error":
             item_json["detail"] = value
         else:
             continue
