@@ -94,7 +94,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
         const idTokenRes: any = jwtDecode(idToken)
         displayName = idTokenRes?.name || idTokenRes?.email || idTokenRes?.nickname || displayName
       } else {
-        displayName = token.username
+        displayName = oidcRes.username
       }}
     }
 

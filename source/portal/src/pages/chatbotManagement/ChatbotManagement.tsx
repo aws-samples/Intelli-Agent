@@ -26,8 +26,8 @@ import {
 } from 'src/types';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
-import { formatTime } from 'src/utils/utils';
-import ConfigContext from 'src/context/config-context';
+import { formatTime, isChinaRegion } from 'src/utils/utils';
+import ConfigContext, { Config } from 'src/context/config-context';
 import {
   API_ENDPOINT,
   API_KEY_ARN,
@@ -120,13 +120,13 @@ const ChatbotManagement: React.FC = () => {
   const [tableChatbotList, setTableChatbotList] = useState<ChatbotDetailResponse[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const config = useContext(ConfigContext);
+  const config: Config | null = useContext(ConfigContext);
   console.log('config');
   console.log(config);
   const localApiEndpoint = localStorage.getItem(API_ENDPOINT);
   const localApiKeyArn = localStorage.getItem(API_KEY_ARN);
   const embeddingModelTypeList = [
-    ...(config?.oidcRegion?.startsWith('cn-') ? [] : [{ label: 'Bedrock', value: 'Bedrock' }]),
+    ...(isChinaRegion(config) ? [] : [{ label: 'Bedrock', value: 'Bedrock' }]),
     {
       label: 'Bedrock API',
       value: 'Bedrock API',
@@ -139,13 +139,13 @@ const ChatbotManagement: React.FC = () => {
   ];
 
   const rerankModelTypeList = [
-    ...(config?.oidcRegion?.startsWith('cn-') ? [] : [{ label: 'Bedrock', value: 'Bedrock' }]),
+    ...(isChinaRegion(config) ? [] : [{ label: 'Bedrock', value: 'Bedrock' }]),
     { label: 'SageMaker', value: 'SageMaker' }
   ];
 
   const vlmModelTypeList = [
-    ...(config?.oidcRegion?.startsWith('cn-') ? [] : [{ label: 'Bedrock', value: 'Bedrock' }]),
-    ...(config?.oidcRegion?.startsWith('cn-')
+    ...(isChinaRegion(config) ? [] : [{ label: 'Bedrock', value: 'Bedrock' }]),
+    ...(isChinaRegion(config)
       ? [{ label: 'SageMaker', value: 'SageMaker' }]
       : []),
   ];
