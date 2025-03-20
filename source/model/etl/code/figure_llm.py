@@ -5,7 +5,7 @@ import logging
 import re
 
 import boto3
-import openai
+from openai import OpenAI
 
 # Add logger configuration
 logger = logging.getLogger(__name__)
@@ -59,11 +59,11 @@ class figureUnderstand:
         elif model_provider == "OpenAI API":
             self.openai_api_key = self._get_api_key(model_secret_name)
 
-            openai.api_key = self.openai_api_key
-            openai.base_url = model_api_url
             self.model_id = model_id
 
-            self.openai_client = openai
+            self.openai_client = OpenAI(
+                api_key=self.openai_api_key, base_url=model_api_url
+            )
 
         elif model_provider == "SageMaker":
             self.sagemaker_client = boto3.client("sagemaker-runtime")
@@ -177,7 +177,7 @@ class figureUnderstand:
             {"role": "assistant", "content": prefix},
         ]
 
-        response = openai.chat.completions.create(
+        response = self.openai_client.chat.completions.create(
             model=self.model_id,
             messages=messages,
             max_tokens=4096,

@@ -11,11 +11,11 @@ from datetime import datetime
 from typing import Union
 
 import boto3
-import openai
 import requests
 from llm_bot_dep.schemas.processing_parameters import VLLMParameters
 from llm_bot_dep.utils.s3_utils import upload_file_to_s3
 from llm_bot_dep.utils.secrets_manager_utils import get_api_key
+from openai import OpenAI
 from PIL import Image
 
 CHART_UNDERSTAND_PROMPT = """
@@ -137,11 +137,11 @@ class figureUnderstand:
                     f"Failed to retrieve OpenAI API key from Secrets Manager. Please check the secret name: {model_secret_name}"
                 )
 
-            openai.api_key = self.openai_api_key
-            openai.base_url = model_api_url
+            self.openai_client = OpenAI(
+                api_key=self.openai_api_key, base_url=model_api_url
+            )
             self.model_id = model_id
 
-            self.openai_client = openai
         elif model_provider == "SageMaker":
             if (
                 not model_sagemaker_endpoint_name
