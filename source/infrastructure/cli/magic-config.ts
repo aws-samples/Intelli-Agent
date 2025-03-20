@@ -517,7 +517,7 @@ async function processCreateOptions(options: any): Promise<void> {
     ]
 
   } else {
-    answers.defaultRerankModel = "cohere.rerank-v3-5:0";
+    answers.defaultRerankModel = "bge-reranker-large";
     answers.defaultLlm = "us.anthropic.claude-3-5-sonnet-20241022-v2:0";
     answers.defaultVlm = "us.anthropic.claude-3-5-sonnet-20241022-v2:0";
   }

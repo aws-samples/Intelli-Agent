@@ -87,11 +87,15 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
       // Initialize SageMaker-specific configurations
       this.initializeSageMakerConfig();
 
-      // Set up embedding model if it's the BCE+BGE model
-      if (props.config.model.embeddingsModels.some(model => model.id === 'bce-embedding-base_v1')) {
-        const embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
-        this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
-      }
+      // // Set up embedding model if it's the BCE+BGE model
+      // if (props.config.model.embeddingsModels.some(model => model.id === 'bce-embedding-base_v1') || props.config.model.rerankModels.some(model => model.id === 'bge-reranker-large')) {
+      //   const embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
+      //   this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
+      // }
+
+      // User must deploy reranker endpoint since bedrock does not support reranker model in us-east-1
+      const embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
+      this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
     }
 
     // Handle knowledge base setup separately
