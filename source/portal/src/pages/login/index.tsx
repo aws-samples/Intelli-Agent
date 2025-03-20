@@ -28,7 +28,7 @@ import useAxiosAuthRequest from 'src/hooks/useAxiosAuthRequest';
 import ConfigContext from 'src/context/config-context';
 import { Amplify } from 'aws-amplify';
 import { signIn, fetchAuthSession } from '@aws-amplify/auth';
-import { changeLanguage, removeKeysWithPrefix } from 'src/utils/utils';
+import { changeLanguage, isChinaRegion, removeKeysWithPrefix } from 'src/utils/utils';
 const Login: FC = () => {
   const [activeTabId, setActiveTabId] = useState(LOGIN_TYPE.OIDC);
   const [logging, setLogging] = useState(false as boolean);
@@ -120,7 +120,7 @@ const Login: FC = () => {
         });
       }
       if (config.login?.oidc && config.login.oidc.providers.length > 0) {
-        if (!(builtInConfig?.oidcRegion) || builtInConfig?.oidcRegion.startsWith('cn-')){
+        if (isChinaRegion(builtInConfig)){
         config.login.oidc.providers.forEach((item: any) => {
           let description = '';
           switch (item.name) {
