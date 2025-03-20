@@ -327,6 +327,8 @@
     "apiModelName": "API Model Name",
     "apiModelNameDesc": "Enter the model name for the API",
     "apiKeyArn": "API Key ARN",
-    "apiKeyArnDesc": "Enter the ARN of the secret in AWS Secrets Manager that stores the API key for Bedrock/OpenAI"
+    "apiKeyArnDesc": "Enter the ARN of the secret in AWS Secrets Manager that stores the API key for Bedrock/OpenAI",
+    "successed":"Successed",
+    "total":"Total"
 }
 

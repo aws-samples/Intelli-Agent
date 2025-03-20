@@ -84,6 +84,7 @@ const LibraryDetail: React.FC = () => {
       ]}
     >
       <ContentLayout>
+        <div style={{marginTop: '25px'}} />
         <Container
           variant="default"
           header={

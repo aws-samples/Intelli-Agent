@@ -324,5 +324,7 @@
     "apiModelName": "API 模型名称",
     "apiModelNameDesc": "输入 API 使用的模型名称",
     "apiKeyArn": "API 密钥 ARN",
-    "apiKeyArnDesc": "输入存储在 AWS Secrets Manager 中用于 Bedrock/OpenAI 的 API 密钥的 ARN"
+    "apiKeyArnDesc": "输入存储在 AWS Secrets Manager 中用于 Bedrock/OpenAI 的 API 密钥的 ARN",
+    "successed":"成功",
+    "total":"共"
 }

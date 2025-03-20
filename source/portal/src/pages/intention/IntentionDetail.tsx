@@ -146,7 +146,7 @@ const IntentionDetail: React.FC = () => {
               executionFileList.map((item) => (
                 <div className="flex align-center" key={item.s3Prefix}>
                   <StatusIndicator type={showIngestStatus(item.status)}>
-                    {item.s3Prefix}&nbsp;&nbsp;(Failed:  {item.detail?.split("/")[0]}/Total: {item.detail?.split("/")[1]})
+                    {item.s3Prefix}&nbsp;&nbsp;({t('successed')}:  {item.detail?.split("/")[0]}/{t('total')}: {item.detail?.split("/")[1]})
                   </StatusIndicator>
                 </div>
               ))
