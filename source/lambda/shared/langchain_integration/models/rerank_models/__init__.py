@@ -1,15 +1,17 @@
-from .. import ModelBase 
 from typing import Union
-from ..model_config import EmbeddingModelConfig
+
 from shared.constant import ModelProvider
+
+from .. import ModelBase
+from ..model_config import EmbeddingModelConfig
 
 
 class RerankModelBase(ModelBase):
     model_map = {}
     default_model_kwargs: Union[dict, None] = None
-    
+
     @classmethod
-    def load_module(cls,model_provider):
+    def load_module(cls, model_provider):
         _load_module(model_provider)
 
     @classmethod
@@ -23,7 +25,7 @@ class RerankModelBase(ModelBase):
             (cls,),
             {
                 "model_id": model_id,
-                "default_model_kwargs": config.default_model_kwargs
+                "default_model_kwargs": config.default_model_kwargs,
             },
         )
         return model_class
@@ -31,16 +33,24 @@ class RerankModelBase(ModelBase):
 
 RerankModel = RerankModelBase
 
+
 def _import_bedrock_rerank():
     from . import bedrock_rerank
+
 
 def _import_emd_rerank():
     from . import emd_rerank
 
 
+def _import_sagemaker_rerank():
+    from . import sagemaker_rerank
+
+
 def _load_module(model_provider):
     assert model_provider in MODEL_PROVIDER_LOAD_FN_MAP, (
-        model_provider, MODEL_PROVIDER_LOAD_FN_MAP)
+        model_provider,
+        MODEL_PROVIDER_LOAD_FN_MAP,
+    )
     MODEL_PROVIDER_LOAD_FN_MAP[model_provider]()
 
 
@@ -49,5 +59,6 @@ MODEL_PROVIDER_LOAD_FN_MAP = {
     # ModelProvider.BRCONNECTOR_BEDROCK: _import_brconnector_bedrock_embeddings,
     # ModelProvider.OPENAI: _import_openai_embeddings,
     ModelProvider.EMD: _import_emd_rerank,
+    ModelProvider.SAGEMAKER: _import_sagemaker_rerank,
     # ModelProvider.SAGEMAKER_MULTIMODEL: _import_sagemaker_embeddings,
 }
