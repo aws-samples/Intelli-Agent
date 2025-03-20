@@ -22,7 +22,7 @@ def handler(event, context):
     rerank_model = rerank_models[0] if rerank_models and isinstance(rerank_models, list) and len(rerank_models) > 0 else {}
     vlm_models = model.get("vlms")
     vlm_model = vlm_models[0] if vlm_models and isinstance(vlm_models, list) and len(vlm_models) > 0 else {}
-    
+    embedding_model_id = embeddings_model.get("id")
     try:
         # Item={**item_key, **body}
         model_table.put_item(Item={
@@ -33,8 +33,8 @@ def handler(event, context):
             "parameter": {
                 "apiKeyArn": "",
                 "baseUrl": "",
-                "modelId": embeddings_model.get("id"),
-                "targetModel": embeddings_model.get("targetModel"),
+                "modelId": embedding_model_id,
+                "targetModel": __gen_target_model(embedding_model_id),
                 "modelDimension": embeddings_model.get("dimensions"),
                 "modelEndpoint": embeddings_model.get("modelEndpoint"),
                 "modelProvider": embeddings_model.get("provider")
@@ -151,3 +151,12 @@ def handler(event, context):
     except ClientError as e:
         print(f"Insert failed: {e.response['Error']['Message']}")
         raise
+
+
+def __gen_target_model(model_id: str):
+    if model_id == "bce-embedding-base_v1":
+        return "bce_embedding_model.tar.gz"
+    elif model_id == "bge-reranker-large":
+        return "bge_reranker_model.tar.gz"
+    else:
+        return ""
