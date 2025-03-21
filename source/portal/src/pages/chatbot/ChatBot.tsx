@@ -230,7 +230,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [apiKeyArnError, setApiKeyArnError] = useState('');
   const [apiEndpoint, setApiEndpoint] = useState(localApiEndpoint ?? '');
   const [apiKeyArn, setApiKeyArn] = useState(localApiKeyArn ?? '');
-  const [endpoints, setEndpoints] = useState<{label: string, value: string}[]>([])
+  const [sageMakerEndpoints, setSageMakerEndpoints] = useState<{label: string, value: string}[]>([])
 
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
@@ -411,7 +411,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           value: endpoint.endpoint_name,
         });
       });
-      setEndpoints(tempModels)
+      setSageMakerEndpoints(tempModels)
       setApiEndpointOption(tempModels[0])
     }
     fetchEndpoints();
@@ -693,12 +693,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       return;
     }
 
-    // if (parseInt(topKRetrievals) < 1) {
-    //   setTopKRetrievalsError(t('validation.topKRetrievals'));
-    //   setModelSettingExpand(true);
-    //   return;
-    // }
-
     if (parseFloat(temperature) < 0.0 || parseFloat(temperature) > 1.0) {
       setTemperatureError(t('validation.temperatureRange'));
       setModelSettingExpand(true);
@@ -760,7 +754,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           base_url:
             modelType.value === 'Bedrock API' ||
               modelType.value === 'OpenAI API' ||
-              modelType.value === 'siliconflow'
+              modelType.value === 'siliconflow' ||
+              modelType.value === 'SageMaker'
               ? apiEndpoint.trim()
               : '',
           api_key_arn:
@@ -833,15 +828,30 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     } else if (modelType.value === 'Bedrock API') {
       setModelList(BR_API_MODEL_LIST);
       setModelOption(BR_API_MODEL_LIST[0].options[0].value);
+      setApiEndpoint('');
+      setApiKeyArn('');
     } else if (modelType.value === 'OpenAI API') {
       setModelList(OPENAI_API_MODEL_LIST);
       setModelOption(OPENAI_API_MODEL_LIST[0].options[0].value);
+      setApiEndpoint('');
+      setApiKeyArn('');
     } else if (modelType.value === 'siliconflow') {
       setModelList(SILICON_FLOW_API_MODEL_LIST);
       setModelOption(SILICON_FLOW_API_MODEL_LIST[0].options[0].value);
+      setApiEndpoint('');
+      setApiKeyArn('');
     } else if (modelType.value === 'SageMaker') {
       setModelList(SAGEMAKER_MODEL_LIST);
       setModelOption(SAGEMAKER_MODEL_LIST[0].options[0].value);
+      setApiEndpoint(sageMakerEndpoints[0].value);
+    }
+  }, [modelType]);
+
+  useEffect(() => {
+    if (modelOption === 'qwen2-72B-instruct') {
+      setShowEndpoint(true);
+    } else {
+      setEndPoint('Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347');
     } 
   }, [modelType]);
 
@@ -1089,6 +1099,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                               setModelType(detail.selectedOption);
                               setModelOption('');
 
+
                               // Check if the selected model provider matches the chatbot's model provider
                               // const selectedChatbotId =
                               //   chatbotOption.value ?? 'defaultId';
@@ -1214,7 +1225,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                     }}
                     loadingText={t('loadingEp')}
                     selectedOption={apiEndpointOption}
-                    options={endpoints}
+                    options={sageMakerEndpoints}
                     placeholder={t('validation.requireModel')}
                     empty={t('noModelFound')}
                   />
