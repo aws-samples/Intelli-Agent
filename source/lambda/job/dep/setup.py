@@ -19,7 +19,7 @@ setup(
         "beautifulsoup4==4.12.2",
         "requests-aws4auth==1.2.3",
         "boto3==1.35.98",
-        "openai==0.28.1",
+        "openai==1.63.2",
         "pyOpenSSL==23.3.0",
         "tenacity==8.2.3",
         "markdownify==0.11.6",

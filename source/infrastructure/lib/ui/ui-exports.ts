@@ -53,6 +53,7 @@ export class UiExportsConstruct extends Construct {
     const configFile = 'aws-exports.json';
     new AwsCustomResource(this, 'WebConfig', {
       logRetention: RetentionDays.ONE_DAY,
+      memorySize: 512,
       onCreate: {
         action: 'putObject',
         parameters: {
