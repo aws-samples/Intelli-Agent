@@ -774,12 +774,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
             max_tokens: parseInt(maxToken),
           },
         },
-        private_knowledge_config: {
-          bm25_search_top_k: parseInt(topKKeyword),
-          bm25_search_score: parseFloat(keywordScore),
-          vector_search_top_k: parseInt(topKEmbedding),
-          vector_search_score: parseFloat(embeddingScore),
-          rerank_top_k: parseInt(topKRerank),
+        default_retriever_config: {
+          private_knowledge: {
+            bm25_search_top_k: parseInt(topKKeyword),
+            bm25_search_score: parseFloat(keywordScore),
+            vector_search_top_k: parseInt(topKEmbedding),
+            vector_search_score: parseFloat(embeddingScore),
+            rerank_top_k: parseInt(topKRerank)
+          }
         },
         agent_config: {
           only_use_rag_tool: onlyRAGTool,
@@ -860,7 +862,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     // if (localModel) {
     //   setModelOption(localModel);
     // } else {
-    //   setModelOption(optionList?.[0]?.options?.[0].value ?? '');
+      setModelOption(optionList?.[0]?.options?.[0].value ?? '');
     // }
   }, [modelType]);
 
