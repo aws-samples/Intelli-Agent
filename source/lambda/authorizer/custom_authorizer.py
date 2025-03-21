@@ -100,7 +100,7 @@ def lambda_handler(event, context):
         )
         # reformat claims to align with cognito output
         claims["cognito:groups"] = ",".join(claims["cognito:groups"]) if oidc_info.get("provider") == "cognito" else "Admin"
-        claims["cognito:username"] =  claims["cognito:username"] if oidc_info.get("provider") == "cognito" else f"{oidc_info.get('provider')}-{oidc_info.get('username')}"
+        claims["cognito:username"] =  claims["email"] if oidc_info.get("provider") == "cognito" else f"{oidc_info.get('provider')}-{oidc_info.get('username')}"
         logger.info(claims)
 
         response = generateAllow("me", "*", claims)

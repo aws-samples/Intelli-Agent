@@ -731,7 +731,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     setCurrentMonitorMessage('');
     setIsMessageEnd(false);
 
-    const groupName: string[] = getGroupName();
+    const groupName: any = getGroupName();
     let message = {
       query: messageToSend,
       entry_type: 'common',
@@ -868,10 +868,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     [key: string]: 'thumb_up' | 'thumb_down' | null;
   }>({});
 
-  const getGroupName = ()=>{
+  const getGroupName = () =>{
     if(oidc.provider === "cognito") {
        const credentials = getCredentials()
-      //  jwtDecode.
       const claim = decodeJwt(credentials.idToken);
       return claim["cognito:groups"]
     }
