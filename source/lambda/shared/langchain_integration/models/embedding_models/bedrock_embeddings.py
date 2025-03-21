@@ -12,6 +12,8 @@ from ..model_config import (
     BEDROCK_EMBEDDING_CONFIGS
 )
 
+
+
 logger = get_logger("bedrock_embedding_model")
 
 
