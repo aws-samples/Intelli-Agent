@@ -852,6 +852,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       setModelList(SAGEMAKER_MODEL_LIST);
       setModelOption(SAGEMAKER_MODEL_LIST[0].options[0].value);
     }
+    setModelOption(optionList?.[0]?.options?.[0].value ?? '');
     // else if (modelType.value === 'emd') {
     //   optionList = CUSTOM_DEPLOYMENT_MODEL_LIST;
     //   setModelList(CUSTOM_DEPLOYMENT_MODEL_LIST);
@@ -860,7 +861,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     // if (localModel) {
     //   setModelOption(localModel);
     // } else {
-    //   setModelOption(optionList?.[0]?.options?.[0].value ?? '');
     // }
   }, [modelType]);
 
