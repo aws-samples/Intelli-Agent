@@ -495,7 +495,8 @@ def __save_2_aos(
             connection_class=RequestsHttpConnection,
         )
 
-        worker = OpenSearchIngestionWorker(docsearch, embedding_model_endpoint)
+        worker = OpenSearchIngestionWorker(docsearch, modelId)
+        # worker
         intention_list = convert_qa_list(qaList, bucket, prefix)
         worker.aos_ingestion(intention_list, index)
     else:

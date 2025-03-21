@@ -22,6 +22,7 @@
     "i18next": "^23.11.3",
     "i18next-browser-languagedetector": "^7.2.1",
     "i18next-http-backend": "^3.0.2",
+    "jose": "^6.0.10",
     "jsonwebtoken": "^9.0.2",
     "jwt-decode": "^4.0.0",
     "lodash": "^4.17.21",

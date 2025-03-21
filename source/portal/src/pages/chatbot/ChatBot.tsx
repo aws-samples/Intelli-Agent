@@ -3,6 +3,7 @@ import CommonLayout from 'src/layout/CommonLayout';
 import Message from './components/Message';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
+import { decodeJwt } from "jose";
 import {
   Autosuggest,
   Box,
@@ -25,7 +26,6 @@ import {
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { identity } from 'lodash';
 import ConfigContext from 'src/context/config-context';
-import { useAuth } from 'react-oidc-context';
 import {
   LLM_BOT_COMMON_MODEL_LIST,
   MODEL_TYPE_LIST,
@@ -110,7 +110,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const localApiKeyArn = localStorage.getItem(API_KEY_ARN);
   const config = useContext(ConfigContext);
   const { t } = useTranslation();
-  const auth = useAuth();
+  // const auth = useAuth();
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [messages, setMessages] = useState<MessageType[]>([
     {
@@ -731,12 +731,12 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     setCurrentMonitorMessage('');
     setIsMessageEnd(false);
 
-    const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
+    const groupName: string[] = getGroupName();
     let message = {
       query: messageToSend,
       entry_type: 'common',
       session_id: sessionId,
-      user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
+      user_id: oidc["username"] || 'default_user_id',
       chatbot_config: {
         max_rounds_in_memory: parseInt(maxRounds),
         group_name: groupName?.[0] ?? 'Admin',
@@ -868,6 +868,16 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     [key: string]: 'thumb_up' | 'thumb_down' | null;
   }>({});
 
+  const getGroupName = ()=>{
+    if(oidc.provider === "cognito") {
+       const credentials = getCredentials()
+      //  jwtDecode.
+      const claim = decodeJwt(credentials.idToken);
+      return claim["cognito:groups"]
+    }
+    return ["Admin"]
+  }
+
   const handleThumbUpClick = async (index: number) => {
     const currentFeedback = feedbackGiven[index];
     const newFeedback = currentFeedback === 'thumb_up' ? null : 'thumb_up';
@@ -925,7 +935,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     const message = {
       message_type: 'STOP',
       session_id: sessionId,
-      user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
+      user_id: oidc.get('username') || 'default_user_id',
     };
 
     console.info('Send stop message:', message);

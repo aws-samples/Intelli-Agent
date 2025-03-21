@@ -240,7 +240,9 @@ class ApiHandler:
         """Handle GET /chat-history/sessions endpoint"""
         try:
             claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-            user_id = claims["cognito:username"]
+            # TODO
+            # user_id = claims["cognito:username"]
+            user_id = claims["email"]
             pagination_config = PaginationConfig.get_pagination_config(event)
             result = ChatHistoryManager.list_sessions(user_id, pagination_config)
             return ApiResponse.success(result)
@@ -267,6 +269,7 @@ class ApiHandler:
             message_id = event["pathParameters"]["messageId"]
             claims = json.loads(event["requestContext"]["authorizer"]["claims"])
             user_id = claims["cognito:username"]
+            
 
             # Parse request body
             body = json.loads(event["body"])
