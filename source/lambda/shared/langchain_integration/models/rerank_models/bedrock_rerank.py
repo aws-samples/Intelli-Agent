@@ -177,14 +177,16 @@ class BedrockRerankBaseModel(RerankModelBase):
 
                                                             
         extra_kwargs.update({"model_kwargs": model_kwargs})
-        embedding_model = BedrockRerank(
+        logger.info('init BedrockRerank...')
+        rerank_model = BedrockRerank(
             client=client,
             credentials_profile_name=credentials_profile_name,
             region_name=region_name,
             model_id=cls.model_id,
             **extra_kwargs
         )
-        return embedding_model
+        logger.info('after init BedrockRerank...')
+        return rerank_model
 
 
 BedrockRerankBaseModel.create_for_models(BEDROCK_RERANK_CONFIGS)

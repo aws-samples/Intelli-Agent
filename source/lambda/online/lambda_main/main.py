@@ -18,6 +18,8 @@ from lambda_main.main_utils.online_entries import get_entry
 from common_logic.common_utils.response_utils import process_response
 from shared.utils.secret_utils import get_secret_value
 
+
+
 logger = get_logger("main")
 
 sessions_table_name = os.environ.get("SESSIONS_TABLE_NAME", "")

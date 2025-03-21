@@ -1,4 +1,9 @@
 from ...constant import ModelProvider
+from cachetools import LRUCache
+import json
+from shared.utils.logger_utils import get_logger
+logger = get_logger(__name__)
+model_cache = LRUCache(maxsize=128)
 
 class ModelMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -33,15 +38,26 @@ class ModelBase(metaclass=ModelMeta):
     @classmethod
     def load_module(cls,model_provider):
         raise NotImplementedError
+
+    @staticmethod
+    def get_model_cache_key(model_id, model_kwargs=None, **kwargs):
+        return json.dumps((model_id,model_kwargs,kwargs))
+
     
     @classmethod
     def get_model(cls, model_id, model_kwargs=None, **kwargs):
+        model_cache_key = cls.get_model_cache_key(model_id,model_kwargs=model_kwargs,**kwargs)
+        if model_cache_key in model_cache:
+            logger.info(f"Provider: {kwargs['provider']}, Model {model_id} found in cache") 
+            return model_cache[model_cache_key]
         model_provider = kwargs['provider']
         # dynamic load module
         cls.load_module(model_provider)
         model_identify = cls.get_model_id(
             model_id=model_id, model_provider=model_provider)
-        return cls.model_map[model_identify].create_model(model_kwargs=model_kwargs, **kwargs)
+        ret = cls.model_map[model_identify].create_model(model_kwargs=model_kwargs, **kwargs)
+        model_cache[model_cache_key] = ret
+        return ret
 
     @classmethod
     def model_id_to_class_name(cls, model_id: str) -> str:

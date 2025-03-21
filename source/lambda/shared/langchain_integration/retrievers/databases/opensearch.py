@@ -11,6 +11,7 @@ from langchain_community.vectorstores.opensearch_vector_search import (
     _get_opensearch_client,
     _import_bulk,
     _is_aoss_enabled,
+    # _import_opensearch
 )
 from langchain_core.pydantic_v1 import Field
 from pydantic import BaseModel, Field
@@ -20,10 +21,9 @@ aosEndpoint = os.environ.get("AOS_ENDPOINT")
 aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
 region = os.environ["AWS_REGION"]
 logger = get_logger(__name__)
-
+secrets_manager_client = boto3.client("secretsmanager")
 
 def get_client_kwargs():
-    secrets_manager_client = boto3.client("secretsmanager")
     try:
         master_user = secrets_manager_client.get_secret_value(
             SecretId=aos_secret
@@ -225,6 +225,17 @@ class OpenSearchBase(BaseModel):
         return await self.async_client.search(
             index=self.index_name, body=query_dict
         )
+
+
+    # def __getstate__(self):
+    #     state = self.model_dump()
+    #     del state['client']  # 从序列化数据中移除
+        
+    #     return state
+
+    # def __setstate__(self, state):
+    #     self.__dict__.update(state)
+    #     self.secret = "Restored default"  # 反序列化时提供默认值
 
 
 class OpenSearchBM25Search(OpenSearchBase):

@@ -15,6 +15,15 @@ import traceback
 from shared.utils.logger_utils import get_logger
 from shared.constant import ContextExtendMethod,Threshold
 import asyncio
+from functools import lru_cache
+from cachetools import cached, LRUCache
+from asyncache import cached as async_cached
+import cachetools
+
+retriever_cache = LRUCache(maxsize=128)
+
+# def custom_key(*args, **kwargs):
+#     return cachetools.keys.hashkey(str((args,kwargs)))
 
 logger = get_logger(__name__)
 
@@ -42,24 +51,30 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
     # search_params: dict = Field(default=dict)
 
     @classmethod
+    # @cached(cache=cache_settings,key=custom_key)
     def from_config(
         cls,
         embedding_config: dict = None,
         rerank_config: dict = None,
         **kwargs
     ):
+        
+        logger.info('init database')
         database = OpenSearchHybridSearch(
             embedding_dimension=embedding_config['embedding_dimension'],
             **kwargs,
         )
+        logger.info('init embeddings')
         embeddings = EmbeddingModel.get_model(
             **embedding_config
         )
+        logger.info('init reranker')
         reranker = None
         if rerank_config is not None:
             reranker = RerankModel.get_model(
                 **rerank_config
             )
+        logger.info('init OpensearchHybridRetrieverBase')
         return cls(
             database=database,
             embeddings=embeddings,
@@ -270,7 +285,8 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
                 page_content_set.add(page_content)
                 ret.append(doc)
         return ret
-
+    
+    @async_cached(cache=cache_settings,key=custom_key)
     async def _aget_relevant_documents(
         self, query: str, *, 
         run_manager: AsyncCallbackManagerForRetrieverRun,
@@ -286,7 +302,7 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
 
         return result
 
-    
+    @cached(cache=cache_settings,key=custom_key)
     def _get_relevant_documents(
             self, 
             query: str, *, 
