@@ -1571,6 +1571,19 @@ class _SageMakerVllmChatModel(SageMakerVllmChatModelBase):
     def prepare_input_body(
         self, model_kwargs, messages: List[BaseMessage]
     ) -> Dict:
+        try:
+            import tiktoken
+
+            # Use cl100k_base encoding which is used by many models
+            encoding = tiktoken.get_encoding("cl100k_base")
+            max_tokens = 8000  # Maximum tokens per message
+        except ImportError:
+            logger.warning(
+                "tiktoken not installed, token counting disabled. Install with `pip install tiktoken`"
+            )
+            encoding = None
+            max_tokens = float("inf")
+
         _messages = []
         messages = convert_to_messages(messages)
         for message in messages:
@@ -1578,6 +1591,16 @@ class _SageMakerVllmChatModel(SageMakerVllmChatModelBase):
                 message, (SystemMessage, HumanMessage, AIMessage, ToolMessage)
             ), message
             content = message.content
+
+            # Truncate content if it exceeds max_tokens
+            if encoding and isinstance(content, str) and content:
+                tokens = encoding.encode(content)
+                if len(tokens) > max_tokens:
+                    logger.warning(
+                        f"Message content exceeds {max_tokens} tokens, truncating..."
+                    )
+                    content = encoding.decode(tokens[:max_tokens])
+
             if isinstance(message, SystemMessage):
                 _messages.append({"role": "system", "content": content})
             elif isinstance(message, HumanMessage):
@@ -1590,7 +1613,7 @@ class _SageMakerVllmChatModel(SageMakerVllmChatModelBase):
                         "tool_call_id": message.tool_call_id,
                         "role": "tool",
                         "name": message.name,
-                        "content": message.content,
+                        "content": content,
                     }
                 )
         return {**model_kwargs, "messages": _messages}
