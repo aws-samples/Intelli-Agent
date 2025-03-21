@@ -100,6 +100,7 @@ def handler(event, context):
                 }
             }
         },
+        "embeddingModelId": "admin-embedding",
         "rerankModelId": "admin-rerank",
         "vlmModelId": "admin-vlm",
         "status": "ACTIVE",

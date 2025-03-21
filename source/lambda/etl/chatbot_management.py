@@ -502,7 +502,9 @@ def edit_chatbot(event, group_name):
     input_body = json.loads(event["body"])
     index = input_body["index"]
     chatbot_id = input_body["chatbotId"]
-    model_id = input_body["modelId"]
+    embedding_model_id = input_body["chatbotDetail"]["embeddingModel"]["modelId"]
+    rerank_model_id = input_body["chatbotDetail"]["rerankModel"]["modelId"]
+    vlm_model_id = input_body["chatbotDetail"]["vlmModel"]["modelId"]
     chatbot_description = input_body.get(
         "chatbotDescription", "Answer question based on search result"
     )
@@ -534,26 +536,30 @@ def edit_chatbot(event, group_name):
         index_ids.extend(type_index_ids)
 
         initiate_chatbot(
-            chatbot_table,
-            group_name,
-            chatbot_id,
-            chatbot_description,
-            index_type,
-            type_index_ids,
-            update_time,
+            chatbot_table=chatbot_table,
+            group_name=group_name,
+            chatbot_id=chatbot_id,
+            chatbot_description=chatbot_description,
+            index_type=index_type,
+            index_id_list=type_index_ids,
+            embedding_model_id=embedding_model_id,
+            rerank_model_id=rerank_model_id,
+            vlm_model_id=vlm_model_id,
+            create_time=update_time,
         )
 
         for index_id in type_index_ids:
             tag = index_id
             initiate_index(
-                index_table,
-                group_name,
-                index_id,
-                f"{chatbot_id}-embedding",
-                index_type,
-                tag,
-                index[index_type].get(index_id),
-                update_time,
+                index_table=index_table,
+                group_name=group_name,
+                index_id=index_id,
+                embedding_model_item_id=f"{chatbot_id}-embedding",
+                rerank_model_item_id=f"{chatbot_id}-rerank",
+                index_type=index_type,
+                tag=tag,
+                description=index[index_type].get(index_id),
+                create_time=update_time,
             )
 
     return {

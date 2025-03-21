@@ -139,8 +139,8 @@ const ChatbotManagement: React.FC = () => {
   ];
 
   const rerankModelTypeList = [
-    ...(isChinaRegion(config) ? [] : [{ label: 'Bedrock', value: 'Bedrock' }]),
-    { label: 'SageMaker', value: 'SageMaker' }
+    { label: 'SageMaker', value: 'SageMaker' },
+    ...(isChinaRegion(config) ? [] : [{ label: 'Bedrock', value: 'Bedrock' }])
   ];
 
   const vlmModelTypeList = [
@@ -226,9 +226,19 @@ const ChatbotManagement: React.FC = () => {
         });
       });
       setEndpoints(tempModels)
+      setRerankModelType({label: 'SageMaker', value: 'SageMaker'});
+      setRerankModelOption(tempModels[0])
     }
     fetchEndpoints();
+    
   },[])
+
+  // useEffect(() => {
+  //   const tempModels: { label: string; value: string }[] = [];
+  //   if (embeddingModelType.value === 'Bedrock API') {
+      
+  //   }
+  // },[])
 
   useEffect(() => {
     const tempModels: { label: string; value: string }[] = [];
@@ -544,22 +554,22 @@ const ChatbotManagement: React.FC = () => {
             "modelProvider": embeddingModelType.value,
             "modelId": embeddingModelType.value === "SageMaker" ? "bce-embedding-base_v1":embeddingModelOption.value,
             "modelEndpoint": embeddingModelType.value === "SageMaker" ? embeddingModelOption.value:"",
-            "baseUrl": "",
-            "apiKeyArn": ""
+            "baseUrl": embeddingApiEndpoint,
+            "apiKeyArn": embeddingApiKeyArn
           },
           rerankModelInfo: {
             "modelProvider": rerankModelType.value,
-            "modelId": rerankModelType.value === "SageMaker" ? "bce-embedding-base_v1":rerankModelOption.value,
+            "modelId": rerankModelType.value === "SageMaker" ? "bge-reranker-large":rerankModelOption.value,
             "modelEndpoint": rerankModelType.value === "SageMaker" ? rerankModelOption.value:"",
-            "baseUrl": "",
-            "apiKeyArn": ""
+            "baseUrl": rerankApiEndpoint,
+            "apiKeyArn": rerankApiKeyArn
           },
           vlmModelInfo: {
             "modelProvider": vlmModelType.value,
-            "modelId": vlmModelType.value === "SageMaker" ? "bce-embedding-base_v1":vlmModelOption.value,
+            "modelId": vlmModelType.value === "SageMaker" ? "Qwen2-VL-72B-Instruct":vlmModelOption.value,
             "modelEndpoint": vlmModelType.value === "SageMaker" ? vlmModelOption.value:"",
-            "baseUrl": "",
-            "apiKeyArn": ""
+            "baseUrl": vlmApiEndpoint,
+            "apiKeyArn": vlmApiKeyArn
           },
           index: genBotIndexCreate()
         },

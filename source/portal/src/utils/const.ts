@@ -215,14 +215,25 @@ export const SILICON_FLOW_API_MODEL_LIST = [
   }, 
 ];
 
-export const CUSTOM_DEPLOYMENT_MODEL_LIST = [
+export const SAGEMAKER_MODEL_LIST = [
   {
-    label: 'CUSTOM',
+    label: 'SageMaker',
     options: [
-      { label: 'Please type in the model id', value: 'Please type in the model id' },
+      { label: 'DeepSeek-R1-Distill-Llama-8B', value: 'DeepSeek-R1-Distill-Llama-8B' },
+      { label: 'DeepSeek-R1-Distill-Llama-70B', value: 'DeepSeek-R1-Distill-Llama-70B' },
+      { label: 'DeepSeek-R1-Distill-Qwen-32B', value: 'DeepSeek-R1-Distill-Qwen-32B' }
     ],
   }, 
 ];
+
+// export const CUSTOM_DEPLOYMENT_MODEL_LIST = [
+//   {
+//     label: 'CUSTOM',
+//     options: [
+//       { label: 'Please type in the model id', value: 'Please type in the model id' },
+//     ],
+//   }, 
+// ];
 
 export const LLM_BOT_RETAIL_MODEL_LIST = [
   {
@@ -277,9 +288,13 @@ export const MODEL_TYPE_LIST: SelectProps.Option[] = [
     value: 'siliconflow',
   },
   {
-    label: 'Custom Deployment',
-    value: 'emd',
-  },
+    label: 'SageMaker',
+    value: 'SageMaker',
+  }
+  // {
+  //   label: 'Custom Deployment',
+  //   value: 'emd',
+  // },
 ];
 
 export const RETAIL_GOODS_LIST: SelectProps.Option[] = [

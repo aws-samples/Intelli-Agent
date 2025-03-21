@@ -116,14 +116,14 @@ export type LibraryExecutionItem = {
 };
 
 export type IndexItem = {
-  name: string;
+  id: string;
   type: string;
   description: string;
   tag: string;
 };
 
 export type IndexItemTmp = {
-  name: string;
+  id: string;
   type: string;
   description: string;
   tag: string;

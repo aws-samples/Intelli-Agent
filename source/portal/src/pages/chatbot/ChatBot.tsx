@@ -50,10 +50,10 @@ import {
   SHOW_FIGURES,
   API_ENDPOINT,
   API_KEY_ARN,
-  CUSTOM_DEPLOYMENT_MODEL_LIST,
   ROUTES,
   SILICON_FLOW_API_MODEL_LIST,
-  OIDC_STORAGE
+  OIDC_STORAGE,
+  SAGEMAKER_MODEL_LIST
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';
@@ -241,11 +241,11 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   // Define an async function to get the data
   const fetchData = useAxiosRequest();
 
-  const [chatbotModelProvider, setChatbotModelProvider] = useState<{
-    [key: string]: string;
-  }>({});
+  // const [chatbotModelProvider, setChatbotModelProvider] = useState<{
+  //   [key: string]: string;
+  // }>({});
 
-  const [modelProviderHint, setModelProviderHint] = useState('');
+  // const [modelProviderHint, setModelProviderHint] = useState('');
 
   const startNewChat = () => {
     [
@@ -298,10 +298,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       const chatbots: { chatbotId: string; ModelProvider: string }[] =
         data.items;
       const getChatbots = chatbots.map((item) => {
-        setChatbotModelProvider((prev) => ({
-          ...prev,
-          [item.chatbotId]: item.ModelProvider,
-        }));
+        // setChatbotModelProvider((prev) => ({
+        //   ...prev,
+        //   [item.chatbotId]: item.ModelProvider,
+        // }));
         return {
           label: item.chatbotId,
           value: item.chatbotId,
@@ -611,6 +611,12 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         return;
       }
     } else {
+      if(modelType.value === 'SageMaker' && !apiEndpoint.trim()){
+        setApiEndpointError(t('validation.requireApiEndpoint'));
+        setModelSettingExpand(true);
+        return;
+      }
+
       if (!modelOption.trim()) {
         setModelError(t('validation.requireModel'));
         setModelSettingExpand(true);
@@ -730,7 +736,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         default_llm_config: {
           model_id: modelOption,
           endpoint_name:
-            modelOption === 'qwen2-72B-instruct' ? endPoint.trim() : '',
+            modelOption === 'qwen2-72B-instruct' ? endPoint.trim() : apiEndpoint,
           provider: modelType.value,
           base_url:
             modelType.value === 'Bedrock API' ||
@@ -799,7 +805,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
 
   useEffect(() => {
     let optionList: any[] = [];
-    const localModel = localStorage.getItem(MODEL_OPTION);
+    // const localModel = localStorage.getItem(MODEL_OPTION);
     if (modelType.value === 'Bedrock') {
       optionList = LLM_BOT_COMMON_MODEL_LIST;
       optionList = LLM_BOT_COMMON_MODEL_LIST;
@@ -822,16 +828,21 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       optionList = SILICON_FLOW_API_MODEL_LIST;
       setModelList(SILICON_FLOW_API_MODEL_LIST);
       setModelOption(SILICON_FLOW_API_MODEL_LIST[0].options[0].value);
-    } else if (modelType.value === 'emd') {
-      optionList = CUSTOM_DEPLOYMENT_MODEL_LIST;
-      setModelList(CUSTOM_DEPLOYMENT_MODEL_LIST);
-      setModelOption(CUSTOM_DEPLOYMENT_MODEL_LIST[0].options[0].value);
+    } else if (modelType.value === 'SageMaker') {
+      optionList = SAGEMAKER_MODEL_LIST;
+      setModelList(SAGEMAKER_MODEL_LIST);
+      setModelOption(SAGEMAKER_MODEL_LIST[0].options[0].value);
     }
-    if (localModel) {
-      setModelOption(localModel);
-    } else {
-      setModelOption(optionList?.[0]?.options?.[0].value ?? '');
-    }
+    // else if (modelType.value === 'emd') {
+    //   optionList = CUSTOM_DEPLOYMENT_MODEL_LIST;
+    //   setModelList(CUSTOM_DEPLOYMENT_MODEL_LIST);
+    //   setModelOption(CUSTOM_DEPLOYMENT_MODEL_LIST[0].options[0].value);
+    // }
+    // if (localModel) {
+    //   setModelOption(localModel);
+    // } else {
+    //   setModelOption(optionList?.[0]?.options?.[0].value ?? '');
+    // }
   }, [modelType]);
 
   useEffect(() => {
@@ -1069,32 +1080,33 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                           label={t('modelProvider')}
                           stretch={true}
                           description={t('scenarioDesc')}
-                          errorText={modelProviderHint}
+                          // errorText={modelProviderHint}
                         >
                           <Select
                             options={MODEL_TYPE_LIST}
                             selectedOption={modelType}
                             onChange={({ detail }) => {
                               setModelType(detail.selectedOption);
+                              setModelOption('');
 
                               // Check if the selected model provider matches the chatbot's model provider
-                              const selectedChatbotId =
-                                chatbotOption.value ?? 'defaultId';
-                              const expectedModelProvider =
-                                chatbotModelProvider[selectedChatbotId];
+                              // const selectedChatbotId =
+                              //   chatbotOption.value ?? 'defaultId';
+                              // const expectedModelProvider =
+                              //   chatbotModelProvider[selectedChatbotId];
 
-                              if (
-                                expectedModelProvider !==
-                                detail.selectedOption.value &&
-                                detail.selectedOption.value !== 'emd' &&
-                                detail.selectedOption.value !== 'siliconflow'
-                              ) {
-                                setModelProviderHint(
-                                  t('chatbotModelProviderError'),
-                                );
-                              } else {
-                                setModelProviderHint(''); // Clear hint if the selection is valid
-                              }
+                              // if (
+                              //   expectedModelProvider !==
+                              //   detail.selectedOption.value &&
+                              //   detail.selectedOption.value !== 'emd' &&
+                              //   detail.selectedOption.value !== 'siliconflow'
+                              // ) {
+                              //   setModelProviderHint(
+                              //     t('chatbotModelProviderError'),
+                              //   );
+                              // } else {
+                              //   setModelProviderHint(''); // Clear hint if the selection is valid
+                              // }
                             }}
                           />
                         </FormField>
@@ -1165,8 +1177,11 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                               />
                             </FormField>
                           </SpaceBetween>
-                        ) : (
-                          <FormField
+                        ) : (<>
+                          
+                          {modelType.value === 'SageMaker' ? (
+                             <SpaceBetween size="xs" direction="vertical">
+                            <FormField
                             label={t('modelName')}
                             stretch={true}
                             errorText={t(modelError)}
@@ -1184,6 +1199,51 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                               enteredTextLabel={(value) => `Use: "${value}"`}
                             />
                           </FormField>
+                            <FormField
+                            label={t('apiEndpoint')}
+                            stretch={true}
+                            errorText={t(apiEndpointError)}
+                            description={t('apiEndpointDesc')}
+                          >
+                            <Input
+                              value={apiEndpoint}
+                              onChange={({ detail }) => {
+                                const value = detail.value;
+                                if (value === '' || isValidUrl(value)) {
+                                  setApiEndpointError('');
+                                } else {
+                                  setApiEndpointError(
+                                    'Invalid url, please type in a valid HTTPS or HTTP url',
+                                  );
+                                }
+                                setApiEndpoint(value);
+                              }}
+                              placeholder="https://api.example.com/v1"
+                            />
+                          </FormField></SpaceBetween>
+                          ):(
+                            <FormField
+                            label={t('modelName')}
+                            stretch={true}
+                            errorText={t(modelError)}
+                            description={t('modelNameDesc')}
+                          >
+                            <Autosuggest
+                              onChange={({ detail }) => {
+                                setModelError('');
+                                setModelOption(detail.value);
+                              }}
+                              value={modelOption}
+                              options={modelList}
+                              placeholder={t('validation.requireModel')}
+                              empty={t('noModelFound')}
+                              enteredTextLabel={(value) => `Use: "${value}"`}
+                            />
+                          </FormField>
+                          )
+
+
+                          }</>
                         )}
                       </Grid>
                       <Grid gridDefinition={[{ colspan: 5 }, { colspan: 6 }]}>
