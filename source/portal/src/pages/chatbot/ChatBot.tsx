@@ -934,7 +934,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     const message = {
       message_type: 'STOP',
       session_id: sessionId,
-      user_id: oidc.get('username') || 'default_user_id',
+      user_id: oidc["username"] || 'default_user_id',
     };
 
     console.info('Send stop message:', message);
