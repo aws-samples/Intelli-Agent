@@ -631,7 +631,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       }
     } else {
       if(modelType.value === 'SageMaker' && !apiEndpoint.trim()){
-        setApiEndpointError(t('validation.requireApiEndpoint'));
+        setApiEndpointError(t('validation.requireSagemakerEndpoint'));
         setModelSettingExpand(true);
         return;
       }
@@ -1200,10 +1200,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                             />
                           </FormField>
                             <FormField
-                            label={t('apiEndpoint')}
+                            label={t('sagemakerEndpoint')}
                             stretch={true}
                             errorText={t(apiEndpointError)}
-                            description={t('apiEndpointDesc')}
+                            description={t('sagemakerEndpointDesc')}
                           >
                             <Select
 

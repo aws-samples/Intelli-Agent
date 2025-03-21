@@ -244,6 +244,7 @@
       "requireTopKRerank": "Please enter top K for reranking",
       "requireKeywordScore": "Please enter threshold value for keyword recall",
       "requireEmbeddingScore": "Please enter threshold value for embedding recall",
+      "requireSagemakerEndpoint": "Please select an sagemaker endpoint",
       "temperatureRange": "The temperature must be between 0 and 1",
       "maxTokensRange": "The maximum number of tokens must lager than 0",
       "maxRoundsRange": "The maximum number of rounds must greater than or equal to 0",
@@ -329,6 +330,8 @@
     "apiKeyArn": "API Key ARN",
     "apiKeyArnDesc": "Enter the ARN of the secret in AWS Secrets Manager that stores the API key for Bedrock/OpenAI",
     "successed":"Successed",
-    "total":"Total"
+    "total":"Total",
+    "sagemakerEndpoint": "SageMaker Endpoint",
+    "sagemakerEndpointDesc": "Please select sagemaker endpoint name"
 }
 

@@ -258,6 +258,7 @@
       "indexValid": "索引已经被其他模型使用，请变更索引名称",
       "repeatedIndex": "索引名称和现有索引重复，请更换名称",
       "requireApiEndpoint": "请输入API端点",
+      "requireSagemakerEndpoint": "请选择SageMaker端点",
       "requireApiModelName": "请输入API模型名称",
       "noStartWithUnderscoreOrDash": "名称不能以下划线或破折号开头",
       "onlyStandardEnglishAllowed": "名称只能包含英文小写字母、数字、下划线、破折号和句点"
@@ -326,5 +327,7 @@
     "apiKeyArn": "API 密钥 ARN",
     "apiKeyArnDesc": "输入存储在 AWS Secrets Manager 中用于 Bedrock/OpenAI 的 API 密钥的 ARN",
     "successed":"成功",
-    "total":"共"
+    "total":"共",
+    "sagemakerEndpoint": "SageMaker端点",
+    "sagemakerEndpointDesc": "请选择SageMaker端点名称"
 }
