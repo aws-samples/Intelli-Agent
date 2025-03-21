@@ -70,7 +70,7 @@ const App: React.FC = () => {
       
       return (
         <>
-          <AutoLogout timeout={15 * 60 * 1000} />
+          <AutoLogout timeout={24 * 60 * 60 * 1000} />
           <AppBody />
         </>
       );
