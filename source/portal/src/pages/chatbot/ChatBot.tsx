@@ -141,6 +141,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [modelOption, setModelOption] = useState('');
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
   const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
+  const [apiEndpointOption, setApiEndpointOption] = useState<SelectProps.Option>(null as any)
   const [chatbotOption, setChatbotOption] = useState<SelectProps.Option>(
     {label: 'admin', value: 'admin'} as any,
   );
@@ -229,6 +230,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [apiKeyArnError, setApiKeyArnError] = useState('');
   const [apiEndpoint, setApiEndpoint] = useState(localApiEndpoint ?? '');
   const [apiKeyArn, setApiKeyArn] = useState(localApiKeyArn ?? '');
+  const [endpoints, setEndpoints] = useState<{label: string, value: string}[]>([])
 
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
@@ -396,6 +398,23 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       // Call getWorkspaceList after getSessionHistoryById
       getWorkspaceList();
     };
+
+    const fetchEndpoints = async () =>{
+      const tempModels: { label: string; value: string }[] = [];
+      const data = await fetchData({
+        url: 'model-management/endpoints',
+        method: 'get'
+      });
+      data.endpoints.forEach((endpoint: any) => {
+        tempModels.push({
+          label: endpoint.endpoint_name,
+          value: endpoint.endpoint_name,
+        });
+      });
+      setEndpoints(tempModels)
+      setApiEndpointOption(tempModels[0])
+    }
+    fetchEndpoints();
 
     initializeChatbot();
     setLoadingChatBots(false)
@@ -1205,21 +1224,19 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                             errorText={t(apiEndpointError)}
                             description={t('apiEndpointDesc')}
                           >
-                            <Input
-                              value={apiEndpoint}
-                              onChange={({ detail }) => {
-                                const value = detail.value;
-                                if (value === '' || isValidUrl(value)) {
-                                  setApiEndpointError('');
-                                } else {
-                                  setApiEndpointError(
-                                    'Invalid url, please type in a valid HTTPS or HTTP url',
-                                  );
-                                }
-                                setApiEndpoint(value);
-                              }}
-                              placeholder="https://api.example.com/v1"
-                            />
+                            <Select
+
+                    onChange={({ detail }: { detail: any }) => {
+                      setApiEndpointError('');
+                      setApiEndpoint(detail.selectedOption.value);
+                      setApiEndpointOption(detail.selectedOption);
+                    }}
+                    loadingText={t('loadingEp')}
+                    selectedOption={apiEndpointOption}
+                    options={endpoints}
+                    placeholder={t('validation.requireModel')}
+                    empty={t('noModelFound')}
+                  />
                           </FormField></SpaceBetween>
                           ):(
                             <FormField
