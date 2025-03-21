@@ -825,35 +825,36 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   };
 
   useEffect(() => {
-    let optionList: any[] = [];
+    // let optionList: any[] = [];
     // const localModel = localStorage.getItem(MODEL_OPTION);
     if (modelType.value === 'Bedrock') {
-      optionList = LLM_BOT_COMMON_MODEL_LIST;
-      optionList = LLM_BOT_COMMON_MODEL_LIST;
+      // optionList = LLM_BOT_COMMON_MODEL_LIST;
+      // optionList = LLM_BOT_COMMON_MODEL_LIST;
       setModelList(LLM_BOT_COMMON_MODEL_LIST);
       setModelOption(LLM_BOT_COMMON_MODEL_LIST[0].options[0].value);
       setApiEndpoint('');
       setApiKeyArn('');
     } else if (modelType.value === 'Bedrock API') {
-      optionList = BR_API_MODEL_LIST;
-      optionList = BR_API_MODEL_LIST;
+      // optionList = BR_API_MODEL_LIST;
+      // optionList = BR_API_MODEL_LIST;
       setModelList(BR_API_MODEL_LIST);
       setModelOption(BR_API_MODEL_LIST[0].options[0].value);
     } else if (modelType.value === 'OpenAI API') {
-      optionList = OPENAI_API_MODEL_LIST;
-      optionList = OPENAI_API_MODEL_LIST;
+      // optionList = OPENAI_API_MODEL_LIST;
+      // optionList = OPENAI_API_MODEL_LIST;
       setModelList(OPENAI_API_MODEL_LIST);
       setModelOption(OPENAI_API_MODEL_LIST[0].options[0].value);
     } else if (modelType.value === 'siliconflow') {
-      optionList = SILICON_FLOW_API_MODEL_LIST;
-      optionList = SILICON_FLOW_API_MODEL_LIST;
+      // optionList = SILICON_FLOW_API_MODEL_LIST;
+      // optionList = SILICON_FLOW_API_MODEL_LIST;
       setModelList(SILICON_FLOW_API_MODEL_LIST);
       setModelOption(SILICON_FLOW_API_MODEL_LIST[0].options[0].value);
     } else if (modelType.value === 'SageMaker') {
-      optionList = SAGEMAKER_MODEL_LIST;
+      // optionList = SAGEMAKER_MODEL_LIST;
       setModelList(SAGEMAKER_MODEL_LIST);
       setModelOption(SAGEMAKER_MODEL_LIST[0].options[0].value);
-    }
+    } 
+    // setModelOption(optionList?.[0]?.options?.[0].value ?? '');
     // else if (modelType.value === 'emd') {
     //   optionList = CUSTOM_DEPLOYMENT_MODEL_LIST;
     //   setModelList(CUSTOM_DEPLOYMENT_MODEL_LIST);
@@ -862,7 +863,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     // if (localModel) {
     //   setModelOption(localModel);
     // } else {
-      setModelOption(optionList?.[0]?.options?.[0].value ?? '');
+
+    // setModelOption(optionList?.[0]?.options?.[0].value ?? '');
+
     // }
   }, [modelType]);
 
