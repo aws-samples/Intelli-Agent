@@ -236,7 +236,7 @@ def __delete_execution(event, group_name):
             },
         )
         item = index_response.get("Item")
-        if item:
+        if item and item.get("index"):
             indexes = item.get("index").split(",")
             details = json.loads(item.get("details"))
             questions = [detail.get("question") for detail in details]
