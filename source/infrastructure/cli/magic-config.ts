@@ -38,7 +38,7 @@ const embeddingModels = [
     id: "bce-embedding-base_v1",
     commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
     dimensions: 768,
-    modelEndpoint: "bce-embedding-base-v1-43972-endpoint",
+    modelEndpoint: "bce-embedding-and-bge-reranker-43972-endpoint",
   },
 ];
 
@@ -50,7 +50,7 @@ let rerankModels = [
   {
     provider: "SageMaker",
     id: "bge-reranker-large",
-    modelEndpoint: "bce-embedding-base-v1-43972-endpoint",
+    modelEndpoint: "bce-embedding-and-bge-reranker-43972-endpoint",
   },
 ]
 
