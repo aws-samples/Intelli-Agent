@@ -113,30 +113,6 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
       this.defaultKnowledgeBaseModelName = knowledgeBaseModelResources.endpoint.endpointName ?? "";
     }
 
-    if (props.config.chat.useOpenSourceLLM) {
-      const modelTriggerLambda = new Function(this, "ModelTriggerLambda", {
-        runtime: Runtime.PYTHON_3_12,
-        handler: "pipeline_monitor.post_model_deployment",
-        code: Code.fromAsset(join(__dirname, "../../../lambda/pipeline_monitor")),
-        timeout: Duration.minutes(10),
-        memorySize: 512,
-        environment: {
-          DYNAMODB_TABLE: props.sharedConstructOutputs.modelTable.tableName,
-        }
-      });
-      modelTriggerLambda.addToRolePolicy(this.modelIamHelper.dynamodbStatement);
-      modelTriggerLambda.addToRolePolicy(this.modelIamHelper.codePipelineStatement);
-      modelTriggerLambda.addToRolePolicy(this.modelIamHelper.stsStatement);
-
-      const rule = new events.Rule(this, "AllPipelinesStatusRule", {
-        eventPattern: {
-          source: ["aws.codepipeline"],
-          detailType: ["CodePipeline Pipeline Execution State Change"],
-        },
-      });
-      rule.addTarget(new targets.LambdaFunction(modelTriggerLambda));
-
-    }
   }
 
   private deployEmbeddingAndRerankerEndpoint(props: ModelConstructProps) {
