@@ -162,4 +162,4 @@ def __gen_target_model(model_id: str):
     elif model_id == "bge-reranker-large":
         return "bge_reranker_model.tar.gz"
     else:
-        return None
+        return ""

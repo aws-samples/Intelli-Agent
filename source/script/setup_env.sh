@@ -35,7 +35,7 @@ echo "Python $(python3 --version)"
 echo "Node.js $(node --version)"
 echo "npm $(npm --version)"
 echo "Docker $(docker --version)"
-echo "TypeScript $(tsc --version)"
+# echo "TypeScript $(tsc --version)"
 # End of user data script
 
 echo "Create service linked role for Amazon Opensearch Service"
