@@ -267,6 +267,7 @@ class ApiHandler:
             message_id = event["pathParameters"]["messageId"]
             claims = json.loads(event["requestContext"]["authorizer"]["claims"])
             user_id = claims["cognito:username"]
+            
 
             # Parse request body
             body = json.loads(event["body"])

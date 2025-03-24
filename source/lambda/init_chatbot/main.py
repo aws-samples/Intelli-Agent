@@ -1,5 +1,6 @@
 # lambda/init_data.py
 from datetime import datetime, timezone
+import json
 import os
 import boto3
 from botocore.exceptions import ClientError
@@ -10,27 +11,66 @@ def handler(event, context):
     model_table_name = os.environ['MODEL_TABLE_NAME']
     chat_bot_table_name = os.environ['CHATBOT_TABLE_NAME']
     index_table_name = os.environ['INDEX_TABLE_NAME']
+    model = json.loads(os.environ['MODEL_INFO'])
     chat_bot_table = dynamodb.Table(chat_bot_table_name)
     model_table = dynamodb.Table(model_table_name)
     index_table = dynamodb.Table(index_table_name)
     time_str = str(datetime.now(timezone.utc))
-    
+    embeddings_models = model.get("embeddingsModels")
+    embeddings_model = embeddings_models[0] if embeddings_models and isinstance(embeddings_models, list) and len(embeddings_models) > 0 else {}
+    rerank_models = model.get("rerankModels")
+    rerank_model = rerank_models[0] if rerank_models and isinstance(rerank_models, list) and len(rerank_models) > 0 else {}
+    vlm_models = model.get("vlms")
+    vlm_model = vlm_models[0] if vlm_models and isinstance(vlm_models, list) and len(vlm_models) > 0 else {}
+    embedding_model_id = embeddings_model.get("id")
+    rerank_model_id = rerank_model.get("id")
+    vlm_model_id = vlm_model.get("id")
     try:
         # Item={**item_key, **body}
         model_table.put_item(Item={
             "groupName": "Admin",
             "modelId": "admin-embedding",
             "createTime": time_str,
-            "modelType": "embedding_and_rerank",
+            "modelType": "embedding",
             "parameter": {
-             "ApiKeyArn": "",
-             "BaseUrl": "",
-             "ModelDimension": 768,
-             "ModelEndpoint": "bce-embedding-and-bge-reranker-43972-endpoint",
-             "ModelName": "bce_embedding_model.tar.gz",
-             "ModelProvider": "SageMaker",
-             "ModelType": "bce",
-             "TargetModel": "bce_embedding_model.tar.gz"
+                "apiKeyArn": "",
+                "baseUrl": "",
+                "modelId": embedding_model_id,
+                "targetModel": __gen_target_model(embedding_model_id),
+                "modelDimension": embeddings_model.get("dimensions"),
+                "modelEndpoint": embeddings_model.get("modelEndpoint"),
+                "modelProvider": embeddings_model.get("provider")
+            },
+            "status": "ACTIVE",
+            "updateTime": time_str
+        })
+        model_table.put_item(Item={
+            "groupName": "Admin",
+            "modelId": "admin-rerank",
+            "createTime": time_str,
+            "modelType": "rerank",
+            "parameter": {
+                "apiKeyArn": "",
+                "baseUrl": "",
+                "modelId": rerank_model_id,
+                "targetModel": __gen_target_model(rerank_model_id),
+                "modelEndpoint": rerank_model.get("modelEndpoint"),
+                "modelProvider": rerank_model.get("provider")
+            },
+            "status": "ACTIVE",
+            "updateTime": time_str
+        })
+        model_table.put_item(Item={
+            "groupName": "Admin",
+            "modelId": "admin-vlm",
+            "createTime": time_str,
+            "modelType": "vlm",
+            "parameter": {
+                "apiKeyArn": "",
+                "baseUrl": "",
+                "modelId": vlm_model_id,
+                "modelEndpoint": __gen_target_model(vlm_model_id),
+                "modelProvider": vlm_model.get("provider")
             },
             "status": "ACTIVE",
             "updateTime": time_str
@@ -60,6 +100,9 @@ def handler(event, context):
                 }
             }
         },
+        "embeddingModelId": "admin-embedding",
+        "rerankModelId": "admin-rerank",
+        "vlmModelId": "admin-vlm",
         "status": "ACTIVE",
         "updateTime":  time_str
         })
@@ -71,7 +114,8 @@ def handler(event, context):
             "indexType": "intention",
             "kbType": "aos",
             "modelIds": {
-                 "embedding": "admin-embedding"
+                 "embedding": "admin-embedding",
+                 "rerank": "admin-rerank"
             }, 
             "status": "ACTIVE",
          "tag": "admin-intention-default"
@@ -84,7 +128,8 @@ def handler(event, context):
             "indexType": "qd",
             "kbType": "aos",
             "modelIds": {
-                 "embedding": "admin-embedding"
+                 "embedding": "admin-embedding",
+                 "rerank": "admin-rerank"
             }, 
             "status": "ACTIVE",
            "tag": "admin-qd-default"
@@ -97,7 +142,8 @@ def handler(event, context):
             "indexType": "qq",
             "kbType": "aos",
             "modelIds": {
-                 "embedding": "admin-embedding"
+                 "embedding": "admin-embedding",
+                 "rerank": "admin-rerank"
             }, 
             "status": "ACTIVE",
             "tag": "admin-qq-default"
@@ -108,3 +154,12 @@ def handler(event, context):
     except ClientError as e:
         print(f"Insert failed: {e.response['Error']['Message']}")
         raise
+
+
+def __gen_target_model(model_id: str):
+    if model_id == "bce-embedding-base_v1":
+        return "bce_embedding_model.tar.gz"
+    elif model_id == "bge-reranker-large":
+        return "bge_reranker_model.tar.gz"
+    else:
+        return None

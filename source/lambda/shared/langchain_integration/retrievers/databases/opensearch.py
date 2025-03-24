@@ -14,7 +14,6 @@ from langchain_community.vectorstores.opensearch_vector_search import (
 )
 from langchain_core.pydantic_v1 import Field
 from pydantic import BaseModel, Field
-from requests_aws4auth import AWS4Auth
 from shared.utils.logger_utils import get_logger
 
 aosEndpoint = os.environ.get("AOS_ENDPOINT")
@@ -23,9 +22,8 @@ region = os.environ["AWS_REGION"]
 logger = get_logger(__name__)
 
 
-def get_aws_auth():
+def get_client_kwargs():
     secrets_manager_client = boto3.client("secretsmanager")
-    credentials = boto3.Session().get_credentials()
     try:
         master_user = secrets_manager_client.get_secret_value(
             SecretId=aos_secret
@@ -34,23 +32,20 @@ def get_aws_auth():
         username = cred.get("username")
         password = cred.get("password")
         aws_auth = (username, password)
+        return {
+            "http_auth": aws_auth,
+            "use_ssl": True,
+            "verify_certs": True,
+        }
 
     except secrets_manager_client.exceptions.ResourceNotFoundException:
-        aws_auth = AWS4Auth(
-            refreshable_credentials=credentials, region=region, service="es"
-        )
+        logger.info("Using IAM authentication to connect to OpenSearch Domain")
     except secrets_manager_client.exceptions.InvalidRequestException:
-        logger.info(
-            "InvalidRequestException. It might caused by getting secret value from a deleting secret"
-        )
-        logger.info("Fallback to authentication with IAM")
-        aws_auth = AWS4Auth(
-            refreshable_credentials=credentials, region=region, service="es"
-        )
+        logger.info("Using IAM authentication to connect to OpenSearch Domain")
     except Exception as e:
         logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
         raise
-    return aws_auth
+    return {}
 
 
 class OpenSearchBase(BaseModel):
@@ -80,11 +75,7 @@ class OpenSearchBase(BaseModel):
                 self.client,
                 self.async_client,
             )
-            self.client_kwargs = {
-                "http_auth": get_aws_auth(),
-                "use_ssl": True,
-                "verify_certs": True,
-            }
+            self.client_kwargs = get_client_kwargs()
             self.client = _get_opensearch_client(
                 self.opensearch_url, **self.client_kwargs
             )
@@ -313,6 +304,7 @@ def _get_hybrid_search_index_body(
 ):
 
     settings = {
+        "index.knn": True,
         "analysis": {"analyzer": {"default": {"type": analyzer_type}}},
         "similarity": {
             "custom_bm25": {
@@ -325,123 +317,6 @@ def _get_hybrid_search_index_body(
 
     mapping = {
         "properties": {
-            # "metadata": {
-            #     "properties": {
-            #     "chunk_id": {
-            #         "type": "text",
-            #         "fields": {
-            #         "keyword": {
-            #             "type": "keyword",
-            #             "ignore_above": 256
-            #             }
-            #             }
-            #         },
-            #     "complete_heading": {
-            #         "type": "text",
-            #         "fields": {
-            #         "keyword": {
-            #             "type": "keyword",
-            #             "ignore_above": 256
-            #         }
-            #         }
-            #     },
-            #     "content_type": {
-            #         "type": "text",
-            #         "fields": {
-            #         "keyword": {
-            #             "type": "keyword",
-            #             "ignore_above": 256
-            #         }
-            #         }
-            #     },
-            #     "current_heading": {
-            #         "type": "text",
-            #         "fields": {
-            #         "keyword": {
-            #             "type": "keyword",
-            #             "ignore_above": 256
-            #         }
-            #         }
-            #     },
-            #     "figure": {
-            #         "properties": {
-            #         "content_type": {
-            #             "type": "text",
-            #             "fields": {
-            #             "keyword": {
-            #                 "type": "keyword",
-            #                 "ignore_above": 256
-            #             }
-            #             }
-            #         },
-            #         "figure_path": {
-            #             "type": "text",
-            #             "fields": {
-            #             "keyword": {
-            #                 "type": "keyword",
-            #                 "ignore_above": 256
-            #             }
-            #             }
-            #         }
-            #         }
-            #     },
-            #     "file_path": {
-            #         "type": "text",
-            #         "fields": {
-            #         "keyword": {
-            #             "type": "keyword",
-            #             "ignore_above": 256
-            #         }
-            #         }
-            #     },
-            #     "file_type": {
-            #         "type": "text",
-            #         "fields": {
-            #         "keyword": {
-            #             "type": "keyword",
-            #             "ignore_above": 256
-            #         }
-            #         }
-            #     },
-            #     "heading_hierarchy": {
-            #         "properties": {
-            #         "level": {
-            #             "type": "long"
-            #         },
-            #         "next": {
-            #             "type": "text",
-            #             "fields": {
-            #             "keyword": {
-            #                 "type": "keyword",
-            #                 "ignore_above": 256
-            #             }
-            #             }
-            #         },
-            #         "previous": {
-            #             "type": "text",
-            #             "fields": {
-            #             "keyword": {
-            #                 "type": "keyword",
-            #                 "ignore_above": 256
-            #             }
-            #             }
-            #         },
-            #         "size": {
-            #             "type": "long"
-            #         },
-            #         "title": {
-            #             "type": "text",
-            #             "fields": {
-            #             "keyword": {
-            #                 "type": "keyword",
-            #                 "ignore_above": 256
-            #             }
-            #             }
-            #         }
-            #         }
-            #     }
-            #     }
-            # },
             text_field: {
                 "type": "text",
                 "similarity": "custom_bm25",

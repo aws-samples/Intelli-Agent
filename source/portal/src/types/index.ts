@@ -47,8 +47,8 @@ export type ChatbotsItem = {
   groupName: string;
   chatbotId: string;
   model: {
-    model_endpoint: string;
-    model_name: string;
+    modelEndpoint: string;
+    modelName: string;
   };
   index: IndexItem[];
 };
@@ -116,14 +116,14 @@ export type LibraryExecutionItem = {
 };
 
 export type IndexItem = {
-  name: string;
+  id: string;
   type: string;
   description: string;
   tag: string;
 };
 
 export type IndexItemTmp = {
-  name: string;
+  id: string;
   type: string;
   description: string;
   tag: string;
@@ -231,12 +231,56 @@ export interface PresignedUrlData {
 }
 
 export interface CreEditChatbotResponse {
-  Message: string;
+  groupName: string,
+    chatbotId: string,
+    updateTime: string,
+    embeddingModel: {
+        modelId: string,
+        modelEndpoint: string,
+        modelName: string,
+        modelProvider: string,
+        baseUrl: string
+    },
+    rerankModel: {
+        modelId: string,
+        modelEndpoint: string,
+        modelName: string,
+        modelProvider: string,
+        baseUrl: string
+    },
+    vlmModel: {
+        modelId: string,
+        modelEndpoint: string,
+        modelName: string,
+        modelProvider: string,
+        baseUrl: string
+    },
+    indexes: [
+        {
+            id: string,
+            type: string,
+            description: string,
+            tag: string
+        },
+        {
+            id: string,
+            type: string,
+            description: string,
+            tag: string
+        },
+        {
+            id: string,
+            type: string,
+            description: string,
+            tag: string
+        }
+    ],
+  message: string;
 }
 
 export type ChatbotItem = {
-  ChatbotId: string;
-  LastModifiedTime: string;
+  chatbotId: string;
+  lastModifiedTime: string;
   ModelName: string;
   SortKey: string;
   ModelProvider: string;
@@ -244,14 +288,30 @@ export type ChatbotItem = {
 
 export type ChatbotDetailResponse = {
   chatbotId: string;
+  groupName: string;
   updateTime: string;
-  model: {
-    model_endpoint: string;
-    model_name: string;
-    model_provider: string;
-    base_url: string;
+  embeddingModel: {
+    modelEndpoint: string;
+    modelId: string;
+    modelName: string;
+    modelProvider: string;
+    baseUrl: string;
   };
-  index: IndexItem[];
+  rerankModel: {
+    modelEndpoint: string;
+    modelId: string;
+    modelName: string;
+    modelProvider: string;
+    baseUrl: string;
+  };
+  vlmModel: {
+    modelEndpoint: string;
+    modelId: string;
+    modelName: string;
+    modelProvider: string;
+    baseUrl: string;
+  };
+  indexes: IndexItem[];
 };
 
 export type ChatbotItemDetail = {
@@ -264,9 +324,9 @@ export type ChatbotItemDetail = {
 };
 
 export type ChatbotResponse = {
-  Items: ChatbotItem[];
-  Config: ResponseConfig;
-  Count: number;
+  items: ChatbotDetailResponse[];
+  config: ResponseConfig;
+  count: number;
 };
 
 export type ChatbotIndexResponse = {

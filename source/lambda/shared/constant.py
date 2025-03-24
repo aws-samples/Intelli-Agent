@@ -163,6 +163,7 @@ class LLMModelType(ConstantBase):
     DEEPSEEK_R1_DISTILL_QWEN_14B = "DeepSeek-R1-Distill-Qwen-14B"
     DEEPSEEK_R1_DISTILL_QWEN_32B = "DeepSeek-R1-Distill-Qwen-32B"
     DEEPSEEK_R1 = "DeepSeek-R1"
+    DEEPSEEK_R1_BEDROCK_US = "us.deepseek.r1-v1:0"
     DEEPSEEK_V3 = "DeepSeek-V3"
     BEDROCK_DEEPSEEK_R1 = "deepseek.r1-v1:0"
 
@@ -184,24 +185,31 @@ class LLMModelType(ConstantBase):
     CLAUDE_3_HAIKU_EU = "eu.anthropic.claude-3-haiku-20240307-v1:0"
     CLAUDE_3_SONNET_APAC = "apac.anthropic.claude-3-sonnet-20240229-v1:0"
     CLAUDE_3_5_SONNET_APAC = "apac.anthropic.claude-3-5-sonnet-20240620-v1:0"
+    CLAUDE_3_7_SONNET_THINKING_US = "us.anthropic.claude-3-7-sonnet-20250219-v1:0-thinking"
+    CLAUDE_3_7_SONNET_US = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
     CLAUDE_3_HAIKU_APAC = "apac.anthropic.claude-3-haiku-20240307-v1:0"
     LLAMA3_1_70B_INSTRUCT_US = "us.meta.llama3-1-70b-instruct-v1:0"
 
 
 class EmbeddingModelType(ConstantBase):
+    # Bedrock
     AMAZON_TITAN_V1 = "amazon.titan-embed-text-v1"
     AMAZON_TITAN_V2 = "amazon.titan-embed-text-v2:0"
     AMAZON_TITAN_IMAGE = "amazon.titan-embed-image-v1"
+    COHERE_EMBED_ENGLISH_V3 = "cohere.embed-english-v3"
+    COHERE_EMBED_MULTILINGUAL_V3 = "cohere.embed-multilingual-v3"
+    # OPENAI
     OPENAI_TEXT_EMBEDDING_3_SMALL = "text-embedding-3-small"
     OPENAI_TEXT_EMBEDDING_3_LARGE = "text-embedding-3-large"
     OPENAI_TEXT_EMBEDDING_ADA_002 = "text-embedding-ada-002"
-    BCE_EMBEDDING = "bce-embedding-and-bge-reranker-43972-endpoint"
+    # SageMaker
+    BCE_EMBEDDING = "bce-embedding-base_v1"
     BGE_M3_EMBEDDING = "bge-m3"
-    COHERE_EMBED_ENGLISH_V3 = "cohere.embed-english-v3"
-    COHERE_EMBED_MULTILINGUAL_V3 = "cohere.embed-multilingual-v3"
 
 class RerankModelType(ConstantBase):
     BGE_RERANKER_V2_M3 = "bge-reranker-v2-m3"
+    BCE_RERANKER_BASE_V1 = "bce-reranker-base_v1"
+    BGE_RERANKER_LARGE = "bge-reranker-large"
     COHERE_RERANK_V3D5 = "cohere.rerank-v3-5:0"
     AMAZON_RERANK_V1 = "amazon.rerank-v1:0"
 
@@ -247,6 +255,8 @@ INDEX_DESC = "Answer question based on search result"
 
 
 class Threshold(ConstantBase):
+    BM25_SEARCH_THRESHOLD = 2.0
+    VECTOR_SEARCH_THRESHOLD = 0.4
     QQ_IN_RAG_CONTEXT_THRESHOLD = 0.5
     QQ_MATCH_THRESHOLD = 0.9
     # This threhold will work when there are no intention examples.

@@ -319,17 +319,6 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                       }}
                     />
                   </FormField>
-                  {/* {indexDesc !== '' && (<FormField
-                    label={
-                      <>
-                        {t('desc')}
-                      </>
-                    }
-                    stretch={true}
-                  >
-                    {indexDesc}
-                  </FormField>)} */}
-
                   </Grid>
                   </SpaceBetween>
                 )}

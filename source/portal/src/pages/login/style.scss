@@ -1,0 +1,82 @@
+
+.login-div {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(45deg, rgba(0, 7, 22, 1), rgb(128 128 128 / 0%));
+
+  .container {
+    width: 620px;
+    background-color: white;
+    padding: 15px;
+    padding-bottom: 50px;
+    border-radius: 8px;
+  }
+
+  .banner {
+    // font-family: 'Open Sans';
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 70px;
+    margin-top: 20px;
+    vertical-align: middle;
+    font-size: 30px;
+    font-weight: 800;
+    width: 100%;
+  }
+  
+  .sub-title {
+    width: 100%;
+    text-align: center;
+    color: grey;
+    font-size: 12px;
+    margin-bottom: 35px;
+    font-family: 'Open sans';
+  }
+
+  .bottom-setting {
+    width: 90%;
+  }
+
+  [class^="awsui_tabs-tab-label"] {
+    border-right: none !important;
+  }
+  
+  [class^="awsui_tabs-heade"] {
+      border-bottom: none !important;
+  }
+  
+  .keep {
+    color: grey;
+  }
+  
+  .disable {
+    color: rgb(155, 167, 182)
+  }
+  
+  .selected {
+    color: #0972d3;
+  }
+  
+  .button-group {
+    margin-top: 20px;
+    width:90%;
+  }
+  
+  [class^="login awsui_button"] {
+    text-align: center !important;
+    width: 100%;
+    height: 40px;
+  }
+  
+  [role="tab"] {
+    text-align: center !important;
+  }
+  
+  [role="tablist"] {
+    text-align: center !important;
+  }
+}

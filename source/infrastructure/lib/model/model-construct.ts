@@ -81,17 +81,21 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
     this.modelIamHelper = props.sharedConstructOutputs.iamHelper;
 
     // handle embedding model name setup
-    if (props.config.model.embeddingsModels[0].provider === "bedrock") {
-      this.defaultEmbeddingModelName = props.config.model.embeddingsModels[0].name;
-    } else if (props.config.model.embeddingsModels[0].provider === "sagemaker") {
+    if (props.config.model.embeddingsModels[0].provider === "Bedrock") {
+      this.defaultEmbeddingModelName = props.config.model.embeddingsModels[0].id;
+    } else if (props.config.model.embeddingsModels[0].provider === "SageMaker") {
       // Initialize SageMaker-specific configurations
       this.initializeSageMakerConfig();
 
-      // Set up embedding model if it's the BCE+BGE model
-      if (props.config.model.embeddingsModels.some(model => model.name === 'bce-embedding-and-bge-reranker')) {
-        const embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
-        this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
-      }
+      // // Set up embedding model if it's the BCE+BGE model
+      // if (props.config.model.embeddingsModels.some(model => model.id === 'bce-embedding-base_v1') || props.config.model.rerankModels.some(model => model.id === 'bge-reranker-large')) {
+      //   const embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
+      //   this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
+      // }
+
+      // User must deploy reranker endpoint since bedrock does not support reranker model in us-east-1
+      const embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
+      this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
     }
 
     // Handle knowledge base setup separately
@@ -137,12 +141,12 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
 
   private deployEmbeddingAndRerankerEndpoint(props: ModelConstructProps) {
     // Deploy Embedding and Reranker model
-    let embeddingAndRerankerModelPrefix = props.config.model.embeddingsModels[0].name ?? "";
+    let embeddingAndRerankerModelPrefix = (props.config.model.embeddingsModels[0].id ?? "").replace(/_/g, "-");
     let embeddingAndRerankerModelVersion = props.config.model.embeddingsModels[0].commitId ?? "";
     let embeddingAndRerankerEndpointInstanceType = "ml.g4dn.4xlarge";
     let embeddingAndRerankerModelName = embeddingAndRerankerModelPrefix + "-" + embeddingAndRerankerModelVersion.slice(0, 5)
     let embeddingAndRerankerImageUrl = this.modelPublicEcrAccount + this.modelRegion + this.modelImageUrlDomain + "djl-inference:0.21.0-deepspeed0.8.3-cu117";
-    let embeddingAndRerankerModelDataUrl = `s3://${props.config.model.modelConfig.modelAssetsBucket}/${embeddingAndRerankerModelPrefix}_deploy_code/`;
+    let embeddingAndRerankerModelDataUrl = `s3://${props.config.model.modelConfig.modelAssetsBucket}/bce-embedding-and-bge-reranker_deploy_code/`;
     let codePrefix = embeddingAndRerankerModelPrefix + "_deploy_code";
 
     const embeddingAndRerankerModelResources = this.deploySagemakerEndpoint({
@@ -172,7 +176,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
         ],
       },
       endpointProps: {
-        endpointName: embeddingAndRerankerModelName + "-endpoint",
+        endpointName: props.config.model.embeddingsModels[0].modelEndpoint,
         endpointConfigName: embeddingAndRerankerModelName + "-endpoint-config",
         tags: [
           {

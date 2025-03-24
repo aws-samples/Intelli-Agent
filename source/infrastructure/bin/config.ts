@@ -46,17 +46,29 @@ export function getConfig(): SystemConfig {
     model: {
       embeddingsModels: [
         {
-          provider: "bedrock",
-          name: "amazon.titan-embed-text-v2",
+          provider: "Bedrock",
+          id: "amazon.titan-embed-text-v2",
           commitId: "",
           dimensions: 1024,
           default: true
         }
       ],
+      rerankModels: [
+        {
+          provider: "Bedrock",
+          id: "bge-reranker-v2-m3",
+        },
+      ],
       llms: [
         {
-          provider: "bedrock",
-          name: "anthropic.claude-3-sonnet-20240229-v1:0",
+          provider: "Bedrock",
+          id: "anthropic.claude-3-sonnet-20240229-v1:0",
+        },
+      ],
+      vlms: [
+        {
+          provider: "Bedrock",
+          id: "amazon.titan-embed-text-v2",
         },
       ],
       modelConfig: {

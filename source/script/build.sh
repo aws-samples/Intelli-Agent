@@ -43,6 +43,7 @@ build_lambda_asset() {
 build_frontend() {
     echo "Building Frontend"
     cd portal
+    rm -rf node_modules package-lock.json
     npm install && npm run build
     cd - > /dev/null
 }
@@ -50,6 +51,7 @@ build_frontend() {
 build_client_frontend() {
     echo "Building Frontend"
     cd cs-portal
+    rm -rf node_modules package-lock.json
     npm install && npm run build
     cd - > /dev/null
 }

@@ -62,8 +62,8 @@ class SageMakerEmbeddingBaseModel(EmbeddingModel):
         model_kwargs = model_kwargs or None
         logger.info("Model kwargs: ")
         logger.info(kwargs)
-        target_model = kwargs.get("target_model")
-        model_id = kwargs.get("model_endpoint")
+        target_model = kwargs.get("sagemaker_target_model")
+        model_id = kwargs.get("sagemaker_endpoint_name")
 
         endpoint_kwargs = {}
         if target_model:

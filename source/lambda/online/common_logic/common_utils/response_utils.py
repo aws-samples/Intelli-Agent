@@ -4,15 +4,12 @@ import traceback
 
 from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
 from shared.constant import StreamMessageType
-from shared.langchain_integration.models.chat_models import ReasonModelStreamResult
 from shared.utils.logger_utils import get_logger
 from shared.utils.websocket_utils import (
     check_stop_signal,
     clear_stop_signal,
     send_to_ws_client,
 )
-from typing import List 
-from langchain_core.documents import Document
 
 logger = get_logger("response_utils")
 
@@ -22,16 +19,20 @@ class WebsocketClientError(Exception):
 
 
 def write_chat_history_to_ddb(
-        query: str,
-        answer: str,
-        ddb_obj: DynamoDBChatMessageHistory,
-        message_id,
-        custom_message_id,
-        entry_type,
-        additional_kwargs=None,
+    query: str,
+    answer: str,
+    ddb_obj: DynamoDBChatMessageHistory,
+    message_id,
+    custom_message_id,
+    entry_type,
+    additional_kwargs=None,
 ):
     ddb_obj.add_user_message(
-        f"user_{message_id}", custom_message_id, entry_type, query, additional_kwargs
+        f"user_{message_id}",
+        custom_message_id,
+        entry_type,
+        query,
+        additional_kwargs,
     )
     ddb_obj.add_ai_message(
         f"ai_{message_id}",
@@ -39,7 +40,7 @@ def write_chat_history_to_ddb(
         entry_type,
         answer,
         input_message_id=f"user_{message_id}",
-        additional_kwargs=additional_kwargs
+        additional_kwargs=additional_kwargs,
     )
 
 
@@ -50,25 +51,22 @@ def api_response(event_body: dict, response: dict):
         answer = json.dumps(answer, ensure_ascii=False)
 
     write_chat_history_to_ddb(
-        query=event_body['query'],
+        query=event_body["query"],
         answer=answer,
         ddb_obj=ddb_history_obj,
-        message_id=event_body['message_id'],
-        custom_message_id=event_body['custom_message_id'],
-        entry_type=event_body['entry_type'],
-        additional_kwargs=response.get("ddb_additional_kwargs", {})
+        message_id=event_body["message_id"],
+        custom_message_id=event_body["custom_message_id"],
+        entry_type=event_body["entry_type"],
+        additional_kwargs=response.get("ddb_additional_kwargs", {}),
     )
 
     return {
-        "session_id": event_body['session_id'],
-        "entry_type": event_body['entry_type'],
+        "session_id": event_body["session_id"],
+        "entry_type": event_body["entry_type"],
         "created": time.time(),
-        "total_time": time.time()-event_body["request_timestamp"],
-        "message": {
-            "role": "assistant",
-            "content": answer
-        },
-        **response['extra_response']
+        "total_time": time.time() - event_body["request_timestamp"],
+        "message": {"role": "assistant", "content": answer},
+        **response["extra_response"],
     }
 
 
@@ -87,27 +85,29 @@ def stream_response(event_body: dict, response: dict):
     answer_str = ""
 
     try:
-        send_to_ws_client(message={
-            "message_type": StreamMessageType.START,
-            "message_id": f"ai_{message_id}",
-            "custom_message_id": custom_message_id,
-        },
-            ws_connection_id=ws_connection_id
+        send_to_ws_client(
+            message={
+                "message_type": StreamMessageType.START,
+                "message_id": f"ai_{message_id}",
+                "custom_message_id": custom_message_id,
+            },
+            ws_connection_id=ws_connection_id,
         )
 
         for i, chunk in enumerate(answer):
             # Check for stop signal before sending each chunk
             if check_stop_signal(ws_connection_id):
                 logger.info(
-                    f"Stop signal detected for connection {ws_connection_id}")
+                    f"Stop signal detected for connection {ws_connection_id}"
+                )
                 # Send END message to notify frontend and stop the session
                 send_to_ws_client(
                     {
                         "message_type": StreamMessageType.END,
                         "message_id": f"ai_{message_id}",
-                        "custom_message_id": custom_message_id
+                        "custom_message_id": custom_message_id,
                     },
-                    ws_connection_id=ws_connection_id
+                    ws_connection_id=ws_connection_id,
                 )
                 clear_stop_signal(ws_connection_id)
                 return answer_str
@@ -118,17 +118,18 @@ def stream_response(event_body: dict, response: dict):
                     f"{custom_message_id} running time of first token whole {entry_type} entry: {first_token_time-request_timestamp}s"
                 )
 
-            send_to_ws_client(message={
-                "message_type": StreamMessageType.CHUNK,
-                "message_id": f"ai_{message_id}",
-                "custom_message_id": custom_message_id,
-                "message": {
-                    "role": "assistant",
-                    "content": chunk,
+            send_to_ws_client(
+                message={
+                    "message_type": StreamMessageType.CHUNK,
+                    "message_id": f"ai_{message_id}",
+                    "custom_message_id": custom_message_id,
+                    "message": {
+                        "role": "assistant",
+                        "content": chunk,
+                    },
+                    "chunk_id": i,
                 },
-                "chunk_id": i,
-            },
-                ws_connection_id=ws_connection_id
+                ws_connection_id=ws_connection_id,
             )
             answer_str += chunk
 
@@ -245,15 +246,17 @@ def stream_response(event_body: dict, response: dict):
         logger.info(f"answer: {answer_str}")
 
         write_chat_history_to_ddb(
-            query=event_body['query'],
+            query=event_body["query"],
             answer=answer_str,
             ddb_obj=ddb_history_obj,
             message_id=message_id,
             custom_message_id=custom_message_id,
             entry_type=entry_type,
-            additional_kwargs=response.get("ddb_additional_kwargs", {})
+            additional_kwargs=response.get("ddb_additional_kwargs", {}),
         )
 
+        # Disable Context now, since API Gateway has a maximum Message payload size of 128 KB
+        # Ref: https://docs.aws.amazon.com/apigateway/latest/developerguide/limits.html
         # Send source and contexts
         if response:
             context_msg = {
@@ -261,7 +264,7 @@ def stream_response(event_body: dict, response: dict):
                 "message_id": f"ai_{message_id}",
                 "custom_message_id": custom_message_id,
                 "ddb_additional_kwargs": {},
-                **response["extra_response"]
+                # **response["extra_response"]
             }
 
             figure = response.get("extra_response").get("ref_figures", [])
@@ -269,7 +272,7 @@ def stream_response(event_body: dict, response: dict):
                 # context_msg["ddb_additional_kwargs"]["figure"] = figure[:2]
                 context_msg["ddb_additional_kwargs"]["figure"] = figure
 
-            ref_doc:List[Document] = response.get("extra_response").get("ref_docs", [])
+            ref_doc = response.get("extra_response").get("ref_docs", [])
             if ref_doc:
                 md_images = []
                 md_image_list = []
@@ -327,7 +330,7 @@ def stream_response(event_body: dict, response: dict):
                 "message_id": f"ai_{message_id}",
                 "custom_message_id": custom_message_id,
             },
-            ws_connection_id=ws_connection_id
+            ws_connection_id=ws_connection_id,
         )
     except WebsocketClientError:
         error = traceback.format_exc()
@@ -344,7 +347,7 @@ def stream_response(event_body: dict, response: dict):
                 "custom_message_id": custom_message_id,
                 "message": {"content": error},
             },
-            ws_connection_id=ws_connection_id
+            ws_connection_id=ws_connection_id,
         )
         clear_stop_signal(ws_connection_id)
     return answer_str

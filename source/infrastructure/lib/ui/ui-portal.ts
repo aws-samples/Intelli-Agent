@@ -19,6 +19,7 @@ import {
   aws_s3 as s3,
   aws_s3_deployment as s3d,
   RemovalPolicy,
+  Size,
 } from "aws-cdk-lib";
 
 export interface PortalConstructOutputs {
@@ -123,6 +124,8 @@ export class PortalConstruct extends Construct implements PortalConstructOutputs
       }),
       distributionPaths: ['/*'],
       prune: false,
+      memoryLimit: 1024,
+      ephemeralStorageSize: Size.mebibytes(1024),
     });
   }
 }

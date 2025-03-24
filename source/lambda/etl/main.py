@@ -8,8 +8,22 @@ logger.setLevel(logging.INFO)
 
 s3_client = boto3.client("s3")
 
-supported_file_types = ["pdf", "txt", "doc", "md", "html", "json",
-                        "jsonl", "csv", "png", "jpg", "jpeg", "webp", "xlsx", "xls"]
+supported_file_types = [
+    "pdf",
+    "txt",
+    "doc",
+    "md",
+    "html",
+    "json",
+    "jsonl",
+    "csv",
+    "png",
+    "jpg",
+    "jpeg",
+    "webp",
+    "xlsx",
+    "xls",
+]
 default_embedding_endpoint = os.environ.get("DEFAULT_EMBEDDING_ENDPOINT")
 aos_domain_endpoint = os.environ.get("AOS_DOMAIN_ENDPOINT")
 
@@ -33,14 +47,11 @@ def lambda_handler(event, context):
     chatbot_id = event["chatbotId"]
     group_name = event["groupName"]
     index_id = event["indexId"]
-    embedding_model_type = event["embeddingModelType"]
     index_type = event.get("indexType", "qd")
     if aos_domain_endpoint and aos_domain_endpoint != "-":
         operation_type = event.get("operationType", "create")
     else:
         operation_type = "extract_only"
-    embedding_endpoint = event.get(
-        "embeddingEndpoint", default_embedding_endpoint)
     table_item_id = event["tableItemId"]
 
     if "offline" not in event:
@@ -79,7 +90,6 @@ def lambda_handler(event, context):
             "chatbotId": chatbot_id,
             "groupName": group_name,
             "indexId": index_id,
-            "embeddingModelType": embedding_model_type,
             "qaEnhance": (
                 event["qaEnhance"].lower() if "qaEnhance" in event else "false"
             ),
@@ -88,14 +98,8 @@ def lambda_handler(event, context):
             "batchIndices": batch_indices,
             "indexType": index_type,
             "operationType": operation_type,
-            "embeddingEndpoint": embedding_endpoint,
             "tableItemId": table_item_id,
             "documentLanguage": event.get("documentLanguage", "zh"),
-            "modelProvider": event.get("modelProvider", "bedrock"),
-            "modelId": event.get("modelId", "us.anthropic.claude-3-5-sonnet-20241022-v2:0"),
-            "modelApiUrl": event.get("modelApiUrl", "-"),
-            "modelSecretName": event.get("modelSecretName", "-"),
-            "modelSagemakerEndpointName": event.get("modelSagemakerEndpointName", "-"),
         }
     elif event["offline"].lower() == "false":
         # This response should match the expected input schema of the downstream tasks in the Step Functions workflow
@@ -112,17 +116,10 @@ def lambda_handler(event, context):
             "batchFileNumber": "1",
             "batchIndices": "0",
             "indexId": index_id,
-            "embeddingModelType": embedding_model_type,
             "indexType": index_type,
             "operationType": operation_type,
-            "embeddingEndpoint": embedding_endpoint,
             "tableItemId": table_item_id,
             "documentLanguage": event.get("documentLanguage", "zh"),
-            "modelProvider": event.get("modelProvider", "bedrock"),
-            "modelId": event.get("modelId", "us.anthropic.claude-3-5-sonnet-20241022-v2:0"),
-            "modelApiUrl": event.get("modelApiUrl", "-"),
-            "modelSecretName": event.get("modelSecretName", "-"),
-            "modelSagemakerEndpointName": event.get("modelSagemakerEndpointName", "-"),
         }
     else:
         raise ValueError("offline is not true or false")

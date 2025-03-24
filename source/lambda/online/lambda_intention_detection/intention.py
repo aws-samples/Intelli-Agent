@@ -63,7 +63,7 @@ def get_intention_results(query: str, intention_config: dict, intent_threshold: 
                     "score": doc.metadata["score"],
                     "name": doc.metadata["answer"],
                     "intent": doc.metadata["answer"],
-                    "kwargs": doc.metadata("kwargs", {}),
+                    "kwargs": doc.metadata.get("kwargs", {}),
                 }
                 intent_fewshot_examples.append(doc_item)
     # if not res["result"]["docs"]:

@@ -3,6 +3,7 @@ import CommonLayout from 'src/layout/CommonLayout';
 import Message from './components/Message';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
+import { decodeJwt } from "jose";
 import {
   Autosuggest,
   Box,
@@ -17,15 +18,14 @@ import {
   Select,
   SelectProps,
   SpaceBetween,
+  Spinner,
   StatusIndicator,
   Textarea,
-  Toggle,
-  Icon,
+  Toggle
 } from '@cloudscape-design/components';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { identity } from 'lodash';
 import ConfigContext from 'src/context/config-context';
-import { useAuth } from 'react-oidc-context';
 import {
   LLM_BOT_COMMON_MODEL_LIST,
   MODEL_TYPE_LIST,
@@ -38,8 +38,11 @@ import {
   ONLY_RAG_TOOL,
   MODEL_OPTION,
   CURRENT_CHAT_BOT,
-  TOPK,
-  SCORE,
+  TOPK_KEYWORD,
+  TOPK_EMBEDDING,
+  TOPK_RERANK,
+  KEYWORD_SCORE,
+  EMBEDDING_SCORE,
   ROUND,
   HISTORY_CHATBOT_ID,
   BR_API_MODEL_LIST,
@@ -47,12 +50,14 @@ import {
   SHOW_FIGURES,
   API_ENDPOINT,
   API_KEY_ARN,
-  CUSTOM_DEPLOYMENT_MODEL_LIST,
+  ROUTES,
   SILICON_FLOW_API_MODEL_LIST,
+  OIDC_STORAGE,
+  SAGEMAKER_MODEL_LIST
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';
-import { isValidJson } from 'src/utils/utils';
+import { getCredentials, isValidJson } from 'src/utils/utils';
 
 interface MessageType {
   messageId: string;
@@ -88,18 +93,24 @@ const isValidArn = (arn: string): boolean => {
 
 const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const { historySessionId } = props;
+  const [loadingChatBots, setLoadingChatBots] = useState(false);
+  // const [loadingModel, setLoadingModel] = useState(false);
+  // const [loadingModelList, setLoadingModelList] = useState(false);
   // const localScenario = localStorage.getItem(MODEL_TYPE);
   const localMaxToken = localStorage.getItem(MAX_TOKEN);
   const localTemperature = localStorage.getItem(TEMPERATURE);
   const localConfig = localStorage.getItem(ADITIONAL_SETTINGS);
   const localRound = localStorage.getItem(ROUND);
-  const localTopKRetrievals = localStorage.getItem(TOPK);
-  const localScore = localStorage.getItem(SCORE);
+  const localTopKKeyword = localStorage.getItem(TOPK_KEYWORD);
+  const localTopKEmbedding = localStorage.getItem(TOPK_EMBEDDING);
+  const localTopKRerank = localStorage.getItem(TOPK_RERANK);
+  const localKeywordScore = localStorage.getItem(KEYWORD_SCORE);
+  const localEmbeddingScore = localStorage.getItem(EMBEDDING_SCORE);
   const localApiEndpoint = localStorage.getItem(API_ENDPOINT);
   const localApiKeyArn = localStorage.getItem(API_KEY_ARN);
   const config = useContext(ConfigContext);
   const { t } = useTranslation();
-  const auth = useAuth();
+  // const auth = useAuth();
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [messages, setMessages] = useState<MessageType[]>([
     {
@@ -114,13 +125,15 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [userMessage, setUserMessage] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { lastMessage, sendMessage, readyState } = useWebSocket(
-    `${config?.websocket}?idToken=${auth.user?.id_token}`,
-    {
-      onOpen: () => console.log('opened'),
-      shouldReconnect: () => true,
-    },
-  );
+  const oidc = JSON.parse(localStorage.getItem(OIDC_STORAGE) || '');
+  let wsUrl = `${config?.websocket}?idToken=${getCredentials().idToken}&provider=${oidc.provider}&clientId=${config?.oidcClientId}&poolId=${config?.oidcPoolId}`;
+  if (oidc.provider === 'authing') {
+    wsUrl = `${config?.websocket}?idToken=${getCredentials().access_token}&provider=${oidc.provider}&clientId=${oidc.clientId}&redirectUri=${oidc.redirectUri}`;
+  }
+  const { lastMessage, sendMessage, readyState } = useWebSocket(wsUrl, {
+    onOpen: () => console.log('opened'),
+    shouldReconnect: () => true,
+  });
   const [currentAIMessage, setCurrentAIMessage] = useState('');
   const [currentMonitorMessage, setCurrentMonitorMessage] = useState('');
   const [currentAIMessageId, setCurrentAIMessageId] = useState('');
@@ -128,8 +141,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [modelOption, setModelOption] = useState('');
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
   const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
+  const [apiEndpointOption, setApiEndpointOption] = useState<SelectProps.Option>(null as any)
   const [chatbotOption, setChatbotOption] = useState<SelectProps.Option>(
-    null as any,
+    {label: 'admin', value: 'admin'} as any,
   );
   const [useChatHistory, setUseChatHistory] = useState(
     localStorage.getItem(USE_CHAT_HISTORY) == null ||
@@ -158,8 +172,11 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     temperature: '0.01',
     maxToken: '1000',
     maxRounds: '7',
-    topKRetrievals: '5',
-    score: '0.4',
+    topKKeyword: '5',
+    topKEmbedding: '5',
+    topKRerank: '10',
+    keywordScore: '0.4',
+    embeddingScore: '0.4',
     additionalConfig: '',
   };
 
@@ -174,16 +191,30 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [maxRounds, setMaxRounds] = useState<string>(
     localRound ?? defaultConfig.maxRounds,
   );
-  const [topKRetrievals, setTopKRetrievals] = useState<string>(
-    localTopKRetrievals ?? defaultConfig.topKRetrievals,
+  const [topKKeyword, setTopKKeyword] = useState<string>(
+    localTopKKeyword ?? defaultConfig.topKKeyword,
   );
-  const [score, setScore] = useState<string>(localScore ?? defaultConfig.score);
+  const [topKEmbedding, setTopKEmbedding] = useState<string>(
+    localTopKEmbedding ?? defaultConfig.topKEmbedding,
+  );
+  const [topKRerank, setTopKRerank] = useState<string>(
+    localTopKRerank ?? defaultConfig.topKRerank,
+  );
+  const [keywordScore, setKeywordScore] = useState<string>(
+    localKeywordScore ?? defaultConfig.keywordScore,
+  );
+  const [embeddingScore, setEmbeddingScore] = useState<string>(
+    localEmbeddingScore ?? defaultConfig.embeddingScore,
+  );
   const [additionalConfig, setAdditionalConfig] = useState(
     localConfig ?? defaultConfig.additionalConfig,
   );
-  const [topKRetrievalsError, setTopKRetrievalsError] = useState('');
+  const [topKKeywordError, setTopKKeywordError] = useState('');
+  const [topKEmbeddingError, setTopKEmbeddingError] = useState('');
+  const [topKRerankError, setTopKRerankError] = useState('');
   const [maxRoundsError, setMaxRoundsError] = useState('');
-  const [scoreError, setScoreError] = useState('');
+  const [keywordScoreError, setKeywordScoreError] = useState('');
+  const [embeddingScoreError, setEmbeddingScoreError] = useState('');
 
   const [endPoint, setEndPoint] = useState('');
   const [showEndpoint, setShowEndpoint] = useState(false);
@@ -196,10 +227,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [modelSettingExpand, setModelSettingExpand] = useState(false);
   const [additionalConfigError, setAdditionalConfigError] = useState('');
   const [apiEndpointError, setApiEndpointError] = useState('');
-  const [apiEndpointError, setApiEndpointError] = useState('');
   const [apiKeyArnError, setApiKeyArnError] = useState('');
   const [apiEndpoint, setApiEndpoint] = useState(localApiEndpoint ?? '');
   const [apiKeyArn, setApiKeyArn] = useState(localApiKeyArn ?? '');
+  const [sageMakerEndpoints, setSageMakerEndpoints] = useState<{label: string, value: string}[]>([])
 
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
@@ -212,11 +243,11 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   // Define an async function to get the data
   const fetchData = useAxiosRequest();
 
-  const [chatbotModelProvider, setChatbotModelProvider] = useState<{
-    [key: string]: string;
-  }>({});
+  // const [chatbotModelProvider, setChatbotModelProvider] = useState<{
+  //   [key: string]: string;
+  // }>({});
 
-  const [modelProviderHint, setModelProviderHint] = useState('');
+  // const [modelProviderHint, setModelProviderHint] = useState('');
 
   const startNewChat = () => {
     [
@@ -237,8 +268,12 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     setMaxToken(defaultConfig.maxToken);
     setMaxRounds(defaultConfig.maxRounds);
     setTemperature(defaultConfig.temperature);
-    setTopKRetrievals(defaultConfig.topKRetrievals);
-    setScore(defaultConfig.score);
+    // setTopKRetrievals(defaultConfig.topKRetrievals);
+    setTopKKeyword(defaultConfig.topKKeyword);
+    setTopKEmbedding(defaultConfig.topKEmbedding);
+    setTopKRerank(defaultConfig.topKRerank);
+    setKeywordScore(defaultConfig.keywordScore);
+    setEmbeddingScore(defaultConfig.embeddingScore);
     setUserMessage('');
     setAdditionalConfig('');
     // setModelOption(optionList?.[0]?.value ?? '')
@@ -262,16 +297,16 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         url: 'chatbot-management/chatbots',
         method: 'get',
       });
-      const chatbots: { ChatbotId: string; ModelProvider: string }[] =
-        data.Items;
+      const chatbots: { chatbotId: string; ModelProvider: string }[] =
+        data.items;
       const getChatbots = chatbots.map((item) => {
-        setChatbotModelProvider((prev) => ({
-          ...prev,
-          [item.ChatbotId]: item.ModelProvider,
-        }));
+        // setChatbotModelProvider((prev) => ({
+        //   ...prev,
+        //   [item.chatbotId]: item.ModelProvider,
+        // }));
         return {
-          label: item.ChatbotId,
-          value: item.ChatbotId,
+          label: item.chatbotId,
+          value: item.chatbotId,
         };
       });
       setChatbotList(getChatbots);
@@ -315,7 +350,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       });
       const sessionMessage: SessionMessage[] = data.Items;
 
-
       // Get chatbotId from first message if available
       if (sessionMessage && sessionMessage.length > 0) {
         const chatbotId = sessionMessage[0].chatbotId;
@@ -354,6 +388,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   };
   useEffect(() => {
     const initializeChatbot = async () => {
+      setLoadingChatBots(true)
       if (historySessionId) {
         // Wait for getSessionHistoryById to complete to set history chatbotId
         await getSessionHistoryById();
@@ -364,7 +399,25 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       getWorkspaceList();
     };
 
+    const fetchEndpoints = async () =>{
+      const tempModels: { label: string; value: string }[] = [];
+      const data = await fetchData({
+        url: 'model-management/endpoints',
+        method: 'get'
+      });
+      data.endpoints.forEach((endpoint: any) => {
+        tempModels.push({
+          label: endpoint.endpoint_name,
+          value: endpoint.endpoint_name,
+        });
+      });
+      setSageMakerEndpoints(tempModels)
+      setApiEndpointOption(tempModels[0])
+    }
+    fetchEndpoints();
+
     initializeChatbot();
+    setLoadingChatBots(false)
   }, []);
 
   useEffect(() => {
@@ -399,16 +452,34 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   }, [maxRounds]);
 
   useEffect(() => {
-    if (topKRetrievals) {
-      localStorage.setItem(TOPK, topKRetrievals);
+    if (topKKeyword) {
+      localStorage.setItem(TOPK_KEYWORD, topKKeyword);
     }
-  }, [topKRetrievals]);
+  }, [topKKeyword]);
 
   useEffect(() => {
-    if (score) {
-      localStorage.setItem(SCORE, score);
+    if (topKEmbedding) {
+      localStorage.setItem(TOPK_EMBEDDING, topKEmbedding);
     }
-  }, [score]);
+  }, [topKEmbedding]);
+
+  useEffect(() => {
+    if (topKRerank) {
+      localStorage.setItem(TOPK_RERANK, topKRerank);
+    }
+  }, [topKRerank]);
+
+  useEffect(() => {
+    if (keywordScore) {
+      localStorage.setItem(KEYWORD_SCORE, keywordScore);
+    }
+  }, [keywordScore]);
+
+  useEffect(() => {
+    if (embeddingScore) {
+      localStorage.setItem(EMBEDDING_SCORE, embeddingScore);
+    }
+  }, [embeddingScore]);
 
   useEffect(() => {
     localStorage.setItem(ONLY_RAG_TOOL, onlyRAGTool ? 'true' : 'false');
@@ -549,89 +620,107 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       modelType.value === 'siliconflow'
     ) {
       if (!apiEndpoint.trim()) {
-        setApiEndpointError('validation.requireApiEndpoint');
+        setApiEndpointError(t('validation.requireApiEndpoint'));
         setModelSettingExpand(true);
         return;
       }
       if (!apiKeyArn.trim()) {
-        setApiKeyArnError('validation.requireApiKeyArn');
+        setApiKeyArnError(t('validation.requireApiKeyArn'));
         setModelSettingExpand(true);
         return;
       }
     } else {
+      if(modelType.value === 'SageMaker' && !apiEndpoint.trim()){
+        setApiEndpointError(t('validation.requireSagemakerEndpoint'));
+        setModelSettingExpand(true);
+        return;
+      }
+
       if (!modelOption.trim()) {
-        setModelError('validation.requireModel');
+        setModelError(t('validation.requireModel'));
         setModelSettingExpand(true);
         return;
       }
     }
     if (!temperature.trim()) {
-      setTemperatureError('validation.requireTemperature');
+      setTemperatureError(t('validation.requireTemperature'));
       setModelSettingExpand(true);
       return;
     }
     if (!maxToken.trim()) {
-      setMaxTokenError('validation.requireMaxTokens');
+      setMaxTokenError(t('validation.requireMaxTokens'));
       setModelSettingExpand(true);
       return;
     }
     if (parseInt(maxToken) < 1) {
-      setMaxTokenError('validation.maxTokensRange');
+      setMaxTokenError(t('validation.maxTokensRange'));
       setModelSettingExpand(true);
       return;
     }
 
     if (!maxRounds.trim()) {
-      setMaxRoundsError('validation.requireMaxRounds');
+      setMaxRoundsError(t('validation.requireMaxRounds'));
       setModelSettingExpand(true);
       return;
     }
 
     if (parseInt(maxRounds) < 0) {
-      setMaxRoundsError('validation.maxRoundsRange');
+      setMaxRoundsError(t('validation.maxRoundsRange'));
       setModelSettingExpand(true);
       return;
     }
 
-    if (!topKRetrievals.trim()) {
-      setTopKRetrievalsError('validation.requireTopKRetrievals');
+    if (!topKRerank.trim()) {
+      setTopKRerankError(t('validation.requireTopKRerank'));
       setModelSettingExpand(true);
       return;
     }
 
-    if (parseInt(topKRetrievals) < 1) {
-      setTopKRetrievalsError('validation.topKRetrievals');
+    if (!topKKeyword.trim()) {
+      setTopKKeywordError(t('validation.requireTopKKeyword'));
+      setModelSettingExpand(true);
+      return;
+    }
+
+    if (!topKEmbedding.trim()) {
+      setTopKEmbeddingError(t('validation.requireTopKEmbedding'));
+      setModelSettingExpand(true);
+      return;
+    }
+    if (!topKRerank.trim()) {
+      setTopKRerankError(t('validation.requireTopKRerank'));
       setModelSettingExpand(true);
       return;
     }
 
     if (parseFloat(temperature) < 0.0 || parseFloat(temperature) > 1.0) {
-      setTemperatureError('validation.temperatureRange');
+      setTemperatureError(t('validation.temperatureRange'));
       setModelSettingExpand(true);
       return;
     }
 
-    if (!score.trim()) {
-      setScoreError('validation.requireScore');
+    if (!keywordScore.trim()) {
+      setKeywordScoreError(t('validation.requireKeywordScore'));
       setModelSettingExpand(true);
       return;
     }
 
-    if (parseFloat(score) < 0.0 || parseFloat(score) > 1.0) {
-      setScoreError('validation.score');
+    if (!embeddingScore.trim()) {
+      setEmbeddingScoreError(t('validation.requireEmbeddingScore'));
       setModelSettingExpand(true);
       return;
     }
+
     // validate endpoint
     if (modelType.value === 'Bedrock API' && !endPoint.trim()) {
-      setEndPointError('validation.requireEndPoint');
+      setEndPointError(t('validation.requireEndPoint'));
       setModelSettingExpand(true);
       return;
     }
 
     // validate additional config
     if (additionalConfig.trim() && !isValidJson(additionalConfig)) {
-      setAdditionalConfigError('validation.invalidJson');
+      setAdditionalConfigError(t('validation.invalidJson'));
       setModelSettingExpand(true);
       return;
     }
@@ -642,12 +731,12 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     setCurrentMonitorMessage('');
     setIsMessageEnd(false);
 
-    const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
+    const groupName: any = getGroupName();
     let message = {
       query: messageToSend,
       entry_type: 'common',
       session_id: sessionId,
-      user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
+      user_id: oidc["username"] || 'default_user_id',
       chatbot_config: {
         max_rounds_in_memory: parseInt(maxRounds),
         group_name: groupName?.[0] ?? 'Admin',
@@ -660,18 +749,19 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         default_llm_config: {
           model_id: modelOption,
           endpoint_name:
-            modelOption === 'qwen2-72B-instruct' ? endPoint.trim() : '',
+            modelOption === 'qwen2-72B-instruct' ? endPoint.trim() : apiEndpoint,
           provider: modelType.value,
           base_url:
             modelType.value === 'Bedrock API' ||
-            modelType.value === 'OpenAI API' ||
-            modelType.value === 'siliconflow'
+              modelType.value === 'OpenAI API' ||
+              modelType.value === 'siliconflow' ||
+              modelType.value === 'SageMaker'
               ? apiEndpoint.trim()
               : '',
           api_key_arn:
             modelType.value === 'Bedrock API' ||
-            modelType.value === 'OpenAI API' ||
-            modelType.value === 'siliconflow'
+              modelType.value === 'OpenAI API' ||
+              modelType.value === 'siliconflow'
               ? apiKeyArn.trim()
               : '',
           model_kwargs: {
@@ -679,9 +769,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
             max_tokens: parseInt(maxToken),
           },
         },
-        private_knowledge_config: {
-          top_k: parseInt(topKRetrievals),
-          score: parseFloat(score),
+        default_retriever_config: {
+          private_knowledge: {
+            bm25_search_top_k: parseInt(topKKeyword),
+            bm25_search_score: parseFloat(keywordScore),
+            vector_search_top_k: parseInt(topKEmbedding),
+            vector_search_score: parseFloat(embeddingScore),
+            rerank_top_k: parseInt(topKRerank)
+          }
         },
         agent_config: {
           only_use_rag_tool: onlyRAGTool,
@@ -704,7 +799,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     console.info('send message:', message);
     sendMessage(JSON.stringify(message));
 
-
     // Only add to messages if it's a new message (not regeneration)
     if (!customQuery) {
       setMessages((prev) => {
@@ -726,40 +820,39 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   };
 
   useEffect(() => {
-    let optionList: any[] = [];
-    const localModel = localStorage.getItem(MODEL_OPTION);
     if (modelType.value === 'Bedrock') {
-      optionList = LLM_BOT_COMMON_MODEL_LIST;
-      optionList = LLM_BOT_COMMON_MODEL_LIST;
       setModelList(LLM_BOT_COMMON_MODEL_LIST);
       setModelOption(LLM_BOT_COMMON_MODEL_LIST[0].options[0].value);
       setApiEndpoint('');
       setApiKeyArn('');
     } else if (modelType.value === 'Bedrock API') {
-      optionList = BR_API_MODEL_LIST;
-      optionList = BR_API_MODEL_LIST;
       setModelList(BR_API_MODEL_LIST);
       setModelOption(BR_API_MODEL_LIST[0].options[0].value);
+      setApiEndpoint('');
+      setApiKeyArn('');
     } else if (modelType.value === 'OpenAI API') {
-      optionList = OPENAI_API_MODEL_LIST;
-      optionList = OPENAI_API_MODEL_LIST;
       setModelList(OPENAI_API_MODEL_LIST);
       setModelOption(OPENAI_API_MODEL_LIST[0].options[0].value);
+      setApiEndpoint('');
+      setApiKeyArn('');
     } else if (modelType.value === 'siliconflow') {
-      optionList = SILICON_FLOW_API_MODEL_LIST;
-      optionList = SILICON_FLOW_API_MODEL_LIST;
       setModelList(SILICON_FLOW_API_MODEL_LIST);
       setModelOption(SILICON_FLOW_API_MODEL_LIST[0].options[0].value);
-    } else if (modelType.value === 'emd') {
-      optionList = CUSTOM_DEPLOYMENT_MODEL_LIST;
-      setModelList(CUSTOM_DEPLOYMENT_MODEL_LIST);
-      setModelOption(CUSTOM_DEPLOYMENT_MODEL_LIST[0].options[0].value);
+      setApiEndpoint('');
+      setApiKeyArn('');
+    } else if (modelType.value === 'SageMaker') {
+      setModelList(SAGEMAKER_MODEL_LIST);
+      setModelOption(SAGEMAKER_MODEL_LIST[0].options[0].value);
+      setApiEndpoint(sageMakerEndpoints[0].value);
     }
-    if (localModel) {
-      setModelOption(localModel);
+  }, [modelType]);
+
+  useEffect(() => {
+    if (modelOption === 'qwen2-72B-instruct') {
+      setShowEndpoint(true);
     } else {
-      setModelOption(optionList?.[0]?.options?.[0].value ?? '');
-    }
+      setEndPoint('Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347');
+    } 
   }, [modelType]);
 
   useEffect(() => {
@@ -774,6 +867,15 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [feedbackGiven, setFeedbackGiven] = useState<{
     [key: string]: 'thumb_up' | 'thumb_down' | null;
   }>({});
+
+  const getGroupName = () =>{
+    if(oidc.provider === "cognito") {
+       const credentials = getCredentials()
+      const claim = decodeJwt(credentials.idToken);
+      return claim["cognito:groups"]
+    }
+    return ["Admin"]
+  }
 
   const handleThumbUpClick = async (index: number) => {
     const currentFeedback = feedbackGiven[index];
@@ -832,7 +934,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     const message = {
       message_type: 'STOP',
       session_id: sessionId,
-      user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
+      user_id: oidc["username"] || 'default_user_id',
     };
 
     console.info('Send stop message:', message);
@@ -851,27 +953,28 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
 
     return (
       <>
-        <Button
-          iconName="upload"
-          variant="icon"
-          onClick={() => fileInputRef.current?.click()}
-          ariaLabel={t('button.attach')}
-        />
-        <input
-          type="file"
-          ref={fileInputRef}
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
-          accept="image/*"
-          multiple
-        />
-        <Button
-          disabled={readyState !== ReadyState.OPEN}
-          onClick={() => handleClickSendMessage()}
-          ariaLabel={t('button.send')}
-        >
-          {t('button.send')}
-        </Button>
+        <SpaceBetween direction='horizontal' size='xxs'>
+          <div
+            style={{ border: '2px solid #0972d3', borderRadius: 20, padding: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20 }}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <img src={"/imgs/img-upload.png"} alt="attach" width={15}></img>
+          </div>
+          <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+            accept="image/*"
+            multiple
+          />
+          <Button
+            disabled={readyState !== ReadyState.OPEN}
+            onClick={() => handleClickSendMessage()}
+            ariaLabel={t('button.send')}
+          >
+            {t('button.send')}
+          </Button></SpaceBetween>
       </>
     );
   };
@@ -909,7 +1012,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     // Remove the AI message and all subsequent messages
     setMessages(messages.slice(0, index));
 
-
     // Reuse handleClickSendMessage with the found human message
     handleClickSendMessage(humanMessage);
   };
@@ -917,15 +1019,15 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   return (
     <CommonLayout
       isLoading={loadingHistory}
-      activeHref={!historySessionId ? '/' : '/sessions'}
+      activeHref={!historySessionId ? ROUTES.Home : ROUTES.Session}
       breadCrumbs={[
         {
           text: t('name'),
-          href: '/',
+          href: ROUTES.Home,
         },
         {
           text: t('conversation'),
-          href: '/chats',
+          href: ROUTES.Chat,
         },
       ]}
     >
@@ -963,69 +1065,143 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
             </Header>
           }
         >
-          <Container
-            fitHeight={true}
-            footer={
-              <div>
-                <ExpandableSection
-                  onChange={({ detail }) => {
-                    setModelSettingExpand(detail.expanded);
-                  }}
-                  expanded={modelSettingExpand}
-                  // variant="footer"
-                  headingTagOverride="h4"
-                  headerText={t('configurations')}
-                >
-                  <div
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      marginBottom: 15,
-                      marginTop: 15,
+          {loadingChatBots ? (<Container
+            fitHeight={true}>
+            <div style={{ margin: "auto", textAlign: "center", marginTop: "30%" }}>
+              <Spinner size="large" /></div>
+          </Container>) : (
+            <Container
+              fitHeight={true}
+              footer={
+                <div>
+                  <ExpandableSection
+                    onChange={({ detail }) => {
+                      setModelSettingExpand(detail.expanded);
                     }}
+                    expanded={modelSettingExpand}
+                    // variant="footer"
+                    headingTagOverride="h4"
+                    headerText={t('configurations')}
                   >
-                    {t('common')}
-                  </div>
-                  <SpaceBetween size="xs" direction="vertical">
-                    <Grid gridDefinition={[{ colspan: 5 }, { colspan: 6 }]}>
-                      <FormField
-                        label={t('modelProvider')}
-                        stretch={true}
-                        description={t('scenarioDesc')}
-                        errorText={modelProviderHint}
-                      >
-                        <Select
-                          options={MODEL_TYPE_LIST}
-                          selectedOption={modelType}
-                          onChange={({ detail }) => {
-                            setModelType(detail.selectedOption);
+                    <div
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        marginBottom: 15,
+                        marginTop: 15,
+                      }}
+                    >
+                      {t('common')}
+                    </div>
+                    <SpaceBetween size="xs" direction="vertical">
+                      <Grid gridDefinition={[{ colspan: 5 }, { colspan: 6 }]}>
+                        <FormField
+                          label={t('modelProvider')}
+                          stretch={true}
+                          description={t('scenarioDesc')}
+                          // errorText={modelProviderHint}
+                        >
+                          <Select
+                            options={MODEL_TYPE_LIST}
+                            selectedOption={modelType}
+                            onChange={({ detail }) => {
+                              setModelType(detail.selectedOption);
+                              setModelOption('');
 
-                            // Check if the selected model provider matches the chatbot's model provider
-                            const selectedChatbotId =
-                              chatbotOption.value ?? 'defaultId';
-                            const expectedModelProvider =
-                              chatbotModelProvider[selectedChatbotId];
 
-                            if (
-                              expectedModelProvider !==
-                                detail.selectedOption.value &&
-                              detail.selectedOption.value !== 'emd' &&
-                              detail.selectedOption.value !== 'siliconflow'
-                            ) {
-                              setModelProviderHint(
-                                t('chatbotModelProviderError'),
-                              );
-                            } else {
-                              setModelProviderHint(''); // Clear hint if the selection is valid
-                            }
-                          }}
-                        />
-                      </FormField>
-                      {modelType.value === 'Bedrock API' ||
-                      modelType.value === 'OpenAI API' ||
-                      modelType.value === 'siliconflow' ? (
-                        <SpaceBetween size="xs" direction="vertical">
-                          <FormField
+                              // Check if the selected model provider matches the chatbot's model provider
+                              // const selectedChatbotId =
+                              //   chatbotOption.value ?? 'defaultId';
+                              // const expectedModelProvider =
+                              //   chatbotModelProvider[selectedChatbotId];
+
+                              // if (
+                              //   expectedModelProvider !==
+                              //   detail.selectedOption.value &&
+                              //   detail.selectedOption.value !== 'emd' &&
+                              //   detail.selectedOption.value !== 'siliconflow'
+                              // ) {
+                              //   setModelProviderHint(
+                              //     t('chatbotModelProviderError'),
+                              //   );
+                              // } else {
+                              //   setModelProviderHint(''); // Clear hint if the selection is valid
+                              // }
+                            }}
+                          />
+                        </FormField>
+                        {modelType.value === 'Bedrock API' ||
+                          modelType.value === 'OpenAI API' ||
+                          modelType.value === 'siliconflow' ? (
+                          <SpaceBetween size="xs" direction="vertical">
+                            <FormField
+                              label={t('modelName')}
+                              stretch={true}
+                              errorText={t(modelError)}
+                              description={t('modelNameDesc')}
+                            >
+                              <Autosuggest
+                                onChange={({ detail }) => {
+                                  setModelError('');
+                                  setModelOption(detail.value);
+                                }}
+                                value={modelOption}
+                                options={modelList}
+                                enteredTextLabel={(value) => `Use: "${value}"`}
+                                placeholder={t('validation.requireModel')}
+                                empty={t('noModelFound')}
+                              />
+                            </FormField>
+                            <FormField
+                              label={t('apiEndpoint')}
+                              stretch={true}
+                              errorText={t(apiEndpointError)}
+                              description={t('apiEndpointDesc')}
+                            >
+                              <Input
+                                value={apiEndpoint}
+                                onChange={({ detail }) => {
+                                  const value = detail.value;
+                                  if (value === '' || isValidUrl(value)) {
+                                    setApiEndpointError('');
+                                  } else {
+                                    setApiEndpointError(
+                                      'Invalid url, please type in a valid HTTPS or HTTP url',
+                                    );
+                                  }
+                                  setApiEndpoint(value);
+                                }}
+                                placeholder="https://api.example.com/v1"
+                              />
+                            </FormField>
+                            <FormField
+                              label={t('apiKeyArn')}
+                              stretch={true}
+                              errorText={t(apiKeyArnError)}
+                              description={t('apiKeyArnDesc')}
+                            >
+                              <Input
+                                value={apiKeyArn}
+                                onChange={({ detail }) => {
+                                  const value = detail.value;
+                                  if (value === '' || isValidArn(value)) {
+                                    setApiKeyArnError('');
+                                  } else {
+                                    setApiKeyArnError(
+                                      'Invalid ARN, please type in a valid secret ARN from AWS Secrets Manager',
+                                    );
+                                  }
+                                  setApiKeyArn(value);
+                                }}
+                                placeholder="arn:aws:secretsmanager:region:account:secret:name"
+                              />
+                            </FormField>
+                          </SpaceBetween>
+                        ) : (<>
+                          
+                          {modelType.value === 'SageMaker' ? (
+                             <SpaceBetween size="xs" direction="vertical">
+                            <FormField
                             label={t('modelName')}
                             stretch={true}
                             errorText={t(modelError)}
@@ -1038,177 +1214,228 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                               }}
                               value={modelOption}
                               options={modelList}
-                              enteredTextLabel={(value) => `Use: "${value}"`}
                               placeholder={t('validation.requireModel')}
                               empty={t('noModelFound')}
+                              enteredTextLabel={(value) => `Use: "${value}"`}
                             />
                           </FormField>
-                          <FormField
-                            label={t('apiEndpoint')}
+                            <FormField
+                            label={t('sagemakerEndpoint')}
                             stretch={true}
                             errorText={t(apiEndpointError)}
-                            description={t('apiEndpointDesc')}
+                            description={t('sagemakerEndpointDesc')}
                           >
-                            <Input
-                              value={apiEndpoint}
-                              onChange={({ detail }) => {
-                                const value = detail.value;
-                                if (value === '' || isValidUrl(value)) {
-                                  setApiEndpointError('');
-                                } else {
-                                  setApiEndpointError(
-                                    'Invalid url, please type in a valid HTTPS or HTTP url',
-                                  );
-                                }
-                                setApiEndpoint(value);
-                              }}
-                              placeholder="https://api.example.com/v1"
-                            />
-                          </FormField>
-                          <FormField
-                            label={t('apiKeyArn')}
-                            stretch={true}
-                            errorText={t(apiKeyArnError)}
-                            description={t('apiKeyArnDesc')}
-                          >
-                            <Input
-                              value={apiKeyArn}
-                              onChange={({ detail }) => {
-                                const value = detail.value;
-                                if (value === '' || isValidArn(value)) {
-                                  setApiKeyArnError('');
-                                } else {
-                                  setApiKeyArnError(
-                                    'Invalid ARN, please type in a valid secret ARN from AWS Secrets Manager',
-                                  );
-                                }
-                                setApiKeyArn(value);
-                              }}
-                              placeholder="arn:aws:secretsmanager:region:account:secret:name"
-                            />
-                          </FormField>
-                        </SpaceBetween>
-                      ) : (
-                        <FormField
-                          label={t('modelName')}
-                          stretch={true}
-                          errorText={t(modelError)}
-                          description={t('modelNameDesc')}
-                        >
-                          <Autosuggest
-                            onChange={({ detail }) => {
-                              setModelError('');
-                              setModelOption(detail.value);
-                            }}
-                            value={modelOption}
-                            options={modelList}
-                            placeholder={t('validation.requireModel')}
-                            empty={t('noModelFound')}
-                            enteredTextLabel={(value) => `Use: "${value}"`}
-                          />
-                        </FormField>
-                      )}
-                    </Grid>
-                    <Grid gridDefinition={[{ colspan: 5 }, { colspan: 6 }]}>
-                      <FormField
-                        label={t('maxTokens')}
-                        stretch={true}
-                        errorText={t(maxTokenError)}
-                        description={t('maxTokenDesc')}
-                      >
-                        <Input
-                          type="number"
-                          value={maxToken}
-                          onChange={({ detail }) => {
-                            setMaxTokenError('');
-                            setMaxToken(detail.value);
-                          }}
-                        />
-                      </FormField>
-                      <FormField
-                        label={t('maxRounds')}
-                        stretch={true}
-                        errorText={t(maxRoundsError)}
-                        description={t('maxRoundsDesc')}
-                      >
-                        <Input
-                          type="number"
-                          value={maxRounds}
-                          onChange={({ detail }) => {
-                            if (
-                              parseInt(detail.value) < 0 ||
-                              parseInt(detail.value) > 100
-                            ) {
-                              return;
-                            }
-                            setMaxRoundsError('');
-                            setMaxRounds(detail.value);
-                          }}
-                        />
-                      </FormField>
-                    </Grid>
+                            <Select
 
-                    {showEndpoint && (
-                      <Grid gridDefinition={[{ colspan: 11 }]}>
+                    onChange={({ detail }: { detail: any }) => {
+                      setApiEndpointError('');
+                      setApiEndpoint(detail.selectedOption.value);
+                      setApiEndpointOption(detail.selectedOption);
+                    }}
+                    loadingText={t('loadingEp')}
+                    selectedOption={apiEndpointOption}
+                    options={sageMakerEndpoints}
+                    placeholder={t('validation.requireModel')}
+                    empty={t('noModelFound')}
+                  />
+                          </FormField></SpaceBetween>
+                          ):(
+                            <FormField
+                            label={t('modelName')}
+                            stretch={true}
+                            errorText={t(modelError)}
+                            description={t('modelNameDesc')}
+                          >
+                            <Autosuggest
+                              onChange={({ detail }) => {
+                                setModelError('');
+                                setModelOption(detail.value);
+                              }}
+                              value={modelOption}
+                              options={modelList}
+                              placeholder={t('validation.requireModel')}
+                              empty={t('noModelFound')}
+                              enteredTextLabel={(value) => `Use: "${value}"`}
+                            />
+                          </FormField>
+                          )
+
+
+                          }</>
+                        )}
+                      </Grid>
+                      <Grid gridDefinition={[{ colspan: 5 }, { colspan: 6 }]}>
                         <FormField
-                          label={t('endPoint')}
+                          label={t('maxTokens')}
                           stretch={true}
-                          errorText={t(endPointError)}
-                          description={t('endPointDesc')}
+                          errorText={t(maxTokenError)}
+                          description={t('maxTokenDesc')}
                         >
                           <Input
+                            type="number"
+                            value={maxToken}
                             onChange={({ detail }) => {
-                              setEndPointError('');
-                              setEndPoint(detail.value);
+                              setMaxTokenError('');
+                              setMaxToken(detail.value);
                             }}
-                            value={endPoint}
-                            placeholder="QWen2-72B-XXXXX"
+                          />
+                        </FormField>
+                        <FormField
+                          label={t('maxRounds')}
+                          stretch={true}
+                          errorText={t(maxRoundsError)}
+                          description={t('maxRoundsDesc')}
+                        >
+                          <Input
+                            type="number"
+                            value={maxRounds}
+                            onChange={({ detail }) => {
+                              if (
+                                parseInt(detail.value) < 0 ||
+                                parseInt(detail.value) > 100
+                              ) {
+                                return;
+                              }
+                              setMaxRoundsError('');
+                              setMaxRounds(detail.value);
+                            }}
                           />
                         </FormField>
                       </Grid>
-                    )}
-                  </SpaceBetween>
-                  <div
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      marginBottom: 15,
-                      marginTop: 35,
-                    }}
-                  >
-                    {t('rad')}
-                  </div>
-                  <SpaceBetween size="xs" direction="vertical">
-                    <Grid
-                      gridDefinition={[
-                        { colspan: 3 },
-                        { colspan: 3 },
-                        { colspan: 5 },
-                      ]}
+
+                      {showEndpoint && (
+                        <Grid gridDefinition={[{ colspan: 11 }]}>
+                          <FormField
+                            label={t('endPoint')}
+                            stretch={true}
+                            errorText={t(endPointError)}
+                            description={t('endPointDesc')}
+                          >
+                            <Input
+                              onChange={({ detail }) => {
+                                setEndPointError('');
+                                setEndPoint(detail.value);
+                              }}
+                              value={endPoint}
+                              placeholder="QWen2-72B-XXXXX"
+                            />
+                          </FormField>
+                        </Grid>
+                      )}
+                    </SpaceBetween>
+                    <div
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        marginBottom: 15,
+                        marginTop: 35,
+                      }}
                     >
-                      <FormField
-                        label={t('temperature')}
-                        stretch={true}
-                        errorText={t(temperatureError)}
-                        description={t('temperatureDesc')}
-                      >
-                        <Input
-                          type="number"
-                          step={0.01}
-                          value={temperature}
-                          onChange={({ detail }) => {
-                            if (
-                              parseFloat(detail.value) < 0 ||
-                              parseFloat(detail.value) > 1
-                            ) {
-                              return;
-                            }
-                            setTemperatureError('');
-                            setTemperature(detail.value);
-                          }}
-                        />
-                      </FormField>
-                      <FormField
+                      {t('rad')}
+                    </div>
+                    <SpaceBetween size="xs" direction="vertical">
+                      <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                        <FormField
+                          label={t('recallByKeyword')}
+                          stretch={true}
+                          description={t('recallByKeywordDesc')}
+                        >
+                          <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                            <FormField
+                              stretch={true}
+                              description={t('topK')}
+                              errorText={topKKeywordError}
+                            >
+                              <Input
+                                type="number"
+                                value={topKKeyword}
+                                onChange={({ detail }) => {
+                                  if (
+                                    parseInt(detail.value) < 1 ||
+                                    parseInt(detail.value) > 100
+                                  ) {
+                                    return;
+                                  }
+                                  setTopKKeywordError('');
+                                  setTopKKeyword(detail.value);
+                                }}
+                              />
+                            </FormField>
+                            <FormField
+                              stretch={true}
+                              description={t('threshold')}
+                              errorText={keywordScoreError}
+                            >
+                              <Input
+                                type="number"
+                                step={0.01}
+                                value={keywordScore}
+                                onChange={({ detail }) => {
+                                  if (
+                                    parseFloat(detail.value) < 0 ||
+                                    parseFloat(detail.value) > 1
+                                  ) {
+                                    return;
+                                  }
+                                  setKeywordScoreError('');
+                                  setKeywordScore(detail.value);
+                                }}
+                              />
+                            </FormField>
+                          </Grid>
+                        </FormField>
+                        <FormField
+                          label={t('recallByEmbedding')}
+                          stretch={true}
+                          description={t('recallByEmbeddingDesc')}
+                        >
+                          <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                            <FormField
+                              stretch={true}
+                              description={t('topK')}
+                              errorText={topKEmbeddingError}
+                            >
+                              <Input
+                                type="number"
+                                value={topKEmbedding}
+                                onChange={({ detail }) => {
+                                  if (
+                                    parseInt(detail.value) < 1 ||
+                                    parseInt(detail.value) > 100
+                                  ) {
+                                    return;
+                                  }
+                                  setTopKEmbeddingError('');
+                                  setTopKEmbedding(detail.value);
+                                }}
+                              />
+                            </FormField>
+                            <FormField
+                              stretch={true}
+                              description={t('threshold')}
+                              errorText={embeddingScoreError}
+                            >
+                              <Input
+                                type="number"
+                                step={0.01}
+                                value={embeddingScore}
+                                onChange={({ detail }) => {
+                                  if (
+                                    parseFloat(detail.value) < 0 ||
+                                    parseFloat(detail.value) > 1
+                                  ) {
+                                    return;
+                                  }
+                                  setEmbeddingScoreError('');
+                                  setEmbeddingScore(detail.value);
+                                }}
+                              />
+                            </FormField>
+                          </Grid>
+                        </FormField>
+                      </Grid>
+
+                      {/* <FormField
                         label={t('topKRetrievals')}
                         stretch={true}
                         description={t('topKRetrievalsDesc')}
@@ -1228,8 +1455,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                             setTopKRetrievals(detail.value);
                           }}
                         />
-                      </FormField>
-                      <FormField
+                      </FormField> */}
+                      {/* <FormField
                         label={t('score')}
                         stretch={true}
                         description={t('scoreDesc')}
@@ -1251,243 +1478,328 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                           }}
                         />
                       </FormField>
-                    </Grid>
-                    <FormField
-                      label={t('additionalSettings')}
-                      errorText={t(additionalConfigError)}
-                    >
-                      <Textarea
-                        rows={7}
-                        value={additionalConfig}
-                        onChange={({ detail }) => {
-                          setAdditionalConfigError('');
-                          setAdditionalConfig(detail.value);
-                        }}
-                        placeholder={JSON.stringify(
-                          {
-                            key: 'value',
-                            key2: ['value1', 'value2'],
-                          },
-                          null,
-                          4,
-                        )}
-                      />
-                    </FormField>
-                  </SpaceBetween>
-                </ExpandableSection>
-              </div>
-            }
-          >
-            <div className="chat-container mt-10">
-              <div className="chat-message flex-v flex-1 gap-10">
-                {messages.map((msg, index) => (
-                  <div key={identity(index)}>
-                    <Message
-                      showTrace={showTrace}
-                      type={msg.type}
-                      message={msg.message}
-                    />
-                    {msg.type === 'ai' && index !== 0 && (
-                      <div
-                        className="feedback-buttons"
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'flex-end',
-                          gap: '8px',
-                        }}
+                    </Grid> */}
+                      <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                        {/* <FormField
+                        label={t('topKKeyword')}
+                        stretch={true}
+                        description={t('topKKeywordDesc')}
+                        errorText={t(topKKeywordError)}
                       >
-                        <Button
-                          iconName="refresh"
-                          variant="icon"
-                          disabled={aiSpeaking}
-                          onClick={() => handleRegenerateMessage(index)}
-                          ariaLabel={t('regenerate')}
+                        <Input
+                          type="number"
+                          value={topKKeyword}
+                          onChange={({ detail }) => {
+                            if (parseInt(detail.value) < 0 || parseInt(detail.value) > 100) {
+                              return
+                            }
+                            setTopKKeywordError('');
+                            setTopKKeyword(detail.value);
+                          }}
                         />
-                        <Button
-                          iconName={
-                            feedbackGiven[index] === 'thumb_up'
-                              ? 'thumbs-up-filled'
-                              : 'thumbs-up'
-                          }
-                          variant="icon"
-                          onClick={() => handleThumbUpClick(index)}
-                          ariaLabel={t('feedback.helpful')}
-                        />
-                        <Button
-                          iconName={
-                            feedbackGiven[index] === 'thumb_down'
-                              ? 'thumbs-down-filled'
-                              : 'thumbs-down'
-                          }
-                          variant="icon"
-                          onClick={() => handleThumbDownClick(index)}
-                          ariaLabel={t('feedback.notHelpful')}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {aiSpeaking && (
-                  <div>
-                    <Message
-                      aiSpeaking={aiSpeaking}
-                      type="ai"
-                      showTrace={showTrace}
-                      message={{
-                        data: currentAIMessage,
-                        monitoring: currentMonitorMessage,
-                      }}
-                    />
-                    {isMessageEnd && (
-                      <div
-                        className="feedback-buttons"
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'flex-end',
-                          gap: '8px',
-                        }}
+                      </FormField>
+                      
+                      <FormField
+                        label={t('topKEmbedding')}
+                        stretch={true}
+                        description={t('topKEmbeddingDesc')}
+                        errorText={t(topKEmbeddingError)}
                       >
-                        <Button
-                          iconName="refresh"
-                          variant="icon"
-                          disabled={aiSpeaking}
-                          onClick={() =>
-                            handleRegenerateMessage(messages.length)
-                          }
-                          ariaLabel={t('regenerate')}
+                        <Input
+                          type="number"
+                          value={topKEmbedding}
+                          onChange={({ detail }) => {
+                            if (parseInt(detail.value) < 0 || parseInt(detail.value) > 100) {
+                              return
+                            }
+                            setTopKEmbeddingError('');
+                            setTopKEmbedding(detail.value);
+                          }}
                         />
-                        <Button
-                          iconName={
-                            feedbackGiven[messages.length] === 'thumb_up'
-                              ? 'thumbs-up-filled'
-                              : 'thumbs-up'
-                          }
-                          variant="icon"
-                          onClick={() => handleThumbUpClick(messages.length)}
-                          ariaLabel={t('feedback.helpful')}
-                        />
-                        <Button
-                          iconName={
-                            feedbackGiven[messages.length] === 'thumb_down'
-                              ? 'thumbs-down-filled'
-                              : 'thumbs-down'
-                          }
-                          variant="icon"
-                          onClick={() => handleThumbDownClick(messages.length)}
-                          ariaLabel={t('feedback.notHelpful')}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                      </FormField> */}
 
-              <div className="flex-v gap-10">
-                {selectedFiles.length > 0 && (
-                  <div className="image-preview">
-                    {selectedFiles.map((file, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          position: 'relative',
-                          display: 'inline-block',
-                          marginRight: '10px',
-                        }}
+                        <FormField
+                          label={t('topKRerank')}
+                          stretch={true}
+                          description={t('topKRerankDesc')}
+                          errorText={t(topKRerankError)}
+                        >
+                          <Input
+                            type="number"
+                            value={topKRerank}
+                            onChange={({ detail }) => {
+                              if (
+                                parseInt(detail.value) < 0 ||
+                                parseInt(detail.value) > 100
+                              ) {
+                                return;
+                              }
+                              setTopKRerankError('');
+                              setTopKRerank(detail.value);
+                            }}
+                          />
+                        </FormField>
+                        <FormField
+                          label={t('temperature')}
+                          stretch={true}
+                          errorText={t(temperatureError)}
+                          description={t('temperatureDesc')}
+                        >
+                          <Input
+                            type="number"
+                            step={0.01}
+                            value={temperature}
+                            onChange={({ detail }) => {
+                              if (
+                                parseFloat(detail.value) < 0 ||
+                                parseFloat(detail.value) > 1
+                              ) {
+                                return;
+                              }
+                              setTemperatureError('');
+                              setTemperature(detail.value);
+                            }}
+                          />
+                        </FormField>
+                      </Grid>
+                      <FormField
+                        label={t('additionalSettings')}
+                        errorText={t(additionalConfigError)}
                       >
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={`Preview ${index + 1}`}
-                          style={{ maxWidth: '100px', maxHeight: '100px' }}
+                        <Textarea
+                          rows={7}
+                          value={additionalConfig}
+                          onChange={({ detail }) => {
+                            setAdditionalConfigError('');
+                            setAdditionalConfig(detail.value);
+                          }}
+                          placeholder={JSON.stringify(
+                            {
+                              key: 'value',
+                              key2: ['value1', 'value2'],
+                            },
+                            null,
+                            4,
+                          )}
                         />
-                        <Button
-                          iconName="close"
-                          variant="icon"
-                          onClick={() => handleRemoveFile(index)}
-                          ariaLabel={t('button.removeImage')}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex gap-5 send-message">
-                  <Select
-                    options={chatbotList}
-                    loadingText="loading..."
-                    selectedOption={chatbotOption}
-                    onChange={({ detail }) => {
-                      setChatbotOption(detail.selectedOption);
-                      // Remove history chatbot ID from localStorage when manually changing chatbot
-                      // Next time it will only use current_chatbot in localStorage
-                      localStorage.removeItem(HISTORY_CHATBOT_ID);
-                    }}
-                  />
-                  <div className="flex-1 pr">
-                    <Textarea
-                      invalid={showMessageError}
-                      rows={1}
-                      value={userMessage}
-                      placeholder={t('typeMessage')}
-                      onChange={(e) => {
-                        setShowMessageError(false);
-                        setUserMessage(e.detail.value);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.detail.key === 'Enter' && !isComposing) {
-                          e.preventDefault();
-                          handleClickSendMessage();
-                        }
+                      </FormField>
+                    </SpaceBetween>
+                  </ExpandableSection>
+                </div>
+              }
+            >
+              <div className="chat-container mt-10">
+                <div className="chat-message flex-v flex-1 gap-10">
+                  {messages.map((msg, index) => (
+                    <div key={identity(index)}>
+                      <Message
+                        showTrace={showTrace}
+                        type={msg.type}
+                        message={msg.message}
+                      />
+                      {msg.type === 'ai' && index !== 0 && (
+                        <div
+                          className="feedback-buttons"
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            gap: '8px',
+                          }}
+                        >
+                          <Button
+                            iconName="refresh"
+                            variant="icon"
+                            disabled={aiSpeaking}
+                            onClick={() => handleRegenerateMessage(index)}
+                            ariaLabel={t('regenerate')}
+                          />
+                          <Button
+                            iconName={
+                              feedbackGiven[index] === 'thumb_up'
+                                ? 'thumbs-up-filled'
+                                : 'thumbs-up'
+                            }
+                            variant="icon"
+                            onClick={() => handleThumbUpClick(index)}
+                            ariaLabel={t('feedback.helpful')}
+                          />
+                          <Button
+                            iconName={
+                              feedbackGiven[index] === 'thumb_down'
+                                ? 'thumbs-down-filled'
+                                : 'thumbs-down'
+                            }
+                            variant="icon"
+                            onClick={() => handleThumbDownClick(index)}
+                            ariaLabel={t('feedback.notHelpful')}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {aiSpeaking && (
+                    <div>
+                      <Message
+                        aiSpeaking={aiSpeaking}
+                        type="ai"
+                        showTrace={showTrace}
+                        message={{
+                          data: currentAIMessage,
+                          monitoring: currentMonitorMessage,
+                        }}
+                      />
+                      {isMessageEnd && (
+                        <div
+                          className="feedback-buttons"
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            gap: '8px',
+                          }}
+                        >
+                          <Button
+                            iconName="refresh"
+                            variant="icon"
+                            disabled={aiSpeaking}
+                            onClick={() =>
+                              handleRegenerateMessage(messages.length)
+                            }
+                            ariaLabel={t('regenerate')}
+                          />
+                          <Button
+                            iconName={
+                              feedbackGiven[messages.length] === 'thumb_up'
+                                ? 'thumbs-up-filled'
+                                : 'thumbs-up'
+                            }
+                            variant="icon"
+                            onClick={() => handleThumbUpClick(messages.length)}
+                            ariaLabel={t('feedback.helpful')}
+                          />
+                          <Button
+                            iconName={
+                              feedbackGiven[messages.length] === 'thumb_down'
+                                ? 'thumbs-down-filled'
+                                : 'thumbs-down'
+                            }
+                            variant="icon"
+                            onClick={() => handleThumbDownClick(messages.length)}
+                            ariaLabel={t('feedback.notHelpful')}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-v gap-10">
+                  {selectedFiles.length > 0 && (
+                    <div className="image-preview">
+                      {selectedFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            position: 'relative',
+                            display: 'inline-block',
+                            marginRight: '10px',
+                          }}
+                        >
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Preview ${index + 1}`}
+                            style={{ maxWidth: '100px', maxHeight: '100px' }}
+                          />
+                          <Button
+                            iconName="close"
+                            variant="icon"
+                            onClick={() => handleRemoveFile(index)}
+                            ariaLabel={t('button.removeImage')}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-5 send-message">
+                    <Select
+                      options={chatbotList}
+                      loadingText="loading..."
+                      selectedOption={chatbotOption}
+                      onChange={({ detail }) => {
+                        setChatbotOption(detail.selectedOption);
+                        // Remove history chatbot ID from localStorage when manually changing chatbot
+                        // Next time it will only use current_chatbot in localStorage
+                        localStorage.removeItem(HISTORY_CHATBOT_ID);
                       }}
                     />
-                  </div>
-                  <div>{renderSendButton()}</div>
-                </div>
-                <div>
-                  <div className="flex space-between">
-                    <div className="flex gap-10 align-center">
-                      <Toggle
-                        onChange={({ detail }) =>
-                          setUseChatHistory(detail.checked)
-                        }
-                        checked={useChatHistory}
-                      >
-                        {t('multiRound')}
-                      </Toggle>
-                      <Toggle
-                        onChange={({ detail }) =>
-                          setEnableTrace(detail.checked)
-                        }
-                        checked={enableTrace}
-                      >
-                        {t('enableTrace')}
-                      </Toggle>
-                      <Toggle
-                        onChange={({ detail }) =>
-                          setShowFigures(detail.checked)
-                        }
-                        checked={showFigures}
-                      >
-                        {t('showFigures')}
-                      </Toggle>
-                      <Toggle
-                        onChange={({ detail }) =>
-                          setOnlyRAGTool(detail.checked)
-                        }
-                        checked={onlyRAGTool}
-                      >
-                        {t('onlyUseRAGTool')}
-                      </Toggle>
+                    <div className="flex-1 pr">
+                      <Textarea
+                        invalid={showMessageError}
+                        rows={1}
+                        value={userMessage}
+                        placeholder={t('typeMessage')}
+                        onChange={(e) => {
+                          setShowMessageError(false);
+                          setUserMessage(e.detail.value);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.detail.key === 'Enter' && !isComposing) {
+                            e.preventDefault();
+                            handleClickSendMessage();
+                          }
+                        }}
+                      />
                     </div>
-                    <div className="flex align-center gap-10">
-                      <Box variant="p">{t('server')}: </Box>
-                      <StatusIndicator type={connectionStatus as any}>
-                        {t(connectionStatus)}
-                      </StatusIndicator>
+                    <div>{renderSendButton()}</div>
+                  </div>
+                  <div>
+                    <div className="flex space-between">
+                      <div className="flex gap-10 align-center">
+                        <Toggle
+                          onChange={({ detail }) =>
+                            setUseChatHistory(detail.checked)
+                          }
+                          checked={useChatHistory}
+                        >
+                          {t('multiRound')}
+                        </Toggle>
+                        <Toggle
+                          onChange={({ detail }) =>
+                            setEnableTrace(detail.checked)
+                          }
+                          checked={enableTrace}
+                        >
+                          {t('enableTrace')}
+                        </Toggle>
+                        <Toggle
+                          onChange={({ detail }) =>
+                            setShowFigures(detail.checked)
+                          }
+                          checked={showFigures}
+                        >
+                          {t('showFigures')}
+                        </Toggle>
+                        <Toggle
+                          onChange={({ detail }) =>
+                            setOnlyRAGTool(detail.checked)
+                          }
+                          checked={onlyRAGTool}
+                        >
+                          {t('onlyUseRAGTool')}
+                        </Toggle>
+                      </div>
+                      <div className="flex align-center gap-10">
+                        <Box variant="p">{t('server')}: </Box>
+                        <StatusIndicator type={connectionStatus as any}>
+                          {t(connectionStatus)}
+                        </StatusIndicator>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </Container>
+            </Container>
+          )}
+
         </ContentLayout>
       </div>
     </CommonLayout>

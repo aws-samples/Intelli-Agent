@@ -28,6 +28,7 @@ import {
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import { formatTime } from 'src/utils/utils';
+import { ROUTES } from 'src/utils/const';
 
 const PromptList: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<PromptItem[]>([]);
@@ -117,7 +118,7 @@ const PromptList: React.FC = () => {
         url: 'chatbot-management/chatbots',
         method: 'get',
       });
-      const items: string[] = data.chatbot_ids;
+      const items: string[] = data.chatbotIds;
       const getChatbots = items.map((item) => {
         return {
           label: item,
@@ -232,15 +233,15 @@ const PromptList: React.FC = () => {
 
   return (
     <CommonLayout
-      activeHref="/prompts"
+      activeHref={ROUTES.Prompt}
       breadCrumbs={[
         {
           text: t('name'),
-          href: '/',
+          href: ROUTES.Home,
         },
         {
           text: t('prompt'),
-          href: '/prompts',
+          href: ROUTES.Prompt,
         },
       ]}
     >

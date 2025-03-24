@@ -30,7 +30,7 @@ rm -rf $lambda_source_dir/intention/aos/sm_utils.py
 # zip -q -r9 "$lambda_build_dist_dir"/prompt_management.zip .
 
 
-# echo "--------------------------------------------"
-# echo "[Packing] IntentionManagement Lambda function"
-# echo "--------------------------------------------"
-# cp "$lambda_source_dir"/job/dep/llm_bot_dep/sm_utils.py "$lambda_source_dir"/intention/aos
+echo "--------------------------------------------"
+echo "[Packing] IntentionManagement Lambda function"
+echo "--------------------------------------------"
+cp "$lambda_source_dir"/job/dep/llm_bot_dep/sm_utils.py "$lambda_source_dir"/intention/aos

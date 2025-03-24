@@ -19,7 +19,7 @@ from ..models.model_config import (
     SILICONFLOW_DEEPSEEK_MODEL_CONFIGS,
 )
 from . import LLMChain
-
+from langchain_core.documents import Document
 
 class ToolCallingBaseChain(LLMChain):
     
@@ -39,8 +39,8 @@ class ToolCallingBaseChain(LLMChain):
 
     @classmethod
     def get_common_system_prompt(cls, system_prompt_template: str, all_knowledge_retrieved_list=None):
-        all_knowledge_retrieved_list = all_knowledge_retrieved_list or []
-        all_knowledge_retrieved = "\n\n".join(all_knowledge_retrieved_list)
+        all_knowledge_retrieved_list:List[Document] = all_knowledge_retrieved_list or []
+        all_knowledge_retrieved = "\n\n".join(doc.page_content for doc in all_knowledge_retrieved_list)
         now = get_china_now()
         date_str = now.strftime("%Y年%m月%d日")
         weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']

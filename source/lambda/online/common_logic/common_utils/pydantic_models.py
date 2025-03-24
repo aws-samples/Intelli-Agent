@@ -40,8 +40,8 @@ class ModelConfig(AllowBaseModel):
     base_url: Union[str, None] = None
     api_key_arn: Union[str, None] = None
     api_key: Union[str, None] = None
-    target_model: Union[str, None] = None
-    model_endpoint: Union[str, None] = None
+    sagemaker_target_model: Union[str, None] = None
+    sagemaker_endpoint_name: Union[str, None] = None
     model_kwargs: dict = Field(default_factory=lambda: {})
 
     def model_post_init(self, __context: Any) -> None:
@@ -92,21 +92,19 @@ class QueryProcessConfig(ForbidBaseModel):
 
 
 class HybridSearchConfig(AllowBaseModel):
-    bm25_search_context_extend_method: ContextExtendMethod = (
-        ContextExtendMethod.WHOLE_DOC
-    )
+    bm25_search_context_extend_method: ContextExtendMethod = ContextExtendMethod.WHOLE_DOC
     bm25_search_whole_doc_max_size: int = 100
     bm25_search_chunk_window_size: int = 10
     bm25_search_top_k: int = 5
+    bm25_search_threshold:float = Threshold.BM25_SEARCH_THRESHOLD
     enable_bm25_search: bool = True
 
-    vector_search_context_extend_method: ContextExtendMethod = (
-        ContextExtendMethod.WHOLE_DOC
-    )
+    vector_search_context_extend_method: ContextExtendMethod = ContextExtendMethod.WHOLE_DOC
     vector_search_chunk_window_size: int = 10
-    vector_search_top_k: int = 5
-    vector_search_whole_doc_max_size: int = 100
-    enable_vector_search: bool = True
+    vector_search_top_k:int = 5 
+    vector_search_whole_doc_max_size:int = 100
+    vector_search_threshold:float = Threshold.VECTOR_SEARCH_THRESHOLD
+    enable_vector_search:bool = True
 
     rerank_top_k: int = 10
 
@@ -126,7 +124,7 @@ class RetrieverConfigBase(HybridSearchConfig):
 
 class IntentionRetrieverConfig(RetrieverConfigBase):
     index_type: IndexType = IndexType.INTENTION
-    vector_field: str = "vector"
+    vector_field: str = "vector_field"
 
 
 class QQMatchRetrieverConfig(RetrieverConfigBase):
@@ -211,37 +209,44 @@ class ChatbotConfig(AllowBaseModel):
 
         _update_llm_config(self)
 
-    @staticmethod
-    def format_index_info(index_info_from_ddb: dict):
-        print("index_info_from_ddb", index_info_from_ddb)
-        embeddin_config_from_ddb = index_info_from_ddb["modelIds"]["embedding"]
-        embedding_config = {
-            "provider": embeddin_config_from_ddb["parameter"]["ModelProvider"],
-            "model_id": embeddin_config_from_ddb["parameter"]["ModelEndpoint"],
-            "base_url": embeddin_config_from_ddb["parameter"].get("BaseUrl"),
-            "api_key_arn": embeddin_config_from_ddb["parameter"].get(
-                "ApiKeyArn"
+    @classmethod
+    def format_model_info(cls,model_params:dict):
+        return {
+            "provider": model_params["modelProvider"],
+            "model_id": model_params["modelId"],
+            "sagemaker_endpoint_name": model_params.get("modelEndpoint"),
+            "sagemaker_target_model": model_params.get("targetModel"),
+            "base_url": model_params.get("baseUrl"),
+            "api_key_arn": model_params.get(
+                "apiKeyArn"
             ),
-            "api_key": embeddin_config_from_ddb["parameter"].get("ApiKey"),
-            "dimension": embeddin_config_from_ddb["parameter"].get(
-                "ModelDimension"
+            "api_key": model_params.get("apiKey"),
+            "dimension": model_params.get(
+                "modelDimension"
             ),
-            "target_model": embeddin_config_from_ddb["parameter"].get(
-                "TargetModel"
-            ),
-            "model_endpoint": embeddin_config_from_ddb["parameter"].get(
-                "ModelEndpoint"
-            ),
+            "model_kwargs": model_params.get("modelKwargs",{})
         }
+        
+    @classmethod
+    def format_index_info(cls,index_info_from_ddb: dict):
+        print("index_info_from_ddb", index_info_from_ddb)
+        embedding_config = None
+        if "embedding" in index_info_from_ddb["modelIds"]:
+            embedding_config = cls.format_model_info(
+                index_info_from_ddb["modelIds"]["embedding"]['parameter']
+            )
+        
+        rerank_config = None 
+        if "rerank" in index_info_from_ddb["modelIds"]:
+            rerank_config = cls.format_model_info(
+                index_info_from_ddb["modelIds"]["rerank"]['parameter']
+            )
+        
+    
         return {
             "index_name": index_info_from_ddb["indexId"],
             "embedding_config": embedding_config,
-            # "model_type": index_info_from_ddb["modelIds"]["embedding"]["parameter"][
-            #     "ModelType"
-            # ],
-            # "target_model": index_info_from_ddb["modelIds"]["embedding"]["parameter"][
-            #     "ModelName"
-            # ],
+            "rerank_config":rerank_config,
             "group_name": index_info_from_ddb["groupName"],
             "kb_type": index_info_from_ddb["kbType"],
             "index_type": index_info_from_ddb["indexType"],

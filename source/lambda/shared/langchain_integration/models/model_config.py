@@ -92,6 +92,27 @@ CLAUDE_MODEL_CONFIG = [
         model_id=LLMModelType.CLAUDE_21,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
     ),
+    ModelConfig(
+        model_id=LLMModelType.CLAUDE_3_7_SONNET_THINKING_US,
+        model="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+        is_reasoning_model=True,
+        default_model_kwargs={
+            "max_tokens": 4096,
+            "temperature": 1.0,
+            "additional_model_request_fields":{
+                "thinking": {
+                    "type": "enabled",
+                    "budget_tokens": 1024
+                }
+            }
+        }
+    ),
+    ModelConfig(
+        model_id=LLMModelType.CLAUDE_3_7_SONNET_US,
+        model="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+        is_reasoning_model=False,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()  
+    ),
 ]
 
 NOVA_MODEL_CONFIGS = [
@@ -168,9 +189,22 @@ DEEPSEEK_MODEL_CONFIGS = [
     )
 ]
 
+BEDROCK_DEEPSEEK_MODEL_CONFIGS = [
+    ModelConfig(
+        model_id=LLMModelType.DEEPSEEK_R1_BEDROCK_US,
+        model="us.deepseek.r1-v1:0",
+        default_model_kwargs={"max_tokens": 2000,"temperature": 0.6,"disable_streaming":False},
+        enable_any_tool_choice=False,
+        enable_prefill=False,
+        is_reasoning_model = True
+    )
+
+]
+
 
 BEDROCK_MODEL_CONFIGS = CLAUDE_MODEL_CONFIG + NOVA_MODEL_CONFIGS + \
-    MISTRAL_MODEL_CONFIGS + LLAMA_MODEL_CONFIGS + CORHERE_MODEL_CONFIGS + DEEPSEEK_MODEL_CONFIGS
+    MISTRAL_MODEL_CONFIGS + LLAMA_MODEL_CONFIGS + CORHERE_MODEL_CONFIGS + DEEPSEEK_MODEL_CONFIGS  + \
+        BEDROCK_DEEPSEEK_MODEL_CONFIGS
 
 
 
@@ -259,6 +293,7 @@ SILICONFLOW_DEEPSEEK_MODEL_CONFIGS = [
         is_reasoning_model = True
     )
 ]
+
 
 
 OPENAI_MODEL_CONFIGS = [

@@ -1,5 +1,5 @@
 
-export type ModelProvider = "sagemaker" | "bedrock" | "openai";
+export type ModelProvider = "SageMaker" | "Bedrock" | "OpenAI API";
 
 export interface SystemConfig {
   prefix: string;
@@ -38,14 +38,25 @@ export interface SystemConfig {
   model: {
     embeddingsModels: {
       provider: ModelProvider;
-      name: string;
+      id: string;
       commitId: string;
       dimensions: number;
+      modelEndpoint?: string;
       default?: boolean;
+    }[];
+    rerankModels: {
+      provider: ModelProvider;
+      id: string;
+      modelEndpoint?: string;
     }[];
     llms: {
       provider: ModelProvider;
-      name: string;
+      id: string;
+    }[];
+    vlms: {
+      provider: ModelProvider;
+      id: string;
+      modelEndpoint?: string;
     }[];
     modelConfig: {
       modelAssetsBucket: string;
@@ -101,11 +112,11 @@ export enum SupportedRegion {
 }
 
 export enum SupportedBedrockRegion {
+  US_EAST_1 = "us-east-1",
+  US_WEST_2 = "us-west-2",
   AP_NORTHEAST_1 = "ap-northeast-1",
   AP_SOUTHEAST_1 = "ap-southeast-1",
   AP_SOUTHEAST_2 = "ap-southeast-2",
   EU_CENTRAL_1 = "eu-central-1",
   EU_WEST_3 = "eu-west-3",
-  US_EAST_1 = "us-east-1",
-  US_WEST_2 = "us-west-2",
 }
