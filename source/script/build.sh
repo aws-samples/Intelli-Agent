@@ -14,7 +14,6 @@ opensearch_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.vect
 embedding_model_provider=$(jq -r '.model.embeddingsModels[0].provider' $config_file)
 model_assets_bucket=$(jq -r '.model.modelConfig.modelAssetsBucket' $config_file)
 ui_enabled=$(jq -r '.ui.enabled' $config_file)
-use_open_source_llm=$(jq -r '.chat.useOpenSourceLLM' $config_file)
 # fi
 
 echo "Knowledge Base Enabled: $knowledge_base_enabled"
@@ -23,7 +22,6 @@ echo "Knowledge Base Models Enabled: $knowledge_base_models_enabled"
 echo "ECR Repository: $ecr_repository"
 echo "ECR Image Tag: $ecr_image_tag"
 echo "OpenSearch Enabled: $opensearch_enabled"
-echo "Use Open Source Model: $use_open_source_llm"
 echo "Model Assets Bucket: $model_assets_bucket"
 echo "UI Enabled: $ui_enabled"
 
@@ -82,13 +80,6 @@ prepare_online_model() {
     cd - > /dev/null
 }
 
-build_deployment_module() {
-    echo "Building Model Deployment Module"
-    # curl https://aws-gcr-solutions-assets.s3.us-east-1.amazonaws.com/emd/wheels/emd-0.5.0-py3-none-any.whl -o emd-0.5.0-py3-none-any.whl && pip install emd-0.5.0-py3-none-any.whl"[all]"
-    curl https://aws-gcr-solutions-assets.s3.us-east-1.amazonaws.com/emd/wheels/emd-0.6.0%2B0.6.0.mini-py3-none-any.whl -o emd-0.6.0-py3-none-any.whl && pip install emd-0.6.0-py3-none-any.whl"[all]"
-    emd bootstrap
-}
-
 modules_prepared=""
 cd ..
 
@@ -114,11 +105,6 @@ fi
 if $knowledge_base_enabled && $knowledge_base_intelliagent_enabled && $opensearch_enabled && [ "$embedding_model_provider" != "bedrock" ]; then
     prepare_online_model
     modules_prepared="${modules_prepared}Online Model, "
-fi
-
-if $use_open_source_llm; then
-    build_deployment_module
-    modules_prepared="${modules_prepared}Model Deployment, "
 fi
 
 # Remove the trailing comma and space
