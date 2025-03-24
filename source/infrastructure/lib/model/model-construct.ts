@@ -11,16 +11,11 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, NestedStack } from "aws-cdk-lib";
+import { Aws, NestedStack } from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as sagemaker from "aws-cdk-lib/aws-sagemaker";
 import { Construct } from "constructs";
 import * as dotenv from "dotenv";
-import * as events from "aws-cdk-lib/aws-events";
-import * as targets from "aws-cdk-lib/aws-events-targets";
-import { Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
-import { join } from "path";
-
 import { SystemConfig } from "../shared/types";
 import { SharedConstructOutputs } from "../shared/shared-construct";
 import { IAMHelper } from "../shared/iam-helper";
@@ -80,12 +75,14 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
     this.modelRegion = props.config.deployRegion;
     this.modelIamHelper = props.sharedConstructOutputs.iamHelper;
 
+    this.initializeSageMakerConfig();
+    const embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
+
     // handle embedding model name setup
     if (props.config.model.embeddingsModels[0].provider === "Bedrock") {
       this.defaultEmbeddingModelName = props.config.model.embeddingsModels[0].id;
     } else if (props.config.model.embeddingsModels[0].provider === "SageMaker") {
       // Initialize SageMaker-specific configurations
-      this.initializeSageMakerConfig();
 
       // // Set up embedding model if it's the BCE+BGE model
       // if (props.config.model.embeddingsModels.some(model => model.id === 'bce-embedding-base_v1') || props.config.model.rerankModels.some(model => model.id === 'bge-reranker-large')) {
@@ -94,7 +91,6 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
       // }
 
       // User must deploy reranker endpoint since bedrock does not support reranker model in us-east-1
-      const embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
       this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
     }
 
@@ -113,30 +109,6 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
       this.defaultKnowledgeBaseModelName = knowledgeBaseModelResources.endpoint.endpointName ?? "";
     }
 
-    if (props.config.chat.useOpenSourceLLM) {
-      const modelTriggerLambda = new Function(this, "ModelTriggerLambda", {
-        runtime: Runtime.PYTHON_3_12,
-        handler: "pipeline_monitor.post_model_deployment",
-        code: Code.fromAsset(join(__dirname, "../../../lambda/pipeline_monitor")),
-        timeout: Duration.minutes(10),
-        memorySize: 512,
-        environment: {
-          DYNAMODB_TABLE: props.sharedConstructOutputs.modelTable.tableName,
-        }
-      });
-      modelTriggerLambda.addToRolePolicy(this.modelIamHelper.dynamodbStatement);
-      modelTriggerLambda.addToRolePolicy(this.modelIamHelper.codePipelineStatement);
-      modelTriggerLambda.addToRolePolicy(this.modelIamHelper.stsStatement);
-
-      const rule = new events.Rule(this, "AllPipelinesStatusRule", {
-        eventPattern: {
-          source: ["aws.codepipeline"],
-          detailType: ["CodePipeline Pipeline Execution State Change"],
-        },
-      });
-      rule.addTarget(new targets.LambdaFunction(modelTriggerLambda));
-
-    }
   }
 
   private deployEmbeddingAndRerankerEndpoint(props: ModelConstructProps) {

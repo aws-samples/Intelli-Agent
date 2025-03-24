@@ -38,7 +38,6 @@ export function getConfig(): SystemConfig {
       bedrockRegion: "us-east-1",
       bedrockAk: "",
       bedrockSk: "",
-      useOpenSourceLLM: true,
       amazonConnect: {
         enabled: true
       }
