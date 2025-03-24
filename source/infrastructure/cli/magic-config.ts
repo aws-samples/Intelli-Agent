@@ -15,6 +15,13 @@ import { LIB_VERSION } from "./version.js";
 
 const embeddingModels = [
   {
+    provider: "SageMaker",
+    id: "bce-embedding-base_v1",
+    commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
+    dimensions: 768,
+    modelEndpoint: "bce-embedding-and-bge-reranker-43972-endpoint",
+  },
+  {
     provider: "Bedrock",
     id: "amazon.titan-embed-text-v2:0",
     commitId: "",
@@ -32,13 +39,6 @@ const embeddingModels = [
     id: "amazon.titan-embed-text-v1",
     commitId: "",
     dimensions: 1024,
-  },
-  {
-    provider: "SageMaker",
-    id: "bce-embedding-base_v1",
-    commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
-    dimensions: 768,
-    modelEndpoint: "bce-embedding-and-bge-reranker-43972-endpoint",
   },
 ];
 
