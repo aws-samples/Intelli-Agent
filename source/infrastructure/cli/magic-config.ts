@@ -3,8 +3,8 @@
 import { Command } from "commander";
 import { prompt } from "enquirer";
 import * as fs from "fs";
-import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
-import { fromIni } from "@aws-sdk/credential-providers";
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { loadSharedConfigFiles } from "@aws-sdk/shared-ini-file-loader";
 import {
   SystemConfig,
@@ -15,55 +15,88 @@ import { LIB_VERSION } from "./version.js";
 
 const embeddingModels = [
   {
-    provider: "bedrock",
-    name: "amazon.titan-embed-text-v2:0",
+    provider: "SageMaker",
+    id: "bce-embedding-base_v1",
+    commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
+    dimensions: 768,
+    modelEndpoint: "bce-embedding-and-bge-reranker-43972-endpoint",
+  },
+  {
+    provider: "Bedrock",
+    id: "amazon.titan-embed-text-v2:0",
     commitId: "",
     dimensions: 1024,
     default: true,
   },
   {
-    provider: "bedrock",
-    name: "cohere.embed-english-v3",
+    provider: "Bedrock",
+    id: "cohere.embed-english-v3",
     commitId: "",
     dimensions: 1024,
   },
   {
-    provider: "bedrock",
-    name: "amazon.titan-embed-text-v1",
+    provider: "Bedrock",
+    id: "amazon.titan-embed-text-v1",
     commitId: "",
     dimensions: 1024,
-  },
-  {
-    provider: "sagemaker",
-    name: "bce-embedding-and-bge-reranker",
-    commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
-    dimensions: 768,
   },
 ];
 
+let rerankModels = [
+  {
+    provider: "Bedrock",
+    id: "cohere.rerank-v3-5:0",
+  },
+  {
+    provider: "SageMaker",
+    id: "bge-reranker-large",
+    modelEndpoint: "bce-embedding-and-bge-reranker-43972-endpoint",
+  },
+]
+
+let llms = [
+  {
+    provider: "Bedrock",
+    id: "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+  },
+  {
+    provider: "SageMaker",
+    id: "DeepSeek-R1-Distill-Llama-8B",
+  }
+]
+
+let vlms = [
+  {
+    provider: "Bedrock",
+    id: "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+  },
+  {
+    provider: "SageMaker",
+    id: "Qwen2-VL-72B-Instruct",
+    modelEndpoint: "",
+  }
+]
 
 const supportedRegions = Object.values(SupportedRegion) as string[];
 const supportedBedrockRegions = Object.values(SupportedBedrockRegion) as string[];
 
-const llms = [
-  {
-    provider: "bedrock",
-    name: "anthropic.claude-3-sonnet-20240229-v1:0",
-  }
-]
+const execPromise = promisify(exec);
 
 // Function to get AWS account ID and region
 async function getAwsAccountAndRegion() {
   let AWS_ACCOUNT;
   let AWS_REGION;
 
-  // Create STS client
-  const stsClient = new STSClient({
-    credentials: fromIni({ profile: "default" })
-  });
-
   try {
-    const response = await stsClient.send(new GetCallerIdentityCommand({}));
+    // Execute the AWS CLI command
+    const { stdout, stderr } = await execPromise('aws sts get-caller-identity');
+
+    if (stderr) {
+      throw new Error(`Command error: ${stderr}`);
+    }
+
+    // Parse the JSON response
+    const response = JSON.parse(stdout);
     AWS_ACCOUNT = response.Account;
   } catch (error) {
     console.error('Error getting AWS account:', error);
@@ -121,11 +154,10 @@ async function getAwsAccountAndRegion() {
       options.enableChat = config.chat.enabled;
       options.bedrockRegion = config.chat.bedrockRegion;
       options.enableConnect = config.chat.amazonConnect.enabled;
-      options.useOpenSourceLLM = config.chat.useOpenSourceLLM;
       options.defaultEmbedding = config.model.embeddingsModels && config.model.embeddingsModels.length > 0
-        ? config.model.embeddingsModels[0].name
-        : embeddingModels[0].name;
-      options.defaultLlm = config.model.llms.find((m) => m.provider === "bedrock")?.name;
+        ? config.model.embeddingsModels[0].id
+        : embeddingModels[0].id;
+      options.defaultLlm = config.model.llms.find((m) => m.provider === "Bedrock")?.id;
       options.sagemakerModelS3Bucket = config.model.modelConfig.modelAssetsBucket;
       options.enableUI = config.ui.enabled;
       options.cognitoFederationEnabled = config.federatedAuth.enabled;
@@ -195,6 +227,7 @@ async function processCreateOptions(options: any): Promise<void> {
   ]
 
   const mandatoryQuestionAnswers: any = await prompt(mandatoryQuestions);
+  const deployInChina = mandatoryQuestionAnswers.intelliAgentDeployRegion.includes("cn");
 
   let questions = [
     {
@@ -330,43 +363,36 @@ async function processCreateOptions(options: any): Promise<void> {
       initial: options.enableChat ?? true,
     },
     {
-      type: "input",
+      type: "select",
       name: "bedrockRegion",
+      hint: "ENTER to confirm selection",
       message: "Which region would you like to use Bedrock?",
-      initial: options.bedrockRegion ?? mandatoryQuestionAnswers.intelliAgentDeployRegion,
-      validate(bedrockRegion: string) {
-        if (Object.values(supportedBedrockRegions).includes(bedrockRegion)) {
-          return true;
+      choices: supportedBedrockRegions.map((region) => ({ name: region, value: region })),
+      initial: options.bedrockRegion,
+      validate(value: string) {
+        if ((this as any).state.answers.bedrockRegion) {
+          return value ? true : "Select a Bedrock Region";
         }
-        return "Enter a valid region for Bedrock. Supported regions: " + supportedBedrockRegions.join(", ");
+        return true;
       },
       skip(): boolean {
-        return (!(this as any).state.answers.enableChat);
-      },
-    },
-    {
-      type: "confirm",
-      name: "useOpenSourceLLM",
-      message: "Do you want to use open source LLM(eg. Qwen, ChatGLM, IntermLM)?",
-      initial: options.useOpenSourceLLM ?? true,
-      skip(): boolean {
-        return (!(this as any).state.answers.enableChat);
+        return (deployInChina);
       },
     },
     {
       type: "confirm",
       name: "enableConnect",
       message: "Do you want to integrate it with Amazon Connect?",
-      initial: options.enableConnect ?? true,
+      initial: options.enableConnect ?? false,
       skip(): boolean {
-        return (!(this as any).state.answers.enableChat);
+        return (!(this as any).state.answers.enableChat || deployInChina);
       },
     },
     {
       type: "select",
       name: "defaultEmbedding",
       message: "Select an embedding model, it is used when injecting and retrieving knowledges or intentions",
-      choices: embeddingModels.map((m) => ({ name: m.name, value: m })),
+      choices: embeddingModels.map((m) => ({ name: m.id, value: m })),
       initial: options.defaultEmbedding,
       validate(value: string) {
         if ((this as any).state.answers.enableChat) {
@@ -376,8 +402,7 @@ async function processCreateOptions(options: any): Promise<void> {
         return true;
       },
       skip(): boolean {
-        return (!(this as any).state.answers.enableKnowledgeBase &&
-          !(this as any).state.answers.enableChat);
+        return (!(this as any).state.answers.enableKnowledgeBase || deployInChina);
       },
     },
     {
@@ -394,6 +419,24 @@ async function processCreateOptions(options: any): Promise<void> {
       skip(): boolean {
         return (this as any).state.answers.defaultEmbedding !== "bce-embedding-and-bge-reranker";
       }
+    },
+    {
+      type: "confirm",
+      name: "useSageMakerVlm",
+      message: "Do you have a VLM model hosted on SageMaker?",
+      initial: options.useSageMakerVlm ?? false,
+      skip(): boolean {
+        return (!deployInChina);
+      },
+    },
+    {
+      type: "input",
+      name: "sagemakerVlmModelEndpoint",
+      message: "Please enter the endpoint of the SageMaker VLM model",
+      initial: options.sagemakerVlmModelEndpoint ?? "",
+      skip(): boolean {
+        return (!deployInChina || !(this as any).state.answers.useSageMakerVlm);
+      },
     },
     {
       type: "confirm",
@@ -447,6 +490,28 @@ async function processCreateOptions(options: any): Promise<void> {
     };
   }
 
+  // Modify the config for China Region
+  if (deployInChina) {
+    answers.bedrockRegion = "";
+    answers.defaultEmbedding = "bce-embedding-base_v1";
+    answers.defaultRerankModel = "bge-reranker-large";
+    answers.defaultLlm = "DeepSeek-R1-Distill-Llama-8B";
+    answers.defaultVlm = "Qwen2-VL-72B-Instruct";
+    llms = [];
+    vlms = [
+      {
+        provider: "SageMaker",
+        id: "Qwen2-VL-72B-Instruct",
+        modelEndpoint: answers.sagemakerVlmModelEndpoint,
+      }
+    ]
+
+  } else {
+    answers.defaultRerankModel = "bge-reranker-large";
+    answers.defaultLlm = "us.anthropic.claude-3-5-sonnet-20241022-v2:0";
+    answers.defaultVlm = "us.anthropic.claude-3-5-sonnet-20241022-v2:0";
+  }
+
   // Create the config object
   const config = {
     prefix: mandatoryQuestionAnswers.prefix,
@@ -475,14 +540,15 @@ async function processCreateOptions(options: any): Promise<void> {
     chat: {
       enabled: answers.enableChat,
       bedrockRegion: answers.bedrockRegion,
-      useOpenSourceLLM: answers.useOpenSourceLLM,
       amazonConnect: {
         enabled: answers.enableConnect,
       },
     },
     model: {
-      embeddingsModels: embeddingModels.filter(model => model.name === answers.defaultEmbedding),
-      llms: llms,
+      embeddingsModels: embeddingModels.filter(model => model.id === answers.defaultEmbedding),
+      rerankModels: rerankModels.filter(model => model.id === answers.defaultRerankModel),
+      llms: llms.filter(model => model.id === answers.defaultLlm),
+      vlms: vlms.filter(model => model.id === answers.defaultVlm),
       modelConfig: {
         modelAssetsBucket: answers.sagemakerModelS3Bucket,
       },
@@ -519,4 +585,3 @@ async function processCreateOptions(options: any): Promise<void> {
     ? createConfig(config)
     : console.log("Skipping");
 }
-

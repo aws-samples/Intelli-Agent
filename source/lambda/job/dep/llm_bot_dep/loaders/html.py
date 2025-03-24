@@ -1,15 +1,23 @@
-import base64
+
 import logging
-import os
 import re
+import tempfile
 from pathlib import Path
+from typing import Optional
 
 import markdownify
-from bs4 import BeautifulSoup
 from langchain.docstore.document import Document
-from langchain.document_loaders.base import BaseLoader
+from langchain_community.document_loaders.base import BaseLoader
 from llm_bot_dep.figure_llm import process_markdown_images_with_llm
-from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
+from llm_bot_dep.schemas.processing_parameters import (
+    ProcessingParameters,
+    VLLMParameters,
+)
+from llm_bot_dep.utils.s3_utils import (
+    download_file_from_s3,
+    load_content_from_file,
+    parse_s3_uri,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +34,10 @@ class CustomHtmlLoader(BaseLoader):
 
     """
 
-    def __init__(self, aws_path: str):
+    def __init__(self, file_path: str, s3_uri: str):
         """Initialize with file path."""
-        self.aws_path = aws_path
+        self.file_path = file_path
+        self.s3_uri = s3_uri
 
     def clean_html(self, html_str: str) -> str:
         # Filter out DOCTYPE
@@ -62,8 +71,9 @@ class CustomHtmlLoader(BaseLoader):
 
         return s.strip()
 
-    # def load(self, file_content: str) -> List[Document]:
-    def load(self, file_content: str, bucket_name: str, file_name: str):
+    def load(self, image_result_bucket_name: str, file_content: Optional[str] = None, vllm_params: VLLMParameters = None):
+        if file_content is None:
+            file_content = load_content_from_file(self.file_path)
         html_content = self.clean_html(file_content)
         # Set escape_underscores and escape_asterisks to False to avoid converting
         # underscores and asterisks to HTML entities, especially avoid converting
@@ -75,25 +85,45 @@ class CustomHtmlLoader(BaseLoader):
             escape_underscores=False,
             escape_asterisks=False,
         )
+        _, object_key = parse_s3_uri(self.s3_uri)
+        file_name = Path(object_key).stem
         file_content = process_markdown_images_with_llm(
-            file_content, bucket_name, file_name
+            file_content, image_result_bucket_name, file_name, vllm_params
         )
         doc = Document(
             page_content=file_content,
-            metadata={"file_type": "html", "file_path": self.aws_path},
+            metadata={"file_type": "html", "file_path": self.s3_uri},
         )
 
         return doc
 
 
-def process_html(html_str: str, **kwargs):
-    bucket_name = kwargs["bucket"]
-    key = kwargs["key"]
-    portal_bucket_name = kwargs["portal_bucket_name"]
-    file_name = Path(key).stem
-    loader = CustomHtmlLoader(aws_path=f"s3://{bucket_name}/{key}")
-    doc = loader.load(html_str, portal_bucket_name, file_name)
-    splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
-    doc_list = splitter.split_text(doc)
+def process_html(processing_params: ProcessingParameters):
+    """Process html content and split into documents.
+    
+    Args:
+        processing_params: ProcessingParameters object containing the bucket and key
+        
+    Returns:
+        List of processed documents.
+    """
+    bucket = processing_params.source_bucket_name
+    key = processing_params.source_object_key
+    vllm_params = processing_params.vllm_parameters
+    suffix = Path(key).suffix
+    
+    # Create a temporary file with .html suffix
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
+        local_path = temp_file.name
+    
+    # Download the file locally
+    download_file_from_s3(bucket, key, local_path)
+    
+    # Use the loader with the local file path
+    loader = CustomHtmlLoader(file_path=local_path, s3_uri=f"s3://{bucket}/{key}")
+    doc = loader.load(image_result_bucket_name=processing_params.portal_bucket_name, vllm_params=vllm_params)
+    doc_list = [doc]
+    # Clean up the temporary file
+    Path(local_path).unlink(missing_ok=True)
 
     return doc_list

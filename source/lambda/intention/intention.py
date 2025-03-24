@@ -6,7 +6,6 @@ import re
 import time
 from io import BytesIO
 from typing import List
-
 import boto3
 from aos import sm_utils
 from aos.aos_utils import LLMBotOpenSearchClient
@@ -37,12 +36,14 @@ from opensearchpy import (
     helpers,
 )
 from requests_aws4auth import AWS4Auth
+from shared.langchain_integration.models.embedding_models import EmbeddingModel
+
 
 logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
 
 s3_bucket_name = os.environ.get("S3_BUCKET")
-embedding_model_endpoint = os.environ.get("EMBEDDING_MODEL_ENDPOINT", "")
+# embedding_model_endpoint = os.environ.get("EMBEDDING_MODEL_ENDPOINT", "")
 aosEndpoint = os.environ.get("AOS_ENDPOINT")
 kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"].lower() == "true"
 region = os.environ.get("AWS_REGION", "us-east-1")
@@ -112,6 +113,19 @@ resp_header = {
     "Access-Control-Allow-Methods": "*",
 }
 
+def __format_model_info(model_params:dict):
+    return {
+        "provider": model_params["modelProvider"],
+        "model_id": model_params["modelId"],
+        "sagemaker_endpoint_name": model_params.get("modelEndpoint"),
+        "sagemaker_target_model": model_params.get("targetModel"),
+        "base_url": model_params.get("baseUrl"),
+        "api_key_arn": model_params.get("apiKeyArn"),
+        "api_key": model_params.get("apiKey"),
+        "dimension": model_params.get("modelDimension"),
+        "model_kwargs": model_params.get("modelKwargs",{})
+    }
+
 
 class OpenSearchIngestionWorker:
     def __init__(
@@ -157,7 +171,7 @@ def lambda_handler(event, context):
         if "use_api_key" in claims:
             group_name = __get_query_parameter(event, "GroupName", "Admin")
         else:
-            email = claims["email"]
+            email = claims["cognito:username"] 
             # Agree to only be in one group
             group_name = claims["cognito:groups"]
     else:
@@ -222,7 +236,7 @@ def __delete_execution(event, group_name):
             },
         )
         item = index_response.get("Item")
-        if item:
+        if item and item.get("index"):
             indexes = item.get("index").split(",")
             details = json.loads(item.get("details"))
             questions = [detail.get("question") for detail in details]
@@ -360,7 +374,7 @@ def __create_execution(event, context, email, group_name):
     excel_file = BytesIO(file_content)
     workbook = load_workbook(excel_file)
     sheet = workbook.active
-    qaList = []
+    qa_list = []
 
     # Query current chatbot's qd index
     chatbot_item = chatbot_table.get_item(
@@ -380,7 +394,7 @@ def __create_execution(event, context, email, group_name):
         )
         if not question:
             continue
-        qaList.append(
+        qa_list.append(
             {
                 "question": question,
                 "intention": intention,
@@ -389,10 +403,10 @@ def __create_execution(event, context, email, group_name):
             }
         )
 
-    valid_qa_list = [qa for qa in qaList if qa.get("is_valid")]
+    valid_qa_list = [qa for qa in qa_list if qa.get("is_valid")]
 
     # write to aos(vectorData)
-    details = json.dumps(qaList)
+    details = json.dumps(qa_list)
     result = "success"
     error_msg = ""
 
@@ -404,7 +418,7 @@ def __create_execution(event, context, email, group_name):
             bucket,
             prefix,
             group_name,
-            input_body.get("chatbotId")
+            chatbot_item.get("embeddingModelId")
         )
     except Exception as e:
         logger.error(f"Error saving to aos: {e}")
@@ -426,7 +440,7 @@ def __create_execution(event, context, email, group_name):
             )[0],
             "details": details,
             "error": error_msg,
-            "validRatio": f"{len(valid_qa_list)} / {len(qaList)}" if result=="success" else f"0 / {len(qaList)}",
+            "validRatio": f"{len(valid_qa_list)} / {len(qa_list)}" if result=="success" else f"0 / {len(qa_list)}",
         }
     )
 
@@ -472,20 +486,27 @@ def __save_2_aos(
     bucket: str,
     prefix: str,
     group_name: str,
-    chatbot_id: str
+    embedding_model_key: str
 ):
     qaList = __deduplicate_by_key(qaListParam, "question")
     if kb_enabled:
-        embedding_info = get_embedding_info(embedding_model_endpoint)
-        embedding_function = sm_utils.getCustomEmbeddings(
-            endpoint_name=embedding_model_endpoint,
-            region_name=region,
-            bedrock_region=bedrock_region,
-            model_type=embedding_info.get("ModelType"),
-            group_name=group_name,
-            chatbot_id=chatbot_id,
-            model_table=model_table_name
-        )
+        # embedding_info = get_embedding_info(embedding_model_endpoint)
+        # embedding_function = sm_utils.getCustomEmbeddings(
+        #     endpoint_name=embedding_model_endpoint,
+        #     region_name=region,
+        #     bedrock_region=bedrock_region,
+        #     model_type=embedding_info.get("ModelType"),
+        #     group_name=group_name,
+        #     chatbot_id=chatbot_id,
+        #     model_table=model_table_name
+        # )
+        model_response = model_table.get_item(
+            Key={
+                "groupName": group_name,
+                "modelId": embedding_model_key,
+            }
+        )["Item"]
+        embedding_function = EmbeddingModel.get_model(**__format_model_info(model_response.get("parameter", {})))
         docsearch = OpenSearchVectorSearch(
             index_name=index,
             embedding_function=embedding_function,
@@ -496,7 +517,8 @@ def __save_2_aos(
             connection_class=RequestsHttpConnection,
         )
 
-        worker = OpenSearchIngestionWorker(docsearch, embedding_model_endpoint)
+        worker = OpenSearchIngestionWorker(docsearch, modelId)
+        # worker
         intention_list = convert_qa_list(qaList, bucket, prefix)
         worker.aos_ingestion(intention_list, index)
     else:
@@ -625,7 +647,6 @@ def __get_execution(event, group_name):
         elif key == "validRatio":
             result_list = value.split("/")
             item_json["status"] = "COMPLETED" if result_list[0].strip() == result_list[1].strip() else "FAILED"
-        elif key == "error":
             item_json["detail"] = value
         else:
             continue

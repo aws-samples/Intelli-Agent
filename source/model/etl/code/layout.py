@@ -17,33 +17,35 @@ import cv2
 import numpy as np
 import time
 
-from utils import preprocess, multiclass_nms, postprocess
+from imaug import preprocess
+from postprocess import multiclass_nms, postprocess
 import onnxruntime
-import GPUtil
-if len(GPUtil.getGPUs()):
-    provider = [("CUDAExecutionProvider", {"cudnn_conv_algo_search": "HEURISTIC"}), "CPUExecutionProvider"]
-    model = 'layout.onnx'
-else:
-    provider = ["CPUExecutionProvider"]
-    model = 'layout_s.onnx'
+from gpu_config import get_provider_config
+from model_config import LAYOUT_CONFIG
+
+provider, _, layout_model = get_provider_config()
 
 class LayoutPredictor(object):
     def __init__(self):
-        self.ort_session = onnxruntime.InferenceSession(os.path.join(os.environ['MODEL_PATH'], model), providers=provider)
-        #_ = self.ort_session.run(['output'], {'images': np.zeros((1,3,640,640), dtype='float32')})[0]
-        self.categorys = ['text', 'title', 'figure', 'table']
+        self.ort_session = onnxruntime.InferenceSession(os.path.join(os.environ['MODEL_PATH'], layout_model), providers=provider)
+        self.categorys = LAYOUT_CONFIG['categories']
+        self.nms_thr = LAYOUT_CONFIG['nms_threshold']
+        self.score_thr = LAYOUT_CONFIG['score_threshold']
+        self.image_size = LAYOUT_CONFIG['image_size']
+        self.aspect_ratio_threshold = LAYOUT_CONFIG['aspect_ratio_threshold']
+
     def __call__(self, img):
         ori_im = img.copy()
         starttime = time.time()
         h,w,_ = img.shape
         h_ori, w_ori, _ = img.shape
-        if max(h_ori, w_ori)/min(h_ori, w_ori)>2:
-            s = 640/min(h_ori, w_ori)
+        if max(h_ori, w_ori)/min(h_ori, w_ori) > self.aspect_ratio_threshold:
+            s = self.image_size/min(h_ori, w_ori)
             h_new = int((h_ori*s)//32*32)
             w_new = int((w_ori*s)//32*32)
             h, w = (h_new, w_new)
         else:
-            h, w = (640, 640)
+            h, w = (self.image_size, self.image_size)
         image, ratio = preprocess(img, (h, w))
         res = self.ort_session.run(['output'], {'images': image[np.newaxis,:]})[0]
         predictions = postprocess(res, (h, w), p6=False)[0]
@@ -58,7 +60,7 @@ class LayoutPredictor(object):
         boxes_xyxy[:, 3] = boxes[:, 1] + boxes[:, 3]/2.
         boxes_xyxy /= ratio
         
-        dets = multiclass_nms(boxes_xyxy, scores, nms_thr=0.15, score_thr=0.3)
+        dets = multiclass_nms(boxes_xyxy, scores, nms_thr=self.nms_thr, score_thr=self.score_thr)
         if dets is None:
             return [], time.time() - starttime
         scores = dets[:, 4]

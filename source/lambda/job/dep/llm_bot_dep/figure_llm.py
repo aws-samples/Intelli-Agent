@@ -1,4 +1,5 @@
 import base64
+import importlib.resources
 import io
 import json
 import logging
@@ -11,6 +12,10 @@ from typing import Union
 
 import boto3
 import requests
+from llm_bot_dep.schemas.processing_parameters import VLLMParameters
+from llm_bot_dep.utils.s3_utils import upload_file_to_s3
+from llm_bot_dep.utils.secrets_manager_utils import get_api_key
+from openai import OpenAI
 from PIL import Image
 
 CHART_UNDERSTAND_PROMPT = """
@@ -43,29 +48,120 @@ DESCRIPTION_PROMPT = """
 请将你的描述写在<output></output>xml标签之间。
 """
 
-MERMAID_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "prompt/mermaid.json")
-FIGURE_CLASSIFICATION_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "prompt/figure_classification.txt")
-MERMAID_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "prompt/mermaid_template.txt")
-
 # Add minimum size threshold constants
 MIN_WIDTH = 50  # minimum width in pixels
 MIN_HEIGHT = 50  # minimum height in pixels
 
 logger = logging.getLogger(__name__)
-s3_client = boto3.client("s3")
+
+BEDROCK_CROSS_REGION_SUPPORTED_REGIONS = [
+    "us-east-1",
+    "us-west-2",
+    "eu-central-1",
+    "eu-west-1",
+    "eu-west-3",
+]
+
+
+def load_prompt_file(file_path, is_json=False):
+    """Load a prompt file from package resources or file system.
+
+    Args:
+        file_path (str): Path to the prompt file relative to the package
+        is_json (bool): Whether to parse the file as JSON
+
+    Returns:
+        The content of the prompt file, parsed as JSON if is_json=True
+    """
+    try:
+        with importlib.resources.files("llm_bot_dep.prompt").joinpath(
+            file_path
+        ).open("r") as file:
+            if is_json:
+                data = json.load(file)
+            else:
+                data = file.read()
+        return data
+    except (ImportError, ModuleNotFoundError, FileNotFoundError):
+        # Fallback for older Python versions or direct file access
+        raise FileNotFoundError(f"Prompt file not found: {file_path}")
 
 
 class figureUnderstand:
     """A class to understand and process figures using LLM.
 
-    This class provides methods to analyze images using Claude 3 Sonnet model,
+    This class provides methods to analyze images using Claude 3 Sonnet model or OpenAI models,
     classify them, and generate appropriate descriptions or representations.
     """
 
-    def __init__(self):
-        """Initialize the figureUnderstand class with Bedrock runtime client."""
-        self.bedrock_runtime = boto3.client(service_name="bedrock-runtime")
-        self.mermaid_prompt = json.load(open(MERMAID_PROMPT_PATH, "r"))
+    def __init__(
+        self,
+        model_provider="Bedrock",
+        model_id="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        model_api_url="",
+        model_secret_name="",
+        model_sagemaker_endpoint_name="",
+    ):
+        """Initialize the figureUnderstand class with appropriate client.
+
+        Args:
+            model_provider (str): The LLM provider to use ('Bedrock' or 'OpenAI API' or 'SageMaker')
+            model_id (str): The model ID to use
+            model_api_url (str): The API URL for OpenAI
+            model_secret_name (str): Secret name for OpenAI API key (required for OpenAI)
+            model_sagemaker_endpoint_name (str): The name of the SageMaker endpoint for the model
+        """
+        self.model_provider = model_provider
+        if model_provider == "Bedrock":
+            session = boto3.session.Session()
+            bedrock_region = session.region_name
+
+            # Validate region support
+            if bedrock_region not in BEDROCK_CROSS_REGION_SUPPORTED_REGIONS:
+                raise ValueError(
+                    f"Bedrock is not supported in region {bedrock_region}"
+                )
+
+            # Initialize Bedrock client and model ID
+            self.bedrock_runtime = boto3.client(service_name="bedrock-runtime")
+
+            # Add model prefix if not provided
+            model_prefix = bedrock_region.split("-")[0] + "."
+            if not model_id.startswith(model_prefix):
+                model_id = model_prefix + model_id
+            self.model_id = model_id
+        elif model_provider == "OpenAI API":
+            self.openai_api_key = get_api_key(model_secret_name)
+            if not self.openai_api_key:
+                raise ValueError(
+                    f"Failed to retrieve OpenAI API key from Secrets Manager. Please check the secret name: {model_secret_name}"
+                )
+
+            self.openai_client = OpenAI(
+                api_key=self.openai_api_key, base_url=model_api_url
+            )
+            self.model_id = model_id
+
+        elif model_provider == "SageMaker":
+            if (
+                not model_sagemaker_endpoint_name
+                or model_sagemaker_endpoint_name == "-"
+            ):
+                raise ValueError(
+                    "SageMaker endpoint name is required when using SageMaker model"
+                )
+            self.sagemaker_client = boto3.client("sagemaker-runtime")
+            self.model_sagemaker_endpoint_name = model_sagemaker_endpoint_name
+        else:
+            raise ValueError(
+                "Unsupported model provider. Choose 'Bedrock' or 'OpenAI API' or 'SageMaker'"
+            )
+
+        self.mermaid_prompt = load_prompt_file("mermaid.json", is_json=True)
+        self.figure_classification_prompt = load_prompt_file(
+            "figure_classification.txt"
+        )
+        self.mermaid_template_prompt = load_prompt_file("mermaid_template.txt")
 
     def invoke_llm(self, img, prompt, prefix="<output>", stop="</output>"):
         """Invoke the LLM model with an image and prompt.
@@ -79,6 +175,15 @@ class figureUnderstand:
         Returns:
             str: The model's response with prefix and stop tags
         """
+        if self.model_provider == "Bedrock":
+            return self._invoke_bedrock(img, prompt, prefix, stop)
+        elif self.model_provider == "OpenAI API":
+            return self._invoke_openai(img, prompt, prefix, stop)
+        elif self.model_provider == "SageMaker":
+            return self._invoke_sagemaker(img, prompt, prefix, stop)
+
+    def _invoke_bedrock(self, img, prompt, prefix="<output>", stop="</output>"):
+        """Invoke Bedrock model with image and prompt."""
         # If img is already a base64 string, use it directly
         if isinstance(img, str):
             base64_encoded = img
@@ -86,7 +191,9 @@ class figureUnderstand:
             # If img is a PIL Image, convert it to base64
             image_stream = io.BytesIO()
             img.save(image_stream, format="JPEG")
-            base64_encoded = base64.b64encode(image_stream.getvalue()).decode("utf-8")
+            base64_encoded = base64.b64encode(image_stream.getvalue()).decode(
+                "utf-8"
+            )
 
         messages = [
             {
@@ -105,7 +212,6 @@ class figureUnderstand:
             },
             {"role": "assistant", "content": prefix},
         ]
-        model_id = "anthropic.claude-3-5-sonnet-20241022-v2:0"
         body = json.dumps(
             {
                 "anthropic_version": "bedrock-2023-05-31",
@@ -114,39 +220,130 @@ class figureUnderstand:
                 "stop_sequences": [stop],
             }
         )
-        response = self.bedrock_runtime.invoke_model(body=body, modelId=model_id)
+        response = self.bedrock_runtime.invoke_model(
+            body=body, modelId=self.model_id
+        )
         response_body = json.loads(response.get("body").read())
         result = prefix + response_body["content"][0]["text"] + stop
         return result
 
+    def _invoke_openai(self, img, prompt, prefix="<output>", stop="</output>"):
+        """Invoke OpenAI model with image and prompt."""
+        # If img is already a base64 string, use it directly
+        if isinstance(img, str):
+            base64_encoded = img
+        else:
+            # If img is a PIL Image, convert it to base64
+            image_stream = io.BytesIO()
+            img.save(image_stream, format="JPEG")
+            base64_encoded = base64.b64encode(image_stream.getvalue()).decode(
+                "utf-8"
+            )
+
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_encoded}"
+                        },
+                    },
+                ],
+            },
+            {"role": "assistant", "content": prefix},
+        ]
+
+        response = self.openai_client.chat.completions.create(
+            model=self.model_id,
+            messages=messages,
+            max_tokens=4096,
+            stop=[stop] if stop else None,
+        )
+
+        result = prefix + response.choices[0].message.content + stop
+        return result
+
+    def _invoke_sagemaker(
+        self, img, prompt, prefix="<output>", stop="</output>"
+    ):
+        """Invoke SageMaker model with image and prompt."""
+        # If img is already a base64 string, use it directly
+        if isinstance(img, str):
+            base64_encoded = img
+        else:
+            # If img is a PIL Image, convert it to base64
+            image_stream = io.BytesIO()
+            img.save(image_stream, format="JPEG")
+            base64_encoded = base64.b64encode(image_stream.getvalue()).decode(
+                "utf-8"
+            )
+
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_encoded}"
+                        },
+                    },
+                ],
+            },
+            {"role": "assistant", "content": prefix},
+        ]
+
+        payload = {
+            "messages": messages,
+            "stream": False,
+        }
+
+        response = self.sagemaker_client.invoke_endpoint(
+            EndpointName=self.model_sagemaker_endpoint_name,
+            Body=json.dumps(payload),
+            ContentType="application/json",
+        )
+        response_body = response["Body"].read().decode("utf-8")
+        response_json = json.loads(response_body)
+        result = (
+            prefix + response_json["choices"][0]["message"]["content"] + stop
+        )
+        return result
+
     def get_classification(self, img):
-        with open(FIGURE_CLASSIFICATION_PROMPT_PATH) as f:
-            figure_classification_prompt = f.read()
-        output = self.invoke_llm(img, figure_classification_prompt)
+        """Get image classification from LLM."""
+        output = self.invoke_llm(img, self.figure_classification_prompt)
         return output
 
     def get_chart(self, img, context, tag):
+        """Get chart data from image."""
         prompt = CHART_UNDERSTAND_PROMPT.strip()
-        output = self.invoke_llm(img, prompt)
+        output = self.invoke_llm(img, prompt.format(context=context, tag=tag))
         return output
 
     def get_description(self, img, context, tag):
+        """Get image description from LLM."""
         prompt = DESCRIPTION_PROMPT.strip()
-
         output = self.invoke_llm(img, prompt.format(context=context, tag=tag))
         return f"![{output}]()"
 
     def get_mermaid(self, img, classification):
-        with open(MERMAID_TEMPLATE_PATH) as f:
-            mermaid_prompt = f.read()
-        prompt = mermaid_prompt.format(
+        """Get mermaid diagram from image."""
+        prompt = self.mermaid_template_prompt.format(
             diagram_type=classification,
             diagram_example=self.mermaid_prompt[classification],
         )
-        output = self.invoke_llm(img, prompt, prefix="<description>", stop="</mermaid>")
+        output = self.invoke_llm(
+            img, prompt, prefix="<description>", stop="</mermaid>"
+        )
         return output
 
     def parse_result(self, llm_output, tag):
+        """Parse LLM output to extract content between tags."""
         try:
             pattern = rf"<{tag}>(.*?)</{tag}>"
             output = re.findall(pattern, llm_output, re.DOTALL)[0].strip()
@@ -155,6 +352,10 @@ class figureUnderstand:
         return output
 
     def figure_understand(self, img, context, tag, s3_link):
+        """Process image and generate appropriate representation based on classification.
+
+        This is the main method that orchestrates the image understanding process.
+        """
         classification = self.get_classification(img)
         classification = self.parse_result(classification, "output")
         if classification in self.mermaid_prompt:
@@ -170,10 +371,11 @@ class figureUnderstand:
         else:
             description = self.get_description(img, context, tag)
             description = self.parse_result(description, "output")
-            output = (
-                f"\n<figure>\n<type>image</type>\n<link>{s3_link}</link>\n<desp>\n{description}\n</desp>\n</figure>\n"
-            )
+            output = f"\n<figure>\n<type>image</type>\n<link>{s3_link}</link>\n<desp>\n{description}\n</desp>\n</figure>\n"
         return output
+
+    # Add compatibility with the __call__ method from the ETL version
+    __call__ = figure_understand
 
 
 def encode_image_to_base64(image_path: str) -> str:
@@ -207,7 +409,6 @@ def upload_image_to_s3(
     file_name: str,
     splitting_type: str,
     idx: int,
-    is_bytes: bool = False,
 ):
     """Upload image to S3 from either a file path or binary data.
 
@@ -220,13 +421,12 @@ def upload_image_to_s3(
         is_bytes: Whether image_data contains binary data instead of a file path
     """
     hour_timestamp = datetime.now().strftime("%Y-%m-%d-%H")
-    image_name = f"{idx:05d}-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')}.jpg"
+    image_name = (
+        f"{idx:05d}-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')}.jpg"
+    )
     object_key = f"{file_name}/{splitting_type}/{hour_timestamp}/{image_name}"
 
-    if is_bytes:
-        s3_client.put_object(Bucket=bucket, Key=object_key, Body=image_data)
-    else:
-        s3_client.upload_file(image_data, bucket, object_key)
+    upload_file_to_s3(bucket, object_key, image_data)
 
     return object_key
 
@@ -259,6 +459,7 @@ def process_single_image(
     file_name: str,
     idx: int,
     s3_link: str = None,
+    vllm_params: VLLMParameters = None,
 ) -> str:
     """Process a single image and return its understanding text.
 
@@ -279,25 +480,41 @@ def process_single_image(
     with Image.open(img_path) as img:
         width, height = img.size
         if width < MIN_WIDTH or height < MIN_HEIGHT:
-            logger.warning(f"Image {idx} is too small ({width}x{height}). Skipping processing.")
+            logger.warning(
+                f"Image {idx} is too small ({width}x{height}). Skipping processing."
+            )
             return None
 
     image_base64 = encode_image_to_base64(img_path)
-    figure_llm = figureUnderstand()
+    figure_llm = figureUnderstand(
+        model_provider=vllm_params.model_provider,
+        model_id=vllm_params.model_id,
+        model_api_url=vllm_params.model_api_url,
+        model_secret_name=vllm_params.model_secret_name,
+        model_sagemaker_endpoint_name=vllm_params.model_sagemaker_endpoint_name,
+    )
 
     # Get image understanding
-    understanding = figure_llm.figure_understand(image_base64, context, image_tag, s3_link=f"{idx:05d}.jpg")
+    understanding = figure_llm.figure_understand(
+        image_base64, context, image_tag, s3_link=f"{idx:05d}.jpg"
+    )
 
     # Update S3 link
     if not s3_link:
-        s3_link = upload_image_to_s3(img_path, bucket_name, file_name, "image", idx)
+        s3_link = upload_image_to_s3(
+            img_path, bucket_name, file_name, "image", idx
+        )
 
-    understanding = understanding.replace(f"<link>{idx:05d}.jpg</link>", f"<link>{s3_link}</link>")
+    understanding = understanding.replace(
+        f"<link>{idx:05d}.jpg</link>", f"<link>{s3_link}</link>"
+    )
 
     return understanding, s3_link
 
 
-def process_markdown_images_with_llm(content: str, bucket_name: str, file_name: str) -> str:
+def process_markdown_images_with_llm(
+    content: str, bucket_name: str, file_name: str, vllm_params: VLLMParameters
+) -> str:
     """Process all images in markdown content and upload them to S3.
 
     This function:
@@ -336,10 +553,14 @@ def process_markdown_images_with_llm(content: str, bucket_name: str, file_name: 
                 try:
                     local_img_path = download_image_from_url(img_path)
                 except Exception as e:
-                    logger.error(f"Error downloading image from URL {img_path}: {e}")
+                    logger.error(
+                        f"Error downloading image from URL {img_path}: {e}"
+                    )
                     result += match.group(1)
                     last_end = end
                     continue
+            elif img_path.startswith("/tmp/doc_images/"):
+                local_img_path = img_path
             else:
                 logger.error(f"Image path {img_path} is not a URL")
                 result += match.group(1)
@@ -363,6 +584,7 @@ def process_markdown_images_with_llm(content: str, bucket_name: str, file_name: 
                 file_name,
                 idx,
                 s3_link,
+                vllm_params,
             )
 
             # If this is a new image path, store its S3 object name

@@ -21,7 +21,6 @@ import {
   TextFilter,
 } from '@cloudscape-design/components';
 import {
-  ChatbotItemDetail,
   ChatbotDetailResponse,
   IndexItemTmp,
   SelectedOption,
@@ -32,10 +31,10 @@ import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import { alertMsg } from 'src/utils/utils';
 import { useNavigate, useParams } from 'react-router-dom';
-import { INDEX_TYPE_OPTIONS } from 'src/utils/const';
+import { INDEX_TYPE_OPTIONS, ROUTES } from 'src/utils/const';
 
 const INITIAL_ADD_INDEX = {
-  name: '',
+  id: '',
   type: 'qq',
   description: '',
   tag: '',
@@ -47,7 +46,7 @@ const ChatbotDetail: React.FC = () => {
   const { id } = useParams();
   const pageSize = 10;
   const fetchData = useAxiosRequest();
-  const [chatbotDetail, setChatbotDetail] = useState<ChatbotItemDetail>(
+  const [chatbotDetail, setChatbotDetail] = useState<ChatbotDetailResponse>(
     null as any,
   );
   const [searchIndexName, setSearchIndexName] = useState('');
@@ -85,7 +84,7 @@ const ChatbotDetail: React.FC = () => {
   useEffect(() => {
     let list = tmpIndexList;
     if (searchIndexName != null && searchIndexName.length > 0) {
-      list = list?.filter((item) => item.name.indexOf(searchIndexName) > -1);
+      list = list?.filter((item) => item.id.indexOf(searchIndexName) > -1);
     }
     setPageCount(Math.ceil(list?.length / pageSize));
     setTableIndexList(
@@ -127,21 +126,21 @@ const ChatbotDetail: React.FC = () => {
   };
 
   const discardChange = () => {
-    navigate('/chatbot-management');
+    navigate(ROUTES.Chatbot);
   };
   const addNewIndex = () => {
     setAddIndexModel(true);
   };
 
   const saveAddedIndex = async () => {
-    if (addedIndex.name?.trim().length === 0) {
+    if (addedIndex.id?.trim().length === 0) {
       setErrText(t('validation.indexNameEmpty'));
       return;
     }
 
-    const bot_index_list = tmpIndexList.map((item) => item.name);
+    const bot_index_list = tmpIndexList.map((item) => item.id);
 
-    if (bot_index_list.includes(addedIndex.name)) {
+    if (bot_index_list.includes(addedIndex.id)) {
       setErrText(t('validation.repeatedIndex'));
       return;
     }
@@ -169,18 +168,19 @@ const ChatbotDetail: React.FC = () => {
         method: 'post',
         data: {
           chatbotId: chatbotDetail.chatbotId,
-          modelId: chatbotDetail.model,
-          modelName: chatbotDetail.model,
+          chatbotDetail,
+          // modelId: chatbotDetail.embeddingModel.modelId,
+          // modelName: chatbotDetail.embeddingModel.modelName,
           index: genBotIndexCreate(indexList),
         },
       });
       // const createRes: CreateChatbotResponse = data;
-      if (createRes.Message === 'OK') {
+      if (createRes.message === 'OK') {
         setLoadingSave(false);
         alertMsg(t('updated'), 'success');
         setTimeout(() => {
           setLoadingSave(false);
-          navigate('/chatbot-management');
+          navigate(ROUTES.Chatbot);
         }, 1500);
 
         // setShowCreate(false);
@@ -199,7 +199,7 @@ const ChatbotDetail: React.FC = () => {
       if (!index[item.type]) {
         index[item.type] = {};
       }
-      index[item.type][item.name] = item.description || '';
+      index[item.type][item.id] = item.description || '';
     });
     return index;
   };
@@ -209,8 +209,8 @@ const ChatbotDetail: React.FC = () => {
       url: `chatbot-management/check-index`,
       method: 'post',
       data: {
-        index: addedIndex.name,
-        model: chatbotDetail.model,
+        index: addedIndex.id,
+        model: chatbotDetail.embeddingModel,
       },
     });
     // return
@@ -222,17 +222,18 @@ const ChatbotDetail: React.FC = () => {
         url: `chatbot-management/chatbots/${id}`,
         method: 'get',
       });
-      const chatbotDetail: ChatbotItemDetail = {
+      const chatbotDetail: ChatbotDetailResponse = {
         chatbotId: data.chatbotId,
-        model: data.model?.model_name,
-        index: data.index,
+        embeddingModel: data.embeddingModel,
+        rerankModel: data.rerankModel,
+        vlmModel: data.vlmModel,
+        indexes: data.indexes,
         updateTime: data.updateTime,
-        modelProvider: data.model?.model_provider,
-        baseUrl: data.model?.base_url,
+        groupName: data.groupName
       };
       setChatbotDetail(chatbotDetail);
       // setIndexList(chatbotDetail.index)
-      const tmpIndexList = chatbotDetail.index.map((item) => ({
+      const tmpIndexList = chatbotDetail.indexes.map((item) => ({
         ...item,
         status: 'old',
       }));
@@ -249,19 +250,20 @@ const ChatbotDetail: React.FC = () => {
 
   return (
     <CommonLayout
-      activeHref="/chatbots"
+      activeHref={ROUTES.Chatbot}
       breadCrumbs={[
         {
           text: t('name'),
-          href: '/',
+          href: ROUTES.Home,
         },
         {
           text: t('chatbot'),
-          href: '/chatbots',
+          href: ROUTES.Chatbot,
         },
       ]}
     >
       <ContentLayout>
+        <div style={{marginTop: '25px'}}></div>
         <SpaceBetween direction="vertical" size="m">
           <Container
             variant="default"
@@ -284,22 +286,41 @@ const ChatbotDetail: React.FC = () => {
                       label={t('chatbotName')}
                     ></FormField>
                   </div>
-                  <div>
+                  {/* <div>
                     <FormField
-                      description={chatbotDetail?.modelProvider}
+                      description={chatbotDetail?.embeddingModel.modelProvider}
                       label={t('modelProvider')}
                     ></FormField>
-                  </div>
+                  </div> */}
+                  {/* <div>
+                    <FormField
+                      description={chatbotDetail?.embeddingModel.baseUrl}
+                      label={t('apiEndpoint')}
+                    ></FormField>
+                  </div> */}
                   <div>
                     <FormField
-                      description={chatbotDetail?.baseUrl}
-                      label={t('apiEndpoint')}
+                      description={chatbotDetail?.embeddingModel.modelId}
+                      label={t('embeddingModel')}
+                    ></FormField>
+                  </div>
+                  {/* <div>
+                    <FormField
+                      description={chatbotDetail?.rerankModel.modelName}
+                      label={t('modelProvider')}
+                    ></FormField>
+                  </div> */}
+                  <div>
+                    <FormField
+                      description={chatbotDetail?.rerankModel.modelId}
+
+                      label={t('rerankModel')}
                     ></FormField>
                   </div>
                   <div>
                     <FormField
-                      description={chatbotDetail?.model}
-                      label={t('embeddingModel')}
+                      description={chatbotDetail?.vlmModel.modelId}
+                      label={t('vlmModel')}
                     ></FormField>
                   </div>
                   <div>
@@ -342,17 +363,18 @@ const ChatbotDetail: React.FC = () => {
               loading={loadingData}
               ariaLabels={{
                 activateEditLabel: (column, item) =>
-                  `Edit ${item.name} ${column.header}`,
+                  `Edit ${item.id} ${column.header}`,
                 cancelEditLabel: (column) => `Cancel editing ${column.header}`,
                 submitEditLabel: (column) => `Submit editing ${column.header}`,
                 tableLabel: 'Table with inline editing',
               }}
+              variant="embedded"
               columnDefinitions={[
                 {
                   id: 'name',
                   header: t('indexName'),
                   cell: (item) => {
-                    return item.name;
+                    return item.id;
                   },
                   sortingField: 'name',
                   isRowHeader: true,
@@ -542,12 +564,12 @@ const ChatbotDetail: React.FC = () => {
               errorText={errText}
             >
               <Input
-                value={addedIndex.name}
+                value={addedIndex.id}
                 placeholder={t('indexPlaceholder')}
                 onChange={({ detail }) => {
                   setAddedIndex({
                     ...addedIndex,
-                    name: detail.value,
+                    id: detail.value,
                     tag: detail.value,
                   });
                 }}

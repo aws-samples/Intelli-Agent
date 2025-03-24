@@ -80,9 +80,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     });
 
     new s3Deployment.BucketDeployment(this, "DeployGlueLibs", {
-      sources: [s3Deployment.Source.asset(join(__dirname, "../../../lambda/job/dep/dist"), {
-        exclude: ["*", "!llm_bot_dep-0.1.0-py3-none-any.whl"]
-      })],
+      sources: [s3Deployment.Source.asset(join(__dirname, "../../../lambda/job/dep/dist"))],
       destinationBucket: this.glueLibS3Bucket,
     });
 
@@ -138,6 +136,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
 
 
   private createKnowledgeBaseJob(props: any) {
+    const deployRegion = props.config.deployRegion;
     const connection = new glue.Connection(this, "GlueJobConnection", {
       type: glue.ConnectionType.NETWORK,
       subnet: props.sharedConstructOutputs.vpc.privateSubnets[0],
@@ -159,10 +158,8 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     notificationLambda.addToRolePolicy(this.iamHelper.logStatement);
     notificationLambda.addToRolePolicy(this.dynamodbStatement);
 
-    // If this.region is cn-north-1 or cn-northwest-1, use the glue-job-script-cn.py
-    const glueJobScript = "glue-job-script.py";
 
-    // Assemble the extra python files list using _S3Bucket.s3UrlForObject("llm_bot_dep-0.1.0-py3-none-any.whl") and _S3Bucket.s3UrlForObject("nougat_ocr-0.1.17-py3-none-any.whl") and convert to string
+    // Assemble the extra python files list using _S3Bucket.s3UrlForObject("llm_bot_dep-0.1.0-py3-none-any.whl")
     const extraPythonFilesList = [
       this.glueLibS3Bucket.s3UrlForObject("llm_bot_dep-0.1.0-py3-none-any.whl"),
     ].join(",");
@@ -201,37 +198,44 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     glueRole.addToPolicy(this.iamHelper.glueStatement);
     glueRole.addToPolicy(this.dynamodbStatement);
     glueRole.addToPolicy(this.iamHelper.dynamodbStatement);
+    glueRole.addToPolicy(this.iamHelper.secretsManagerStatement);
+
+    const glueJobDefaultArguments: { [key: string]: string } = {
+      "--AOS_ENDPOINT": this.aosDomainEndpoint,
+      "--REGION": deployRegion,
+      "--ETL_MODEL_ENDPOINT": props.modelConstructOutputs.defaultKnowledgeBaseModelName,
+      "--RES_BUCKET": this.glueResultBucket.bucketName,
+      "--ETL_OBJECT_TABLE": this.etlObjTableName || "-",
+      "--PORTAL_BUCKET": this.uiPortalBucketName,
+      "--CHATBOT_TABLE": props.sharedConstructOutputs.chatbotTable.tableName,
+      "--additional-python-modules":
+        "langchain==0.3.7,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.35.98,openai==1.63.2,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,pdfminer.six==20221105,smart-open==7.0.4,opensearch-py==2.2.0,lxml==5.2.2,pandas==2.1.2,openpyxl==3.1.5,xlrd==2.0.1,langchain_community==0.3.7,pillow==10.0.1,tiktoken==0.8.0,pypdf==3.17.0",
+      // Add multiple extra python files
+      "--extra-py-files": extraPythonFilesList,
+    }
+
+    // Set China-specific PyPI mirror for China regions
+    if (deployRegion === "cn-north-1" || deployRegion === "cn-northwest-1") {
+      glueJobDefaultArguments["--python-modules-installer-option"] = "-i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple";
+    }
 
     // Create glue job to process files specified in s3 bucket and prefix
-    const glueJob = new glue.Job(this, "PythonShellJob", {
-      executable: glue.JobExecutable.pythonShell({
-        glueVersion: glue.GlueVersion.V3_0,
-        pythonVersion: glue.PythonVersion.THREE_NINE,
+    const glueJob = new glue.Job(this, "PythonEtlJob", {
+      executable: glue.JobExecutable.pythonEtl({
+        glueVersion: glue.GlueVersion.V4_0,
+        pythonVersion: glue.PythonVersion.THREE,
         script: glue.Code.fromAsset(
-          join(__dirname, "../../../lambda/job", glueJobScript),
+          join(__dirname, "../../../lambda/job/glue-job-script.py"),
         ),
       }),
       // Worker Type is not supported for Job Command pythonshell and Both workerType and workerCount must be set
-      // workerType: glue.WorkerType.G_2X,
-      // workerCount: 2,
+      workerType: glue.WorkerType.G_1X,
+      workerCount: 2,
       maxConcurrentRuns: 200,
       maxRetries: 1,
       connections: [connection],
-      maxCapacity: 1,
       role: glueRole,
-      defaultArguments: {
-        "--AOS_ENDPOINT": this.aosDomainEndpoint,
-        "--REGION": process.env.CDK_DEFAULT_REGION || "-",
-        "--ETL_MODEL_ENDPOINT": props.modelConstructOutputs.defaultKnowledgeBaseModelName,
-        "--RES_BUCKET": this.glueResultBucket.bucketName,
-        "--ETL_OBJECT_TABLE": this.etlObjTableName || "-",
-        "--PORTAL_BUCKET": this.uiPortalBucketName,
-        "--CHATBOT_TABLE": props.sharedConstructOutputs.chatbotTable.tableName,
-        "--additional-python-modules":
-          "langchain==0.3.7,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.35.98,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.9.1,pdfminer.six==20221105,smart-open==7.0.4,opensearch-py==2.2.0,lxml==5.2.2,pandas==2.1.2,openpyxl==3.1.5,xlrd==2.0.1,langchain_community==0.3.5,pillow==10.0.1,tiktoken==0.8.0",
-        // Add multiple extra python files
-        "--extra-py-files": extraPythonFilesList
-      },
+      defaultArguments: glueJobDefaultArguments,
     });
 
     // Create SNS topic and subscription to notify when glue job is completed
@@ -273,13 +277,11 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
             "chatbotId.$": "$.Payload.chatbotId",
             "groupName.$": "$.Payload.groupName",
             "indexId.$": "$.Payload.indexId",
-            "embeddingModelType.$": "$.Payload.embeddingModelType",
             "offline.$": "$.Payload.offline",
             "batchFileNumber.$": "$.Payload.batchFileNumber",
             "batchIndices.$": "$.Payload.batchIndices",
             "indexType.$": "$.Payload.indexType",
             "operationType.$": "$.Payload.operationType",
-            "embeddingEndpoint.$": "$.Payload.embeddingEndpoint",
             "tableItemId.$": "$.Payload.tableItemId",
             "documentLanguage.$": "$.Payload.documentLanguage",
           },
@@ -298,7 +300,6 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
         "--BATCH_FILE_NUMBER.$": "$.batchFileNumber",
         "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
         "--DOCUMENT_LANGUAGE.$": "$.documentLanguage",
-        "--EMBEDDING_MODEL_ENDPOINT.$": "$.embeddingEndpoint",
         "--ETL_MODEL_ENDPOINT": props.modelConstructOutputs.defaultKnowledgeBaseModelName || "-",
         "--INDEX_TYPE.$": "$.indexType",
         "--JOB_NAME": glueJob.jobName,
@@ -308,7 +309,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
         "--TABLE_ITEM_ID.$": "$.tableItemId",
         "--QA_ENHANCEMENT.$": "$.qaEnhance",
         "--REGION": process.env.CDK_DEFAULT_REGION || "-",
-        "--BEDROCK_REGION": props.config.chat.bedrockRegion,
+        "--BEDROCK_REGION": props.config.chat.bedrockRegion || "-",
         "--MODEL_TABLE": props.sharedConstructOutputs.modelTable.tableName,
         "--RES_BUCKET": this.glueResultBucket.bucketName,
         "--S3_BUCKET.$": "$.s3Bucket",
@@ -317,7 +318,6 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
         "--CHATBOT_ID.$": "$.chatbotId",
         "--GROUP_NAME.$": "$.groupName",
         "--INDEX_ID.$": "$.indexId",
-        "--EMBEDDING_MODEL_TYPE.$": "$.embeddingModelType",
         "--job-language": "python",
       }),
     });
@@ -337,7 +337,6 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
         "chatbotId.$": "$.chatbotId",
         "groupName.$": "$.groupName",
         "indexId.$": "$.indexId",
-        "embeddingModelType.$": "$.embeddingModelType",
         "qaEnhance.$": "$.qaEnhance",
         "offline.$": "$.offline",
         "batchFileNumber.$": "$.batchFileNumber",
@@ -345,7 +344,6 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
         "batchIndices.$": "$$.Map.Item.Index", // Add this if you need to know the index of the current item in the map state
         "indexType.$": "$.indexType",
         "operationType.$": "$.operationType",
-        "embeddingEndpoint.$": "$.embeddingEndpoint",
         "tableItemId.$": "$.tableItemId",
         "documentLanguage.$": "$.documentLanguage",
       },
@@ -356,7 +354,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
       offlineGlueJob.addRetry({
         errors: ["States.ALL"],
         interval: Duration.seconds(10),
-        maxAttempts: 3,
+        maxAttempts: 1,
       }),
     );
 

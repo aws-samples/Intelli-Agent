@@ -64,21 +64,21 @@ Intelli-Agent 旨在以最小的开销和最大的效率帮助开发人员快速
 
 文本块元数据定义如下：
 
-| 名称 | 描述 |
-| - | - |
-|file_path| 存储文件的 S3 路径 |
-|file_type| 文件类型，例如 pdf、html |
-|content_type| 段落：段落内容 |
-|current_heading| 该块所属的标题 |
-|chunk_id| 唯一的文本块 ID |
-|heading_hierarchy| 用于定位整个文件内容中该块的标题层次 |
-|title| 当前部分的标题 |
-|level| 标题级别，例如 在 Markdown 中，H1 是 #，H2 是 ## |
-|parent| 父部分的块 ID，例如 H2 的父部分是 H1，H3 的父部分是 H2 |
-|previous| 同一级别上前一段落的块 ID |
-|child| 子部分的文本块 ID |
-|next| 同一级别上下一段落的块 ID |
-|size| 段落按固定大小拆分后的文本块数量 |
+| 名称              | 描述                                                   |
+| ----------------- | ------------------------------------------------------ |
+| file_path         | 存储文件的 S3 路径                                     |
+| file_type         | 文件类型，例如 pdf、html                               |
+| content_type      | 段落：段落内容                                         |
+| current_heading   | 该块所属的标题                                         |
+| chunk_id          | 唯一的文本块 ID                                        |
+| heading_hierarchy | 用于定位整个文件内容中该块的标题层次                   |
+| title             | 当前部分的标题                                         |
+| level             | 标题级别，例如 在 Markdown 中，H1 是 #，H2 是 ##       |
+| parent            | 父部分的块 ID，例如 H2 的父部分是 H1，H3 的父部分是 H2 |
+| previous          | 同一级别上前一段落的块 ID                              |
+| child             | 子部分的文本块 ID                                      |
+| next              | 同一级别上下一段落的块 ID                              |
+| size              | 段落按固定大小拆分后的文本块数量                       |
 
 示例：
 
@@ -109,7 +109,7 @@ Intelli-Agent 旨在以最小的开销和最大的效率帮助开发人员快速
 
 ### 灵活的模式选项
 
-下图是基于 [LangGraph](https://langchain-ai.github.io/langgraph/) 生成的在线逻辑。第一个节点是 **query_preprocess_lambda**，它处理聊天历史记录。然后用户可以从三种模式中选择：聊天模式（chat）、检索生成模式（rag）和代理模式（agent）。**聊天模式（chat）** 让您可以直接与不同的 LLM（如 Anthropic Claude 3）进行交互。**检索生成模式（rag）** 将检索与当前查询相关的内容并让 LLM 回答。**代理模式（agent）** 是最复杂的模式，能够处理复杂的业务场景。根据 **intention_detection_lambda** 提供的最相关意图和 **query_preprocess_lambda** 提供的聊天历史记录，**agent_lambda** 将决定使用哪些工具以及这些信息是否足以回答查询。**parse_tool_calling** 节点将解析 **agent_lambda** 的输出：
+下图是基于 [LangGraph](https://langchain-ai.github.io/langgraph/) 生成的在线逻辑。第一个节点是 **query_preprocess_lambda**，它处理聊天历史记录。用户在会话页面开启或关闭**只使用RAG**开关：**开启只使用RAG** 将检索与当前查询相关的内容并让 LLM 回答。**关闭只使用RAG** 会根据 **intention_detection_lambda** 提供的最相关意图和 **query_preprocess_lambda** 提供的聊天历史记录，**agent_lambda** 将决定使用哪些工具以及这些信息是否足以回答查询。**parse_tool_calling** 节点将解析 **agent_lambda** 的输出：
 
 * 如果 **agent_lambda** 从工具格式的角度选择了错误的工具，那么会通过 **invalid_tool_calling** 进行重新思考。
 * 如果 **agent_lambda** 选择了有效工具，那么会通过 **tool_execute_lambda** 执行该工具。然后，**agent_lambda** 将决定运行结果是否足以回答查询。
@@ -126,9 +126,8 @@ flowchart TD
         tools_execution["tools_execution"]
   end
     _start_["_start_"] --> query_preprocess["query_preprocess"]
-    query_preprocess == chat mode ==> llm_direct_results_generation["llm_direct_results_generation"]
-    query_preprocess == rag mode ==> all_knowledge_retrieve["all_knowledge_retrieve"]
-    query_preprocess == agent mode ==> intention_detection["intention_detection"]
+    query_preprocess == use_rag_only enabled ==> all_knowledge_retrieve["all_knowledge_retrieve"]
+    query_preprocess == use_rag_only disabled ==> intention_detection["intention_detection"]
     all_knowledge_retrieve --> llm_rag_results_generation["llm_rag_results_generation"]
     intention_detection -- similar query found --> matched_query_return["matched_query_return"]
     intention_detection -- intention detected --> tools_choose_and_results_generation
@@ -137,7 +136,6 @@ flowchart TD
     results_evaluation -. valid tool calling .-> tools_execution
     results_evaluation -. no need tool calling .-> final_results_preparation["final_results_preparation"]
     tools_execution --> tools_choose_and_results_generation
-    llm_direct_results_generation --> _end_["_end_"]
     llm_rag_results_generation --> _end_
     matched_query_return --> final_results_preparation
     final_results_preparation --> _end_
@@ -145,7 +143,6 @@ flowchart TD
      results_evaluation:::process
      tools_execution:::process
      query_preprocess:::process
-     llm_direct_results_generation:::process
      all_knowledge_retrieve:::process
      intention_detection:::process
      llm_rag_results_generation:::process
@@ -261,11 +258,11 @@ npx cdk deploy
 
 部署后，您可以在 CloudFormation 控制台中找到包含 `intelli-agent` 的堆栈。在堆栈的 Output 标签页中，您可以找到关键的解决方案信息，常用的信息解释如下：
 
-| 名称 | 描述 |
-| - | - |
-| WebPortalURL | Intelli-Agent 前端网站链接。 |
-| APIEndpointAddress | RESTful API 地址，主要用于数据预处理、聊天记录等功能。 |
-| WebSocketEndpointAddress | WebSocket API 地址，主要用于聊天功能。 |
+| 名称                     | 描述                                                   |
+| ------------------------ | ------------------------------------------------------ |
+| WebPortalURL             | Intelli-Agent 前端网站链接。                           |
+| APIEndpointAddress       | RESTful API 地址，主要用于数据预处理、聊天记录等功能。 |
+| WebSocketEndpointAddress | WebSocket API 地址，主要用于聊天功能。                 |
 
 ### 更新已有的部署
 
@@ -310,7 +307,6 @@ cd Intelli-Agent/source/infrastructure
   "chat": {
     "enabled": true,
     "bedrockRegion": "us-east-1",
-    "useOpenSourceLLM": true,
     "amazonConnect": {
       "enabled": true
     }
@@ -419,11 +415,11 @@ npx cdk deploy
 ### 目前各处理环节的模型选型是什么
 目前各环节使用的模型如下，是团队内部测试后、选用的当下效果比较理想的选项。支持客户自定义更换。详细模型更换。
 
-| Function | Model |
-| - | - |
-| Rerank | BGE-reranker-large |
-| Embedding | BCE |
-| LLM | Claude3/Claude3.5 |
+| Function  | Model              |
+| --------- | ------------------ |
+| Rerank    | BGE-reranker-large |
+| Embedding | BCE                |
+| LLM       | Claude3/Claude3.5  |
 
 ### 如何获取支持
 通过在 GitHub 上创建 Issue 获取支持。

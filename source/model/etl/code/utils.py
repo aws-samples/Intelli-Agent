@@ -1,154 +1,46 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
-# Copyright (c) Megvii Inc. All rights reserved.
-import os
 
+import os
 import cv2
+import logging
 import numpy as np
 from PIL import Image
-# from transformers import StoppingCriteria
+from io import BytesIO
+import boto3
+import base64
+try:
+    import urllib.request as urllib2
+    from urllib.parse import urlparse
+except ImportError:
+    import urllib2
+    from urlparse import urlparse
 
 __all__ = [
-    "preprocess",
-    "nms",
-    "multiclass_nms",
-    "postprocess",
-    "StoppingCriteriaScores",
-    "markdown_compatible",
+    "check_and_read",
+    "readimg",
+    "lambda_return"
 ]
 
-
-def preprocess(img, input_size, swap=(2, 0, 1)):
-    if len(img.shape) == 3:
-        padded_img = np.ones((input_size[0], input_size[1], 3), dtype=np.uint8) * 114
-    else:
-        padded_img = np.ones(input_size, dtype=np.uint8) * 114
-
-    r = min(input_size[0] / img.shape[0], input_size[1] / img.shape[1])
-    resized_img = cv2.resize(
-        img,
-        (int(img.shape[1] * r), int(img.shape[0] * r)),
-        interpolation=cv2.INTER_LINEAR,
-    ).astype(np.uint8)
-    padded_img[: int(img.shape[0] * r), : int(img.shape[1] * r)] = resized_img
-
-    padded_img = padded_img.transpose(swap)
-    padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
-    return padded_img, r
-
-
-def nms(boxes, scores, nms_thr):
-    """Single class NMS implemented in Numpy."""
-    x1 = boxes[:, 0]
-    y1 = boxes[:, 1]
-    x2 = boxes[:, 2]
-    y2 = boxes[:, 3]
-
-    areas = (x2 - x1 + 1) * (y2 - y1 + 1)
-    order = scores.argsort()[::-1]
-
-    keep = []
-    while order.size > 0:
-        i = order[0]
-        keep.append(i)
-        xx1 = np.maximum(x1[i], x1[order[1:]])
-        yy1 = np.maximum(y1[i], y1[order[1:]])
-        xx2 = np.minimum(x2[i], x2[order[1:]])
-        yy2 = np.minimum(y2[i], y2[order[1:]])
-
-        w = np.maximum(0.0, xx2 - xx1 + 1)
-        h = np.maximum(0.0, yy2 - yy1 + 1)
-        inter = w * h
-        ovr = inter / (areas[i] + areas[order[1:]] - inter)
-
-        inds = np.where(ovr <= nms_thr)[0]
-        order = order[inds + 1]
-
-    return keep
-
-
-def multiclass_nms(boxes, scores, nms_thr, score_thr, class_agnostic=True):
-    """Multiclass NMS implemented in Numpy"""
-    if class_agnostic:
-        nms_method = multiclass_nms_class_agnostic
-    else:
-        nms_method = multiclass_nms_class_aware
-    return nms_method(boxes, scores, nms_thr, score_thr)
-
-
-def multiclass_nms_class_aware(boxes, scores, nms_thr, score_thr):
-    """Multiclass NMS implemented in Numpy. Class-aware version."""
-    final_dets = []
-    num_classes = scores.shape[1]
-    for cls_ind in range(num_classes):
-        cls_scores = scores[:, cls_ind]
-        valid_score_mask = cls_scores > score_thr
-        if valid_score_mask.sum() == 0:
-            continue
-        else:
-            valid_scores = cls_scores[valid_score_mask]
-            valid_boxes = boxes[valid_score_mask]
-            keep = nms(valid_boxes, valid_scores, nms_thr)
-            if len(keep) > 0:
-                cls_inds = np.ones((len(keep), 1)) * cls_ind
-                dets = np.concatenate(
-                    [valid_boxes[keep], valid_scores[keep, None], cls_inds], 1
-                )
-                final_dets.append(dets)
-    if len(final_dets) == 0:
-        return None
-    return np.concatenate(final_dets, 0)
-
-
-def multiclass_nms_class_agnostic(boxes, scores, nms_thr, score_thr):
-    """Multiclass NMS implemented in Numpy. Class-agnostic version."""
-    cls_inds = scores.argmax(1)
-    cls_scores = scores[np.arange(len(cls_inds)), cls_inds]
-
-    valid_score_mask = cls_scores > score_thr
-    if valid_score_mask.sum() == 0:
-        return None
-    valid_scores = cls_scores[valid_score_mask]
-    valid_boxes = boxes[valid_score_mask]
-    valid_cls_inds = cls_inds[valid_score_mask]
-    keep = nms(valid_boxes, valid_scores, nms_thr)
-    if keep:
-        dets = np.concatenate(
-            [valid_boxes[keep], valid_scores[keep, None], valid_cls_inds[keep, None]], 1
-        )
-    return dets
-
-
-def postprocess(outputs, img_size, p6=False):
-
-    grids = []
-    expanded_strides = []
-
-    if not p6:
-        strides = [8, 16, 32]
-    else:
-        strides = [8, 16, 32, 64]
-
-    hsizes = [img_size[0] // stride for stride in strides]
-    wsizes = [img_size[1] // stride for stride in strides]
-
-    for hsize, wsize, stride in zip(hsizes, wsizes, strides):
-        xv, yv = np.meshgrid(np.arange(wsize), np.arange(hsize))
-        grid = np.stack((xv, yv), 2).reshape(1, -1, 2)
-        grids.append(grid)
-        shape = grid.shape[:2]
-        expanded_strides.append(np.full((*shape, 1), stride))
-
-    grids = np.concatenate(grids, 1)
-    expanded_strides = np.concatenate(expanded_strides, 1)
-    outputs[..., :2] = (outputs[..., :2] + grids) * expanded_strides
-    outputs[..., 2:4] = np.exp(outputs[..., 2:4]) * expanded_strides
-
-    return outputs
-
-
 def check_and_read(img_path):
-    if os.path.basename(img_path)[-3:].lower() == "gif":
+    """Check and read image file in different formats.
+    
+    Supports:
+    - Common image formats (JPG, PNG, etc.): Returns the image
+    - GIF: Returns first frame
+    - PDF: Returns generator of all pages as images
+    
+    Args:
+        img_path: Path to the image file
+        
+    Returns:
+        Tuple of (image_data, is_valid, is_gif)
+        For PDFs, returns a generator of images
+    """
+    # Get file extension
+    ext = os.path.basename(img_path)[-3:].lower()
+    # Handle GIF files
+    if ext == "gif":
         gif = cv2.VideoCapture(img_path)
         ret, frame = gif.read()
         if not ret:
@@ -158,14 +50,15 @@ def check_and_read(img_path):
         if len(frame.shape) == 2 or frame.shape[-1] == 1:
             frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
         imgvalue = frame[:, :, ::-1]
-        return imgvalue, True, False
-    elif os.path.basename(img_path)[-3:].lower() == "pdf":
+        yield imgvalue
+        
+    # Handle PDF files
+    elif ext == "pdf":
         import fitz
         MAX_PIXELS = 6000000  # 最大像素数限制
         with fitz.open(img_path) as pdf:
             for pg in range(0, pdf.page_count):
                 page = pdf[pg]
-                # 计算合适的缩放比例
                 rect = page.rect
                 w, h = rect.width, rect.height
                 scale = min(1.0, np.sqrt(MAX_PIXELS / (w * h * 9)))  # 9是因为原来的Matrix(3, 3)
@@ -174,3 +67,72 @@ def check_and_read(img_path):
                 img = Image.frombytes("RGB", [pm.width, pm.height], pm.samples)
                 img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
                 yield img
+    # Handle common image formats (JPG, PNG, etc.)
+    else:
+        img = cv2.imread(img_path)
+        if img is None:
+            return None
+        if len(img.shape) == 2 or img.shape[-1] == 1:
+            img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+        yield img[:, :, ::-1]
+
+def readimg(body, keys=None):
+    """Read images from various sources in a request body.
+    
+    Supports:
+    - HTTP URLs
+    - S3 URLs
+    - Base64 encoded images
+    
+    Args:
+        body: Request body containing image data
+        keys: Keys to look for in the body. If None, uses all keys
+        
+    Returns:
+        Dict mapping keys to numpy arrays of images
+    """
+    if keys is None:
+        keys = body.keys()
+    inputs = dict()
+    for key in keys:
+        try:
+            if key.startswith('url'): # url形式
+                if body[key].startswith('http'): # http url
+                    image_string = urllib2.urlopen(body[key]).read()
+                elif body[key].startswith('s3'): # s3 key
+                    o = urlparse(body[key])
+                    bucket = o.netloc
+                    path = o.path.lstrip('/')
+                    s3 = boto3.resource('s3')
+                    img_obj = s3.Object(bucket, path)
+                    image_string = img_obj.get()['Body'].read()
+                else:
+                    raise
+            elif key.startswith('img'): # base64形式
+                image_string = base64.b64decode(body[key])
+            else:
+                raise
+            inputs[key] = np.array(Image.open(BytesIO(image_string)).convert('RGB'))[:, :, :3]
+        except:
+            inputs[key] = None
+    return inputs
+
+def lambda_return(statusCode, body):
+    """Create a standardized Lambda function response.
+    
+    Args:
+        statusCode: HTTP status code
+        body: Response body
+        
+    Returns:
+        Dict containing the Lambda response structure
+    """
+    return {
+        'statusCode': statusCode,
+        'headers': {
+            'Access-Control-Allow-Headers': '*',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': '*'
+        },
+        'body': body
+    } 

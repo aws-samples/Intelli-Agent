@@ -24,10 +24,13 @@ export interface UIProps extends StackProps {
   readonly workspaceWebsocket: string;
   readonly apiUrl: string;
   readonly workspaceApiUrl: string;
-  readonly oidcIssuer: string;
-  readonly oidcClientId: string;
-  readonly oidcLogoutUrl: string;
-  readonly oidcRedirectUrl: string;
+  readonly oidcIssuer?: string;
+  readonly oidcClientId?: string;
+  readonly oidcLogoutUrl?: string;
+  readonly oidcDomain?: string;
+  readonly oidcPoolId?: string;
+  readonly oidcRegion?: string;
+  readonly oidcRedirectUrl?: string;
   readonly kbEnabled: string;
   readonly kbType: string;
   readonly embeddingEndpoint: string;
@@ -50,6 +53,7 @@ export class UiExportsConstruct extends Construct {
     const configFile = 'aws-exports.json';
     new AwsCustomResource(this, 'WebConfig', {
       logRetention: RetentionDays.ONE_DAY,
+      memorySize: 512,
       onCreate: {
         action: 'putObject',
         parameters: {

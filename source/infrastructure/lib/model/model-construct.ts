@@ -11,16 +11,11 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, NestedStack } from "aws-cdk-lib";
+import { Aws, NestedStack } from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as sagemaker from "aws-cdk-lib/aws-sagemaker";
 import { Construct } from "constructs";
 import * as dotenv from "dotenv";
-import * as events from "aws-cdk-lib/aws-events";
-import * as targets from "aws-cdk-lib/aws-events-targets";
-import { Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
-import { join } from "path";
-
 import { SystemConfig } from "../shared/types";
 import { SharedConstructOutputs } from "../shared/shared-construct";
 import { IAMHelper } from "../shared/iam-helper";
@@ -80,18 +75,23 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
     this.modelRegion = props.config.deployRegion;
     this.modelIamHelper = props.sharedConstructOutputs.iamHelper;
 
-    // handle embedding model name setup
-    if (props.config.model.embeddingsModels[0].provider === "bedrock") {
-      this.defaultEmbeddingModelName = props.config.model.embeddingsModels[0].name;
-    } else if (props.config.model.embeddingsModels[0].provider === "sagemaker") {
-      // Initialize SageMaker-specific configurations
-      this.initializeSageMakerConfig();
+    this.initializeSageMakerConfig();
+    const embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
 
-      // Set up embedding model if it's the BCE+BGE model
-      if (props.config.model.embeddingsModels.some(model => model.name === 'bce-embedding-and-bge-reranker')) {
-        const embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
-        this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
-      }
+    // handle embedding model name setup
+    if (props.config.model.embeddingsModels[0].provider === "Bedrock") {
+      this.defaultEmbeddingModelName = props.config.model.embeddingsModels[0].id;
+    } else if (props.config.model.embeddingsModels[0].provider === "SageMaker") {
+      // Initialize SageMaker-specific configurations
+
+      // // Set up embedding model if it's the BCE+BGE model
+      // if (props.config.model.embeddingsModels.some(model => model.id === 'bce-embedding-base_v1') || props.config.model.rerankModels.some(model => model.id === 'bge-reranker-large')) {
+      //   const embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
+      //   this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
+      // }
+
+      // User must deploy reranker endpoint since bedrock does not support reranker model in us-east-1
+      this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
     }
 
     // Handle knowledge base setup separately
@@ -109,39 +109,16 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
       this.defaultKnowledgeBaseModelName = knowledgeBaseModelResources.endpoint.endpointName ?? "";
     }
 
-    if (props.config.chat.useOpenSourceLLM) {
-      const modelTriggerLambda = new Function(this, "ModelTriggerLambda", {
-        runtime: Runtime.PYTHON_3_12,
-        handler: "pipeline_monitor.post_model_deployment",
-        code: Code.fromAsset(join(__dirname, "../../../lambda/pipeline_monitor")),
-        timeout: Duration.minutes(10),
-        memorySize: 512,
-        environment: {
-          DYNAMODB_TABLE: props.sharedConstructOutputs.modelTable.tableName,
-        }
-      });
-      modelTriggerLambda.addToRolePolicy(this.modelIamHelper.dynamodbStatement);
-      modelTriggerLambda.addToRolePolicy(this.modelIamHelper.codePipelineStatement);
-      modelTriggerLambda.addToRolePolicy(this.modelIamHelper.stsStatement);
-
-      const rule = new events.Rule(this, "AllPipelinesStatusRule", {
-        eventPattern: {
-          source: ["aws.codepipeline"],
-          detailType: ["CodePipeline Pipeline Execution State Change"],
-        },
-      });
-      rule.addTarget(new targets.LambdaFunction(modelTriggerLambda));
-
-    }
   }
 
   private deployEmbeddingAndRerankerEndpoint(props: ModelConstructProps) {
     // Deploy Embedding and Reranker model
-    let embeddingAndRerankerModelPrefix = props.config.model.embeddingsModels[0].name ?? "";
+    let embeddingAndRerankerModelPrefix = (props.config.model.embeddingsModels[0].id ?? "").replace(/_/g, "-");
     let embeddingAndRerankerModelVersion = props.config.model.embeddingsModels[0].commitId ?? "";
+    let embeddingAndRerankerEndpointInstanceType = "ml.g4dn.4xlarge";
     let embeddingAndRerankerModelName = embeddingAndRerankerModelPrefix + "-" + embeddingAndRerankerModelVersion.slice(0, 5)
     let embeddingAndRerankerImageUrl = this.modelPublicEcrAccount + this.modelRegion + this.modelImageUrlDomain + "djl-inference:0.21.0-deepspeed0.8.3-cu117";
-    let embeddingAndRerankerModelDataUrl = `s3://${props.config.model.modelConfig.modelAssetsBucket}/${embeddingAndRerankerModelPrefix}_deploy_code/`;
+    let embeddingAndRerankerModelDataUrl = `s3://${props.config.model.modelConfig.modelAssetsBucket}/bce-embedding-and-bge-reranker_deploy_code/`;
     let codePrefix = embeddingAndRerankerModelPrefix + "_deploy_code";
 
     const embeddingAndRerankerModelResources = this.deploySagemakerEndpoint({
@@ -166,12 +143,12 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
             variantName: this.modelVariantName || "",
             containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
             initialInstanceCount: 1,
-            instanceType: "ml.g4dn.4xlarge",
+            instanceType: embeddingAndRerankerEndpointInstanceType,
           },
         ],
       },
       endpointProps: {
-        endpointName: embeddingAndRerankerModelName + "-endpoint",
+        endpointName: props.config.model.embeddingsModels[0].modelEndpoint,
         endpointConfigName: embeddingAndRerankerModelName + "-endpoint-config",
         tags: [
           {
@@ -187,9 +164,10 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
 
   private deployKnowledgeBaseEndpoint(props: ModelConstructProps) {
     // Deploy Knowledge Base model
-    let knowledgeBaseModelName = "knowledge-base-model";
+    let knowledgeBaseModelInstanceType = "ml.g4dn.2xlarge";
     let knowledgeBaseModelEcrRepository = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
     let knowledgeBaseModelEcrImageTag = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
+    let knowledgeBaseModelName = "knowledge-base-model" + "-" + knowledgeBaseModelEcrImageTag;
     let knowledgeBaseModelImageUrl = this.modelAccount + ".dkr.ecr." + this.modelRegion + this.modelImageUrlDomain + knowledgeBaseModelEcrRepository + ":" + knowledgeBaseModelEcrImageTag;
 
     const knowledgeBaseModelResources = this.deploySagemakerEndpoint({
@@ -209,7 +187,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
             variantName: this.modelVariantName || "",
             containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
             initialInstanceCount: 1,
-            instanceType: "ml.g4dn.2xlarge",
+            instanceType: knowledgeBaseModelInstanceType,
           },
         ],
         asyncInferenceConfig: {
@@ -217,7 +195,8 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
             maxConcurrentInvocationsPerInstance: 1,
           },
           outputConfig: {
-            s3OutputPath: `s3://${props.sharedConstructOutputs.resultBucket.bucketName}/${knowledgeBaseModelName}/`,
+            s3OutputPath: `s3://${props.sharedConstructOutputs.resultBucket.bucketName}/${knowledgeBaseModelName}/output`,
+            s3FailurePath: `s3://${props.sharedConstructOutputs.resultBucket.bucketName}/${knowledgeBaseModelName}/failure`,
           },
         },
       },
@@ -287,7 +266,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
     executionRole.addToPolicy(this.modelIamHelper.stsStatement);
     executionRole.addToPolicy(this.modelIamHelper.ecrStatement);
     executionRole.addToPolicy(this.modelIamHelper.llmStatement);
-
+    executionRole.addToPolicy(this.modelIamHelper.secretsManagerStatement);
     this.modelExecutionRole = executionRole;
   }
 

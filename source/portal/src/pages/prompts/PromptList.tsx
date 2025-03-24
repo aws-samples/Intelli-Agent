@@ -28,6 +28,7 @@ import {
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import { formatTime } from 'src/utils/utils';
+import { ROUTES } from 'src/utils/const';
 
 const PromptList: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<PromptItem[]>([]);
@@ -117,11 +118,11 @@ const PromptList: React.FC = () => {
         url: 'chatbot-management/chatbots',
         method: 'get',
       });
-      const items: string[] = data.chatbot_ids;
+      const items: string[] = data.chatbotIds;
       const getChatbots = items.map((item) => {
         return {
-          label: item.toLowerCase(),
-          value: item.toLowerCase(),
+          label: item,
+          value: item,
         };
       });
       setChatbotList(getChatbots);
@@ -141,8 +142,8 @@ const PromptList: React.FC = () => {
         value: selectedItems[0].ModelId,
       });
       setChatbotOption({
-        label: selectedItems[0].ChatbotId.toLowerCase(),
-        value: selectedItems[0].ChatbotId.toLowerCase(),
+        label: selectedItems[0].ChatbotId,
+        value: selectedItems[0].ChatbotId,
       });
     }
     try {
@@ -232,20 +233,20 @@ const PromptList: React.FC = () => {
 
   return (
     <CommonLayout
-      activeHref="/prompts"
+      activeHref={ROUTES.Prompt}
       breadCrumbs={[
         {
           text: t('name'),
-          href: '/',
+          href: ROUTES.Home,
         },
         {
           text: t('prompt'),
-          href: '/prompts',
+          href: ROUTES.Prompt,
         },
       ]}
     >
       <ContentLayout>
-        <div style={{marginTop: '25px'}} />
+        <div style={{ marginTop: '25px' }} />
         <Table
           selectionType="single"
           resizableColumns
@@ -256,8 +257,7 @@ const PromptList: React.FC = () => {
           selectedItems={selectedItems}
           ariaLabels={{
             allItemsSelectionLabel: ({ selectedItems }) =>
-              `${selectedItems.length} ${
-                selectedItems.length === 1 ? t('item') : t('items')
+              `${selectedItems.length} ${selectedItems.length === 1 ? t('item') : t('items')
               } ${t('selected')}`,
           }}
           columnDefinitions={[
@@ -467,34 +467,34 @@ const PromptList: React.FC = () => {
                   tabs={
                     currentPrompt?.Prompt
                       ? Object.keys(currentPrompt?.Prompt).map((key) => ({
-                          label: key,
-                          id: key,
-                          content: (
-                            <>
-                              {Object.keys(currentPrompt?.Prompt[key]).map(
-                                (subKey) => (
-                                  <FormField key={subKey} label={subKey}>
-                                    <Textarea
-                                      rows={5}
-                                      placeholder={t(
-                                        'validation.requirePrompt',
-                                      )}
-                                      value={currentPrompt.Prompt[key][subKey]}
-                                      onChange={({ detail }) => {
-                                        setPromptError('');
-                                        handlePromptChange(
-                                          key,
-                                          subKey,
-                                          detail.value,
-                                        );
-                                      }}
-                                    />
-                                  </FormField>
-                                ),
-                              )}
-                            </>
-                          ),
-                        }))
+                        label: key,
+                        id: key,
+                        content: (
+                          <>
+                            {Object.keys(currentPrompt?.Prompt[key]).map(
+                              (subKey) => (
+                                <FormField key={subKey} label={subKey}>
+                                  <Textarea
+                                    rows={5}
+                                    placeholder={t(
+                                      'validation.requirePrompt',
+                                    )}
+                                    value={currentPrompt.Prompt[key][subKey]}
+                                    onChange={({ detail }) => {
+                                      setPromptError('');
+                                      handlePromptChange(
+                                        key,
+                                        subKey,
+                                        detail.value,
+                                      );
+                                    }}
+                                  />
+                                </FormField>
+                              ),
+                            )}
+                          </>
+                        ),
+                      }))
                       : []
                   }
                 />

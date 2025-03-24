@@ -26,6 +26,15 @@ class ChatbotManager:
         chatbot_manager = cls(chatbot_table, index_table, model_table)
         return chatbot_manager
 
+    
+    def get_model_config(self,group_name, model_id_in_ddb:str):
+        model_content = self.model_table.get_item(
+                        Key={"groupName": group_name,
+                             "modelId": model_id_in_ddb}
+        ).get("Item")
+        return model_content
+
+
     def get_chatbot(self, group_name: str, chatbot_id: str):
         """Get chatbot from chatbot id and add index, model, etc. data
 
@@ -47,15 +56,33 @@ class ChatbotManager:
                 index_content = self.index_table.get_item(
                     Key={"groupName": group_name, "indexId": index_id}
                 ).get("Item")
+
+                # get embedding model config from ddb
                 embedding_model_id = index_content.get(
                     "modelIds").get("embedding")
                 if embedding_model_id:
-                    model_content = self.model_table.get_item(
-                        Key={"groupName": group_name,
-                             "modelId": embedding_model_id}
-                    ).get("Item")
-                    index_content["modelIds"]["embedding"] = model_content
-
+                    # model_content = self.model_table.get_item(
+                    #     Key={"groupName": group_name,
+                    #          "modelId": embedding_model_id}
+                    # ).get("Item")
+                    index_content["modelIds"]["embedding"] = self.get_model_config(
+                        group_name,
+                        embedding_model_id
+                    )
+                
+                # get rerank model config from ddb
+                rerank_model_id = index_content.get(
+                    "modelIds").get("rerank")
+                if rerank_model_id:
+                    # model_content = self.model_table.get_item(
+                    #     Key={"groupName": group_name,
+                    #          "modelId": rerank_model_id}
+                    # ).get("Item")
+                    index_content["modelIds"]["rerank"] = self.get_model_config(
+                        group_name,
+                        rerank_model_id
+                    )
+            
                     # parse to model_content to EmbeddingModelConfig format
                     # index_content["modelIds"]["embedding"] = {
                     #     "provider": model_content['parameter']['ModelProvider'],

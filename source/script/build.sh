@@ -14,7 +14,6 @@ opensearch_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.vect
 embedding_model_provider=$(jq -r '.model.embeddingsModels[0].provider' $config_file)
 model_assets_bucket=$(jq -r '.model.modelConfig.modelAssetsBucket' $config_file)
 ui_enabled=$(jq -r '.ui.enabled' $config_file)
-use_open_source_llm=$(jq -r '.chat.useOpenSourceLLM' $config_file)
 # fi
 
 echo "Knowledge Base Enabled: $knowledge_base_enabled"
@@ -23,7 +22,6 @@ echo "Knowledge Base Models Enabled: $knowledge_base_models_enabled"
 echo "ECR Repository: $ecr_repository"
 echo "ECR Image Tag: $ecr_image_tag"
 echo "OpenSearch Enabled: $opensearch_enabled"
-echo "Use Open Source Model: $use_open_source_llm"
 echo "Model Assets Bucket: $model_assets_bucket"
 echo "UI Enabled: $ui_enabled"
 
@@ -33,24 +31,17 @@ if [ "$deploy_region" != "cn-north-1" ] && [ "$deploy_region" != "cn-northwest-1
     aws ecr-public get-login-password --region $ecr_login_region | docker login --username AWS --password-stdin public.ecr.aws
 fi
 
-prepare_etl_model() {
-    echo "Preparing ETL Model"
-    cd model/etl/code
-    sh model.sh ./Dockerfile $ecr_repository $ecr_image_tag $deploy_region
-    cd - > /dev/null
-    pwd
-}
-
-prepare_online_model() {
-    echo "Preparing Online Model"
-    cd model
-    bash prepare_model.sh -s $model_assets_bucket
+build_lambda_asset() {
+    echo "Building Lambda Asset"
+    cd script
+    bash build-s3-dist.sh
     cd - > /dev/null
 }
 
 build_frontend() {
     echo "Building Frontend"
     cd portal
+    rm -rf node_modules package-lock.json
     npm install && npm run build
     cd - > /dev/null
 }
@@ -58,21 +49,34 @@ build_frontend() {
 build_client_frontend() {
     echo "Building Frontend"
     cd cs-portal
+    rm -rf node_modules package-lock.json
     npm install && npm run build
     cd - > /dev/null
 }
 
-build_deployment_module() {
-    echo "Building Model Deployment Module"
-    # curl https://aws-gcr-solutions-assets.s3.us-east-1.amazonaws.com/dmaa/wheels/dmaa-0.5.0-py3-none-any.whl -o dmaa-0.5.0-py3-none-any.whl && pip install dmaa-0.5.0-py3-none-any.whl"[all]"
-    curl https://aws-gcr-solutions-assets.s3.us-east-1.amazonaws.com/dmaa/wheels/dmaa-0.6.0%2B0.6.0.mini-py3-none-any.whl -o dmaa-0.6.0-py3-none-any.whl && pip install dmaa-0.6.0-py3-none-any.whl"[all]"
-    dmaa bootstrap
+build_etl_package() {
+    echo "Building ETL Package"
+    cd lambda/job
+    sh build_whl.sh
+    cd - > /dev/null
 }
 
-build_lambda_asset() {
-    echo "Building Lambda Asset"
-    cd script
-    bash build-s3-dist.sh
+prepare_etl_model() {
+    echo "Preparing ETL Model"
+    cd model/etl/code
+    sh model.sh $ecr_repository $ecr_image_tag $deploy_region
+    cd - > /dev/null
+    pwd
+}
+
+prepare_online_model() {
+    echo "Preparing Online Model"
+    cd model
+    if [ "$deploy_region" == "cn-north-1" ] || [ "$deploy_region" == "cn-northwest-1" ]; then
+        bash prepare_model_cn.sh -s $model_assets_bucket
+    else
+        bash prepare_model.sh -s $model_assets_bucket
+    fi
     cd - > /dev/null
 }
 
@@ -88,9 +92,9 @@ if $ui_enabled; then
     modules_prepared="${modules_prepared}Frontend, "
 fi
 
-if $use_open_source_llm; then
-    build_deployment_module
-    modules_prepared="${modules_prepared}Model Deployment, "
+if $knowledge_base_enabled && $knowledge_base_intelliagent_enabled; then
+    build_etl_package
+    modules_prepared="${modules_prepared}ETL Package, "
 fi
 
 if $knowledge_base_enabled && $knowledge_base_intelliagent_enabled && $knowledge_base_models_enabled; then

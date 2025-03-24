@@ -25,3 +25,6 @@ source/infrastructure/cli/magic-config.ts
 source/infrastructure/lib/api/asset/intention_corpus.xlsx
 source/cs-portal/src/components/Footer.tsx
 api_test/policies.json
+source/portal/public/locale
+source/portal/src/pages/register/index.tsx
+source/lambda/prompt_management/common_logic/common_utils/prompt_utils.py

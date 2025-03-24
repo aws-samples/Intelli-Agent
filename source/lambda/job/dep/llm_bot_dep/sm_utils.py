@@ -1,7 +1,6 @@
 import io
 import json
 import logging
-import os
 from typing import Any, Dict, Iterator, List, Mapping, Optional
 
 import boto3
@@ -11,6 +10,7 @@ from langchain_community.embeddings import (
     BedrockEmbeddings,
     SagemakerEndpointEmbeddings,
 )
+from langchain_community.embeddings.openai import OpenAIEmbeddings
 from langchain_community.embeddings.sagemaker_endpoint import (
     EmbeddingsContentHandler,
 )
@@ -21,17 +21,15 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_core.outputs import GenerationChunk
 from langchain_core.pydantic_v1 import Extra, root_validator
-from langchain_community.embeddings.openai import OpenAIEmbeddings
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
 session = boto3.session.Session()
-secret_manager_client = session.client(
-    service_name="secretsmanager"
-)
+secret_manager_client = session.client(service_name="secretsmanager")
 
 
-def get_model_details(group_name: str, chatbot_id: str, table_name: str):
+def get_model_details(group_name: str, chatbot_id: str, model_table):
     """Get model details from DynamoDB table
 
     Args:
@@ -42,20 +40,17 @@ def get_model_details(group_name: str, chatbot_id: str, table_name: str):
     Returns:
         dict: Model details from DynamoDB
     """
-    dynamodb = boto3.resource("dynamodb")
-    table = dynamodb.Table(table_name)
     model_id = f"{chatbot_id}-embedding"
 
     try:
-        response = table.get_item(
-            Key={
-                "groupName": group_name,
-                "modelId": model_id
-            }
+        response = model_table.get_item(
+            Key={"groupName": group_name, "modelId": model_id}
         )
 
         if "Item" not in response:
-            raise Exception(f"No model found for group {group_name} and model ID {model_id}")
+            raise Exception(
+                f"No model found for group {group_name} and model ID {model_id}"
+            )
 
         return response["Item"]
     except Exception as e:
@@ -512,43 +507,43 @@ def SagemakerEndpointVectorOrCross(
     )
     return genericModel(prompt=prompt, stop=stop, **kwargs)
 
+
 def getCustomEmbeddings(
-    endpoint_name: str,
     region_name: str,
     bedrock_region: str,
-    model_type: str,
-    group_name: str,
-    chatbot_id: str,
-    model_table: str
+    embedding_model_info: Dict,
 ) -> SagemakerEndpointEmbeddings:
     embeddings = None
-    model_details = get_model_details(group_name, chatbot_id, model_table)
-    model_provider = model_details["parameter"].get("ModelProvider", "Bedrock")
-    base_url = model_details["parameter"].get("BaseUrl", "")
-    api_key_arn = model_details["parameter"].get("ApiKeyArn", "")
-    logger.info(model_details)
+    logger.info(embedding_model_info)
+    model_provider = embedding_model_info.get("modelProvider", "Bedrock")
+    embedding_model_id = embedding_model_info.get("modelId")
+    embedding_model_endpoint = embedding_model_info.get("modelEndpoint")
+    base_url = embedding_model_info.get("baseUrl", "")
+    api_key_arn = embedding_model_info.get("apiKeyArn", "")
 
     if model_provider not in ["Bedrock API", "OpenAI API"]:
         # Use local models
         client = boto3.client("sagemaker-runtime", region_name=region_name)
-        bedrock_client = boto3.client("bedrock-runtime", region_name=bedrock_region)
-        if model_type == "bedrock":
+
+        if model_provider == "Bedrock":
+            bedrock_client = boto3.client(
+                "bedrock-runtime", region_name=bedrock_region
+            )
             content_handler = BedrockEmbeddings()
             embeddings = BedrockEmbeddings(
                 client=bedrock_client,
-                model_id=endpoint_name,
+                model_id=embedding_model_id,
                 normalize=True,
             )
-        elif model_type == "bce":
+        elif embedding_model_id == "bce-embedding-base_v1":
             content_handler = vectorContentHandler()
             embeddings = SagemakerEndpointEmbeddings(
                 client=client,
-                endpoint_name=endpoint_name,
+                endpoint_name=embedding_model_endpoint,
                 content_handler=content_handler,
                 endpoint_kwargs={"TargetModel": "bce_embedding_model.tar.gz"},
             )
-        # compatible with both m3 and bce.
-        else:
+        elif embedding_model_id == "bge-m3":
             content_handler = m3ContentHandler()
             model_kwargs = {}
             model_kwargs["batch_size"] = 12
@@ -556,26 +551,32 @@ def getCustomEmbeddings(
             model_kwargs["return_type"] = "dense"
             embeddings = SagemakerEndpointEmbeddings(
                 client=client,
-                endpoint_name=endpoint_name,
+                endpoint_name=embedding_model_endpoint,
                 model_kwargs=model_kwargs,
                 content_handler=content_handler,
+            )
+        else:
+            raise ValueError(
+                f"Unsupported embedding model: {embedding_model_id}"
             )
         return embeddings
 
     # API inference from Bedrock API or OpenAI API
     if model_provider == "Bedrock API":
         embeddings = OpenAIEmbeddings(
-            model=endpoint_name,
+            model=embedding_model_id,
             api_key=get_secret_value(api_key_arn),
-            base_url=base_url
+            base_url=base_url,
         )
     elif model_provider == "OpenAI API":
         embeddings = OpenAIEmbeddings(
-            model=endpoint_name,
+            model=embedding_model_id,
             api_key=get_secret_value(api_key_arn),
-            base_url=base_url
+            base_url=base_url,
         )
     else:
-        raise ValueError(f"Unsupported API inference provider: {model_provider}")
+        raise ValueError(
+            f"Unsupported API inference provider: {model_provider}"
+        )
 
     return embeddings

@@ -38,8 +38,8 @@ export class LambdaLayers {
             "*.md",
             "*.zip",
             "lambda_main/retail/size/*"],
-          
-          }
+
+        }
       },
     );
     return sharedLayer;
@@ -65,34 +65,34 @@ export class LambdaLayers {
             // "*.zip",
             // "lambda_main/retail/size/*"],
           ]
-          }
+        }
       },
     );
     return OnlineMainLayer;
   }
 
-  createModelDeploymentLayer() {
-    const modelDeploymentLayer = new pyLambda.PythonLayerVersion(
-      this.scope,
-      "AICSModelDeploymentLayer",
-      {
-        entry: path.join(__dirname, "../../../lambda/model_management"),
-        compatibleRuntimes: [Runtime.PYTHON_3_12],
-        description: `AI Customer Service - Model deployment layer`,
-        bundling: {
-          "command": [
-            "bash", "-c", "pip install -r requirements.txt -t /asset-output/python"],
-          "assetExcludes": [
-            "*.pyc", "*/__pycache__/*",
-            "*.xls", "*.xlsx", "*.csv",
-            "*.png",
-            "*.md",
-            "*.zip"]
-        }
-      },
-    );
-    return modelDeploymentLayer;
-  }
+  // createModelDeploymentLayer() {
+  //   const modelDeploymentLayer = new pyLambda.PythonLayerVersion(
+  //     this.scope,
+  //     "AICSModelDeploymentLayer",
+  //     {
+  //       entry: path.join(__dirname, "../../../lambda/model_management"),
+  //       compatibleRuntimes: [Runtime.PYTHON_3_12],
+  //       description: `AI Customer Service - Model deployment layer`,
+  //       bundling: {
+  //         "command": [
+  //           "bash", "-c", "pip install -r requirements.txt -t /asset-output/python"],
+  //         "assetExcludes": [
+  //           "*.pyc", "*/__pycache__/*",
+  //           "*.xls", "*.xlsx", "*.csv",
+  //           "*.png",
+  //           "*.md",
+  //           "*.zip"]
+  //       }
+  //     },
+  //   );
+  //   return modelDeploymentLayer;
+  // }
 
   createJobSourceLayer() {
     const etlLayer = new pyLambda.PythonLayerVersion(
@@ -118,5 +118,31 @@ export class LambdaLayers {
       },
     );
     return authorizerLayer;
+  }
+
+  createIntentionLayer() {
+    const intentionLayer = new pyLambda.PythonLayerVersion(
+      this.scope,
+      "AICSIntentionLayer",
+      {
+        entry: path.join(__dirname, "../../../lambda/intention"),
+        compatibleRuntimes: [Runtime.PYTHON_3_12],
+        description: `AI-Customer-Service - Intention Source layer`,
+        bundling: {
+          "command": [
+            "bash", "-c", "pip install -r requirements.txt -t /asset-output/python"],
+          "assetExcludes": [
+            // "**/*"
+            "*.pyc", "*/__pycache__/*",
+            "*.xls", "*.xlsx", "*.csv",
+            "*.png",
+            "*.md",
+            "*.zip",
+            "lambda_main/retail/size/*"],
+          
+          }
+      },
+    );
+    return intentionLayer;
   }
 }

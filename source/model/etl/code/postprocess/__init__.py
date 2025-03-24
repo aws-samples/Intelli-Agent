@@ -5,7 +5,13 @@ from __future__ import unicode_literals
 
 import copy
 
-__all__ = ['build_post_process']
+from .nms import nms, multiclass_nms, postprocess
+
+__all__ = [
+    "nms",
+    "multiclass_nms",
+    "postprocess"
+]
 
 
 def build_post_process(config, global_config=None):

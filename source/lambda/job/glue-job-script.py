@@ -8,8 +8,6 @@ from datetime import datetime, timezone
 from typing import Generator, Iterable, List
 
 import boto3
-import chardet
-import nltk
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import OpenSearchVectorSearch
@@ -23,83 +21,50 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-try:
-    from awsglue.utils import getResolvedOptions
 
-    args = getResolvedOptions(
-        sys.argv,
-        [
-            "AOS_ENDPOINT",
-            "BATCH_FILE_NUMBER",
-            "BATCH_INDICE",
-            "DOCUMENT_LANGUAGE",
-            "EMBEDDING_MODEL_ENDPOINT",
-            "ETL_MODEL_ENDPOINT",
-            "JOB_NAME",
-            "OFFLINE",
-            "ETL_OBJECT_TABLE",
-            "TABLE_ITEM_ID",
-            "QA_ENHANCEMENT",
-            "REGION",
-            "RES_BUCKET",
-            "S3_BUCKET",
-            "S3_PREFIX",
-            "CHATBOT_ID",
-            "INDEX_ID",
-            "EMBEDDING_MODEL_TYPE",
-            "CHATBOT_TABLE",
-            "INDEX_TYPE",
-            "OPERATION_TYPE",
-            "PORTAL_BUCKET",
-            "BEDROCK_REGION",
-            "MODEL_TABLE",
-            "GROUP_NAME",
-        ],
-    )
-except Exception as e:
-    logger.warning("Running locally")
-    import argparse
+from awsglue.utils import getResolvedOptions
 
-    parser = argparse.ArgumentParser(description="local ingestion parameters")
-    parser.add_argument("--offline", type=bool, default=True)
-    parser.add_argument("--batch_indice", type=int, default=0)
-    parser.add_argument("--batch_file_number", type=int, default=1000)
-    parser.add_argument("--document_language", type=str, default="zh")
-    parser.add_argument("--embedding_model_endpoint", type=str, required=True)
-    parser.add_argument("--table_item_id", type=str, default="x")
-    parser.add_argument("--qa_enhancement", type=str, default=False)
-    parser.add_argument("--s3_bucket", type=str, required=True)
-    parser.add_argument("--s3_prefix", type=str, required=True)
-    parser.add_argument("--chatbot_id", type=str, required=True)
-    parser.add_argument("--index_id", type=str, required=True)
-    parser.add_argument("--embedding_model_type", type=str, required=True)
-    parser.add_argument("--index_type", type=str, required=True)
-    parser.add_argument("--operation_type", type=str, default="create")
-    command_line_args = parser.parse_args()
-    sys.path.append("dep")
-    command_line_args_dict = vars(command_line_args)
-    args = {}
-    for key in command_line_args_dict.keys():
-        args[key.upper()] = command_line_args_dict[key]
-    args["AOS_ENDPOINT"] = os.environ["AOS_ENDPOINT"]
-    args["CHATBOT_TABLE"] = os.environ["CHATBOT_TABLE_NAME"]
-    args["ETL_OBJECT_TABLE"] = os.environ["ETL_OBJECT_TABLE_NAME"]
-    args["ETL_MODEL_ENDPOINT"] = os.environ["ETL_ENDPOINT"]
-    args["RES_BUCKET"] = os.environ["RES_BUCKET"]
-    args["REGION"] = os.environ["REGION"]
-    args["BEDROCK_REGION"] = os.environ["BEDROCK_REGION"]
-    args["CROSS_ACCOUNT_BEDROCK_KEY"] = os.environ["CROSS_ACCOUNT_BEDROCK_KEY"]
-    args["PORTAL_BUCKET"] = os.environ.get("PORTAL_BUCKET", None)
+args = getResolvedOptions(
+    sys.argv,
+    [
+        "AOS_ENDPOINT",
+        "BATCH_FILE_NUMBER",
+        "BATCH_INDICE",
+        "DOCUMENT_LANGUAGE",
+        "ETL_MODEL_ENDPOINT",
+        "JOB_NAME",
+        "OFFLINE",
+        "ETL_OBJECT_TABLE",
+        "TABLE_ITEM_ID",
+        "QA_ENHANCEMENT",
+        "REGION",
+        "RES_BUCKET",
+        "S3_BUCKET",
+        "S3_PREFIX",
+        "CHATBOT_ID",
+        "INDEX_ID",
+        "CHATBOT_TABLE",
+        "INDEX_TYPE",
+        "OPERATION_TYPE",
+        "PORTAL_BUCKET",
+        "BEDROCK_REGION",
+        "MODEL_TABLE",
+        "GROUP_NAME",
+    ],
+)
 
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
-from llm_bot_dep.loaders.auto import cb_process_object
+from llm_bot_dep.loaders.auto import process_object
+from llm_bot_dep.schemas.processing_parameters import (
+    ProcessingParameters,
+    VLLMParameters,
+)
 from llm_bot_dep.storage_utils import save_content_to_s3
 
 # Adaption to allow nougat to run in AWS Glue with writable /tmp
 os.environ["TRANSFORMERS_CACHE"] = "/tmp/transformers_cache"
 os.environ["NOUGAT_CHECKPOINT"] = "/tmp/nougat_checkpoint"
-os.environ["NLTK_DATA"] = "/tmp/nltk_data"
 
 # Parse arguments
 if "BATCH_INDICE" not in args:
@@ -109,7 +74,6 @@ aosEndpoint = args["AOS_ENDPOINT"]
 batchFileNumber = args["BATCH_FILE_NUMBER"]
 batchIndice = args["BATCH_INDICE"]
 document_language = args["DOCUMENT_LANGUAGE"]
-embedding_model_endpoint = args["EMBEDDING_MODEL_ENDPOINT"]
 etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
 offline = args["OFFLINE"]
 etl_object_table_name = args["ETL_OBJECT_TABLE"]
@@ -124,20 +88,19 @@ s3_prefix = args["S3_PREFIX"]
 chatbot_id = args["CHATBOT_ID"]
 group_name = args["GROUP_NAME"]
 aos_index_name = args["INDEX_ID"]
-embedding_model_type = args["EMBEDDING_MODEL_TYPE"]
 chatbot_table = args["CHATBOT_TABLE"]
-model_table = args["MODEL_TABLE"]
+model_table_name = args["MODEL_TABLE"]
 index_type = args["INDEX_TYPE"]
 # Valid Operation types: "create", "delete", "update", "extract_only"
 operation_type = args["OPERATION_TYPE"]
 aos_secret = args.get("AOS_SECRET_NAME", "opensearch-master-user")
-
 
 s3_client = boto3.client("s3")
 sm_client = boto3.client("secretsmanager")
 smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
 etl_object_table = dynamodb.Table(etl_object_table_name)
+model_table = dynamodb.Table(model_table_name)
 
 ENHANCE_CHUNK_SIZE = 25000
 OBJECT_EXPIRY_TIME = 3600
@@ -145,7 +108,23 @@ OBJECT_EXPIRY_TIME = 3600
 credentials = boto3.Session().get_credentials()
 MAX_OS_DOCS_PER_PUT = 8
 
-nltk.data.path.append("/tmp/nltk_data")
+
+def get_model_info():
+    # Get Embedding Model Parameters
+    embedding_model_item = model_table.get_item(
+        Key={"groupName": group_name, "modelId": f"{chatbot_id}-embedding"}
+    ).get("Item")
+    embedding_model_info = embedding_model_item.get("parameter", {})
+
+    # Get VLM Model Parameters
+    vlm_model_item = model_table.get_item(
+        Key={"groupName": group_name, "modelId": f"{chatbot_id}-vlm"}
+    ).get("Item")
+    vlm_model_info = vlm_model_item.get("parameter", {})
+    return embedding_model_info, vlm_model_info
+
+
+embedding_model_info, vlm_model_info = get_model_info()
 
 
 def get_aws_auth():
@@ -176,7 +155,28 @@ def get_aws_auth():
     return aws_auth
 
 
-class S3FileProcessor:
+def update_etl_object_table(
+    processing_params: ProcessingParameters, status: str, detail: str = ""
+):
+    """
+    Update the etl object table with the processing parameters.
+
+    Args:
+        processing_params (ProcessingParameters): The processing parameters.
+    """
+    input_body = {
+        "s3Path": f"s3://{processing_params.source_bucket_name}/{processing_params.source_object_key}",
+        "s3Bucket": processing_params.source_bucket_name,
+        "s3Prefix": processing_params.source_object_key,
+        "executionId": table_item_id,
+        "createTime": str(datetime.now(timezone.utc)),
+        "status": status,
+        "detail": detail,
+    }
+    etl_object_table.put_item(Item=input_body)
+
+
+class S3FileIterator:
     def __init__(
         self, bucket: str, prefix: str, supported_file_types: List[str] = []
     ):
@@ -184,107 +184,6 @@ class S3FileProcessor:
         self.prefix = prefix
         self.supported_file_types = supported_file_types
         self.paginator = s3_client.get_paginator("list_objects_v2")
-
-    def get_file_content(self, key: str):
-        """
-        Get the content of a file from S3.
-        """
-        response = s3_client.get_object(Bucket=self.bucket, Key=key)
-        return response["Body"].read()
-
-    def process_file(self, key: str, file_type: str, file_content: str):
-        """
-        Process a file based on its type and return the processed data.
-
-        Args:
-            key (str): The key of the file.
-            file_type (str): The type of the file.
-            file_content (str): The content of the file.
-
-        Returns:
-            tuple: A tuple containing the file type, processed file content, and additional keyword arguments.
-
-        Raises:
-            None
-        """
-        create_time = str(datetime.now(timezone.utc))
-        kwargs = {
-            "bucket": self.bucket,
-            "key": key,
-            "etl_model_endpoint": etlModelEndpoint,
-            "smr_client": smr_client,
-            "res_bucket": res_bucket,
-            "table_item_id": table_item_id,
-            "create_time": create_time,
-            "portal_bucket_name": portal_bucket_name,
-            "document_language": document_language,
-        }
-
-        input_body = {
-            "s3Path": f"s3://{self.bucket}/{key}",
-            "s3Bucket": self.bucket,
-            "s3Prefix": key,
-            "executionId": table_item_id,
-            "createTime": create_time,
-            "status": "RUNNING",
-        }
-        etl_object_table.put_item(Item=input_body)
-
-        if file_type == "txt":
-            return "txt", self.decode_file_content(file_content), kwargs
-        elif file_type == "csv":
-            kwargs["csv_row_count"] = 1
-            return "csv", self.decode_file_content(file_content), kwargs
-        elif file_type in ["xlsx", "xls"]:
-            kwargs["xlsx_row_count"] = 1
-            return "xlsx", file_content, kwargs
-        elif file_type == "html":
-            return "html", self.decode_file_content(file_content), kwargs
-        elif file_type in ["pdf"]:
-            return "pdf", file_content, kwargs
-        elif file_type in ["docx", "doc"]:
-            return "doc", file_content, kwargs
-        elif file_type == "md":
-            return "md", self.decode_file_content(file_content), kwargs
-        elif file_type == "json":
-            return "json", self.decode_file_content(file_content), kwargs
-        elif file_type == "jsonl":
-            return "jsonl", file_content, kwargs
-        elif file_type in ["png", "jpeg", "jpg", "webp"]:
-            kwargs["image_file_type"] = file_type
-            return "image", file_content, kwargs
-        else:
-            message = "Unknown file type: " + file_type
-            input_body = {
-                "s3Path": f"s3://{self.bucket}/{key}",
-                "s3Bucket": self.bucket,
-                "s3Prefix": key,
-                "executionId": table_item_id,
-                "createTime": create_time,
-                "status": "FAILED",
-                "detail": message,
-            }
-            etl_object_table.put_item(Item=input_body)
-            logger.info(message)
-
-    def decode_file_content(
-        self, file_content: str, default_encoding: str = "utf-8"
-    ):
-        """Decode the file content and auto detect the content encoding.
-
-        Args:
-            content: The content to detect the encoding.
-            default_encoding: The default encoding to try to decode the content.
-            timeout: The timeout in seconds for the encoding detection.
-        """
-        try:
-            decoded_content = file_content.decode(default_encoding)
-        except UnicodeDecodeError:
-            # Try to detect encoding
-            encoding = chardet.detect(file_content)["encoding"]
-            decoded_content = file_content.decode(encoding)
-
-        return decoded_content
 
     def iterate_s3_files(self, extract_content=True) -> Generator:
         current_indice = 0
@@ -313,11 +212,32 @@ class S3FileProcessor:
                     logger.info("Processing object: %s", key)
                     current_indice += 1
 
-                    if extract_content:
-                        file_content = self.get_file_content(key)
-                        yield self.process_file(key, file_type, file_content)
-                    else:
-                        yield file_type, "", {"bucket": self.bucket, "key": key}
+                    # Create VLLM parameters
+                    vllm_params = VLLMParameters(
+                        model_provider=vlm_model_info.get("modelProvider"),
+                        model_id=vlm_model_info.get("modelId"),
+                        model_api_url=vlm_model_info.get("baseUrl"),
+                        model_secret_name=vlm_model_info.get("apiKeyArn"),
+                        model_sagemaker_endpoint_name=vlm_model_info.get(
+                            "modelEndpoint"
+                        ),
+                    )
+
+                    # Create processing parameters with VLLM parameters
+                    processing_params = ProcessingParameters(
+                        source_bucket_name=self.bucket,
+                        source_object_key=key,
+                        etl_endpoint_name=etlModelEndpoint,
+                        result_bucket_name=res_bucket,
+                        portal_bucket_name=portal_bucket_name,
+                        document_language=document_language,
+                        file_type=file_type,
+                        vllm_parameters=vllm_params,
+                    )
+
+                    update_etl_object_table(processing_params, "RUNNING")
+
+                    yield processing_params
 
             if current_indice >= (int(batchIndice) + 1) * int(batchFileNumber):
                 # Exit the outer loop
@@ -511,10 +431,10 @@ class OpenSearchIngestionWorker:
     def __init__(
         self,
         docsearch: OpenSearchVectorSearch,
-        embedding_model_endpoint: str,
+        embedding_model_id: str,
     ):
         self.docsearch = docsearch
-        self.embedding_model_endpoint = embedding_model_endpoint
+        self.embedding_model_id = embedding_model_id
 
     @retry(
         stop=stop_after_attempt(3),
@@ -534,9 +454,7 @@ class OpenSearchIngestionWorker:
                 embeddings_vectors_list.append(
                     embeddings_vectors[0]["dense_vecs"][doc_id]
                 )
-                metadata["embedding_endpoint_name"] = (
-                    self.embedding_model_endpoint
-                )
+                metadata["embedding_model_id"] = self.embedding_model_id
                 metadata_list.append(metadata)
             embeddings_vectors = embeddings_vectors_list
             metadatas = metadata_list
@@ -576,30 +494,26 @@ def ingestion_pipeline(
     ingestion_worker,
     extract_only=False,
 ):
-    for file_type, file_content, kwargs in s3_files_iterator:
-        input_body = {
-            "s3Path": f"s3://{kwargs['bucket']}/{kwargs['key']}",
-            "s3Bucket": kwargs["bucket"],
-            "s3Prefix": kwargs["key"],
-            "executionId": table_item_id,
-            "createTime": kwargs["create_time"],
-            "status": "SUCCEED",
-        }
+    for processing_params in s3_files_iterator:
         try:
             # The res is list[Document] type
-            res = cb_process_object(
-                s3_client, file_type, file_content, **kwargs
-            )
-            for document in res:
+            documents = process_object(processing_params)
+            for document in documents:
                 save_content_to_s3(
                     s3_client,
                     document,
-                    res_bucket,
+                    processing_params.result_bucket_name,
                     SplittingType.SEMANTIC.value,
                 )
 
-            gen_chunk_flag = False if file_type in ["csv", "xlsx", "xls"] else True
-            batches = batch_chunk_processor.batch_generator(res, gen_chunk_flag)
+            gen_chunk_flag = (
+                False
+                if processing_params.file_type in ["csv", "xlsx", "xls"]
+                else True
+            )
+            batches = batch_chunk_processor.batch_generator(
+                documents, gen_chunk_flag
+            )
 
             for batch in batches:
                 if len(batch) == 0:
@@ -618,36 +532,27 @@ def ingestion_pipeline(
                     save_content_to_s3(
                         s3_client,
                         document,
-                        res_bucket,
+                        processing_params.result_bucket_name,
                         SplittingType.CHUNK.value,
                     )
 
                 if not extract_only:
                     ingestion_worker.aos_ingestion(batch)
+            update_etl_object_table(processing_params, "COMPLETED")
         except Exception as e:
             logger.error(
                 "Error processing object %s: %s",
-                kwargs["bucket"] + "/" + kwargs["key"],
+                f"{processing_params.source_bucket_name}/{processing_params.source_object_key}",
                 e,
             )
-            input_body = {
-                "s3Path": f"s3://{kwargs['bucket']}/{kwargs['key']}",
-                "s3Bucket": kwargs["bucket"],
-                "s3Prefix": kwargs["key"],
-                "executionId": table_item_id,
-                "createTime": kwargs["create_time"],
-                "status": "FAILED",
-                "detail": str(e),
-            }
+            update_etl_object_table(processing_params, "FAILED", str(e))
             traceback.print_exc()
-        finally:
-            etl_object_table.put_item(Item=input_body)
 
 
 def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
-    for _, _, kwargs in s3_files_iterator:
+    for processing_params in s3_files_iterator:
         try:
-            s3_path = f"s3://{kwargs['bucket']}/{kwargs['key']}"
+            s3_path = f"s3://{processing_params.source_bucket_name}/{processing_params.source_object_key}"
 
             batches = document_generator.batch_generator(s3_path)
             for batch in batches:
@@ -658,14 +563,14 @@ def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
         except Exception as e:
             logger.error(
                 "Error processing object %s: %s",
-                kwargs["bucket"] + "/" + kwargs["key"],
+                f"{processing_params.source_bucket_name}/{processing_params.source_object_key}",
                 e,
             )
             traceback.print_exc()
 
 
 def create_processors_and_workers(
-    operation_type, docsearch, embedding_model_endpoint, file_processor
+    operation_type, docsearch, embedding_model_id, file_iterator
 ):
     """
     Create processors and workers based on the operation type.
@@ -673,8 +578,8 @@ def create_processors_and_workers(
     Args:
         operation_type (str): The type of operation to perform. Valid types are "create", "delete", "update", and "extract_only".
         docsearch: The instance of the DocSearch class.
-        embedding_model_endpoint: The endpoint of the embedding model.
-        file_processor: The instance of the file processor.
+        embedding_model_id: The id of the embedding model.
+        file_iterator: The instance of the file processor.
 
     Returns:
         tuple: A tuple containing the following elements:
@@ -684,15 +589,13 @@ def create_processors_and_workers(
     """
 
     if operation_type in ["create", "extract_only"]:
-        s3_files_iterator = file_processor.iterate_s3_files(
-            extract_content=True
-        )
+        s3_files_iterator = file_iterator.iterate_s3_files(extract_content=True)
         batch_processor = BatchChunkDocumentProcessor(
             chunk_size=1024, chunk_overlap=30, batch_size=10
         )
-        worker = OpenSearchIngestionWorker(docsearch, embedding_model_endpoint)
+        worker = OpenSearchIngestionWorker(docsearch, embedding_model_id)
     elif operation_type in ["delete", "update"]:
-        s3_files_iterator = file_processor.iterate_s3_files(
+        s3_files_iterator = file_iterator.iterate_s3_files(
             extract_content=False
         )
         batch_processor = BatchQueryDocumentProcessor(docsearch, batch_size=10)
@@ -732,19 +635,16 @@ def main():
             "webp",
         ]
 
-    file_processor = S3FileProcessor(s3_bucket, s3_prefix, supported_file_types)
+    file_iterator = S3FileIterator(s3_bucket, s3_prefix, supported_file_types)
+    embedding_model_id = embedding_model_info.get("modelId")
 
     if operation_type == "extract_only":
         embedding_function, docsearch = None, None
     else:
         embedding_function = sm_utils.getCustomEmbeddings(
-            embedding_model_endpoint,
             region_name=region,
             bedrock_region=bedrock_region,
-            model_type=embedding_model_type,
-            group_name=group_name,
-            chatbot_id=chatbot_id,
-            model_table=model_table
+            embedding_model_info=embedding_model_info,
         )
         aws_auth = get_aws_auth()
         docsearch = OpenSearchVectorSearch(
@@ -758,7 +658,10 @@ def main():
         )
 
     s3_files_iterator, batch_processor, worker = create_processors_and_workers(
-        operation_type, docsearch, embedding_model_endpoint, file_processor
+        operation_type,
+        docsearch,
+        embedding_model_id,
+        file_iterator,
     )
 
     if operation_type == "create":
@@ -776,7 +679,7 @@ def main():
         # Then ingest the documents
         s3_files_iterator, batch_processor, worker = (
             create_processors_and_workers(
-                "create", docsearch, embedding_model_endpoint, file_processor
+                "create", docsearch, embedding_model_id, file_iterator
             )
         )
         ingestion_pipeline(s3_files_iterator, batch_processor, worker)
@@ -789,12 +692,4 @@ def main():
 if __name__ == "__main__":
     logger.info("boto3 version: %s", boto3.__version__)
 
-    # Set the NLTK data path to the /tmp directory for AWS Glue jobs
-    nltk.data.path.append("/tmp")
-    # List of NLTK packages to download
-    nltk_packages = ["words", "punkt"]
-    # Download the required NLTK packages to /tmp
-    for package in nltk_packages:
-        # Download the package to /tmp/nltk_data
-        nltk.download(package, download_dir="/tmp/nltk_data")
     main()

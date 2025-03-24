@@ -1,0 +1,7 @@
+oidc_providers:
+  authing:
+    clients:
+      - client_id: 66b769cf5c2d439dfd37f237
+        client_secret: 7dab7e589bf215fa8778609c54d90f9c
+
+       

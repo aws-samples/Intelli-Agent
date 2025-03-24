@@ -3,11 +3,11 @@ from langchain.schema.runnable import (
     RunnableLambda
 )
 
-from common_logic.common_utils.logger_utils import get_logger
-from common_logic.common_utils.langchain_utils import chain_logger
-from common_logic.common_utils.lambda_invoke_utils import invoke_lambda, chatbot_lambda_call_wrapper, send_trace
-from common_logic.common_utils.constant import LLMTaskType
-from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
+from shared.utils.logger_utils import get_logger
+from shared.utils.langchain_utils import chain_logger
+from shared.utils.lambda_invoke_utils import invoke_lambda, chatbot_lambda_call_wrapper, send_trace
+from shared.constant import LLMTaskType
+from shared.utils.prompt_utils import get_prompt_templates_from_ddb
 
 logger = get_logger("query_preprocess")
 

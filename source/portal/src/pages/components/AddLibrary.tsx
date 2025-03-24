@@ -61,10 +61,10 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
           setIndexName(props.selectedItem?.indexId || '');
           setTagName(props.selectedItem?.tag || '');
           setChatbotOption({
-            label: props.selectedItem?.chatbotId.toLowerCase(),
-            value: props.selectedItem?.chatbotId.toLowerCase(),
+            label: props.selectedItem?.chatbotId,
+            value: props.selectedItem?.chatbotId,
           });
-          
+
           const selectedType = DOC_INDEX_TYPE_LIST.find(
             type => type.value === props.selectedItem?.indexType
           );
@@ -82,7 +82,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
         setAdvanceExpand(false);
       }
     };
-  
+
     getExecutionDetails();
   }, [props.isUpdate, props.selectedItem]);
 
@@ -116,7 +116,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
     };
 
     const resExecution: ExecutionResponse = await fetchData(requestConfig);
-    
+
     if (resExecution.execution_id) {
       setIndexName('');
       setTagName('');
@@ -129,11 +129,11 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
         url: 'chatbot-management/chatbots',
         method: 'get',
       });
-      const items: string[] = data.chatbot_ids;
+      const items: string[] = data.chatbotIds;
       const getChatbots = items.map((item) => {
         return {
-          label: item.toLowerCase(),
-          value: item.toLowerCase(),
+          label: item,
+          value: item,
         };
       });
       setChatbotList(getChatbots);

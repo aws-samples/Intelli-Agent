@@ -11,8 +11,8 @@ load_dotenv(
 import json
 import time 
 from typing import Any
-import common_logic.common_utils.websocket_utils as websocket_utils
-from common_logic.common_utils.constant import LLMTaskType
+import source.lambda.shared.utils.websocket_utils as websocket_utils
+from shared.constant import LLMTaskType
 from pydantic import BaseModel, Field
 
 class DummyWebSocket:

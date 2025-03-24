@@ -5,18 +5,18 @@ from datetime import datetime, timezone
 
 import boto3
 from botocore.exceptions import ClientError
-from common_logic.common_utils.constant import EntryType, ParamType, Threshold, WSConnectionSignal
+from shared.constant import EntryType, ParamType, Threshold,WSConnectionSignal
 from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
-from common_logic.common_utils.lambda_invoke_utils import (
+from shared.utils.lambda_invoke_utils import (
     chatbot_lambda_call_wrapper,
     is_running_local,
     send_trace
 )
-from common_logic.common_utils.logger_utils import get_logger
-from common_logic.common_utils.websocket_utils import set_stop_signal, load_ws_client, clear_stop_signal
+from shared.utils.logger_utils import get_logger
+from shared.utils.websocket_utils import set_stop_signal, load_ws_client, clear_stop_signal
 from lambda_main.main_utils.online_entries import get_entry
 from common_logic.common_utils.response_utils import process_response
-
+from shared.utils.secret_utils import get_secret_value
 
 logger = get_logger("main")
 
@@ -42,29 +42,6 @@ connect_domain_id = os.environ.get("CONNECT_DOMAIN_ID", "")
 connect_user_arn = os.environ.get("CONNECT_USER_ARN", "")
 kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"]
 kb_type = os.environ["KNOWLEDGE_BASE_TYPE"]
-
-
-def get_secret_value(secret_arn: str):
-    """Get secret value from secret manager
-
-    Args:
-        secret_arn (str): secret arn
-
-    Returns:
-        str: secret value
-    """
-    try:
-        get_secret_value_response = secret_manager_client.get_secret_value(
-            SecretId=secret_arn
-        )
-    except ClientError as e:
-        raise Exception("Fail to retrieve the secret value: {}".format(e))
-    else:
-        if "SecretString" in get_secret_value_response:
-            secret = get_secret_value_response["SecretString"]
-            return secret
-        else:
-            raise Exception("Fail to retrieve the secret value")
 
 
 def create_ddb_history_obj(session_id: str, user_id: str, client_type: str, group_name: str, chatbot_id: str) -> DynamoDBChatMessageHistory:
@@ -385,7 +362,8 @@ def lambda_handler(event_body: dict, context: dict):
             # WebSocket API
             return default_event_handler(event_body, context, entry_executor)
     except Exception as e:
-        error_response = {"answer": str(e), "extra_response": {}}
+        error_info = '{}: {}'.format(type(e).__name__, e)
+        error_response = {"answer": error_info, "extra_response": {}}
         enable_trace = event_body.get(
             "chatbot_config", {}).get("enable_trace", True)
         error_trace = f"\n### Error trace\n\n{traceback.format_exc()}\n\n"
@@ -393,8 +371,8 @@ def lambda_handler(event_body: dict, context: dict):
         send_trace(error_trace, enable_trace=enable_trace)
         process_response(event_body, error_response)
         clear_stop_signal(context["ws_connection_id"])
-        logger.error(f"{traceback.format_exc()}\nAn error occurred: {str(e)}")
-        return {"error": str(e)}
+        logger.error(f"{traceback.format_exc()}\nAn error occurred: {error_info}")
+        return {"error": error_info}
 
 
 def __convert_flat_param_to_dict(event_body: dict):
