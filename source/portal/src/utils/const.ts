@@ -46,10 +46,6 @@ export const LLM_BOT_COMMON_MODEL_LIST = [
         value: 'anthropic.claude-3-sonnet-20240229-v1:0',
       },
       {
-        label: 'us.anthropic.claude-3-opus-20240229-v1:0',
-        value: 'us.anthropic.claude-3-opus-20240229-v1:0',
-      },
-      {
         label: 'anthropic.claude-3-haiku-20240307-v1:0',
         value: 'anthropic.claude-3-haiku-20240307-v1:0',
       },
@@ -62,13 +58,21 @@ export const LLM_BOT_COMMON_MODEL_LIST = [
         value: 'anthropic.claude-3-5-haiku-20241022-v1:0',
       },
       {
-        label: 'us.anthropic.claude-3-sonnet-20240229-v1:0',
-        value: 'us.anthropic.claude-3-sonnet-20240229-v1:0',
+        label: 'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
+        value: 'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
       },
       {
         label: 'us.anthropic.claude-3-opus-20240229-v1:0',
         value: 'us.anthropic.claude-3-opus-20240229-v1:0',
       },
+      {
+        label: 'us.anthropic.claude-3-sonnet-20240229-v1:0',
+        value: 'us.anthropic.claude-3-sonnet-20240229-v1:0',
+      },
+      // {
+      //   label: 'us.anthropic.claude-3-opus-20240229-v1:0',
+      //   value: 'us.anthropic.claude-3-opus-20240229-v1:0',
+      // },
       {
         label: 'us.anthropic.claude-3-haiku-20240307-v1:0',
         value: 'us.anthropic.claude-3-haiku-20240307-v1:0',
@@ -111,8 +115,8 @@ export const LLM_BOT_COMMON_MODEL_LIST = [
     label: 'DeepSeek',
     options: [
       {
-        label: 'deepseek.r1-v1:0',
-        value: 'deepseek.r1-v1:0',
+        label: 'us.deepseek.r1-v1:0',
+        value: 'us.deepseek.r1-v1:0',
       },
     ],
   },
