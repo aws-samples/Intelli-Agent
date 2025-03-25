@@ -413,9 +413,9 @@ export const KEYWORD_SCORE = 'keyword_score';
 export const EMBEDDING_SCORE = 'embedding_score';
 export const ADITIONAL_SETTINGS = 'additional_settings';
 export const HISTORY_CHATBOT_ID = 'history_chatbot_id';
-export const API_ENDPOINT = 'API_ENDPOINT';
-export const API_KEY_ARN = 'API_KEY_ARN';
-export const SHOW_FIGURES = 'SHOW_FIGURES';
+export const API_ENDPOINT = 'api_endpoint';
+export const API_KEY_ARN = 'api_key_arn';
+export const SHOW_FIGURES = 'show_figures';
 
 // export const ZH_LANGUAGE_LIST = ['zh', 'zh-cn', 'zh_CN', 'zh-CN'];
 export const EN_LANGUAGE_LIST = ['en', 'en-US', 'en_UK'];

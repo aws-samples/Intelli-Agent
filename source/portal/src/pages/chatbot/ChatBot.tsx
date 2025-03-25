@@ -96,7 +96,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [loadingChatBots, setLoadingChatBots] = useState(false);
   // const [loadingModel, setLoadingModel] = useState(false);
   // const [loadingModelList, setLoadingModelList] = useState(false);
-  // const localScenario = localStorage.getItem(MODEL_TYPE);
+  const tmpModelType = localStorage.getItem(MODEL_TYPE);
+  const localModelType = tmpModelType ? JSON.parse(tmpModelType) : null;
+  const localModel = localStorage.getItem(MODEL_OPTION);
   const localMaxToken = localStorage.getItem(MAX_TOKEN);
   const localTemperature = localStorage.getItem(TEMPERATURE);
   const localConfig = localStorage.getItem(ADITIONAL_SETTINGS);
@@ -109,6 +111,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const localApiEndpoint = localStorage.getItem(API_ENDPOINT);
   const localApiKeyArn = localStorage.getItem(API_KEY_ARN);
   const config = useContext(ConfigContext);
+  const isFirstRender = useRef(true);
   const { t } = useTranslation();
   // const auth = useAuth();
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -138,10 +141,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [currentMonitorMessage, setCurrentMonitorMessage] = useState('');
   const [currentAIMessageId, setCurrentAIMessageId] = useState('');
   const [aiSpeaking, setAiSpeaking] = useState(false);
-  const [modelOption, setModelOption] = useState('');
+  
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
   const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
-  const [apiEndpointOption, setApiEndpointOption] = useState<SelectProps.Option>(null as any)
+  
   const [chatbotOption, setChatbotOption] = useState<SelectProps.Option>(
     {label: 'admin', value: 'admin'} as any,
   );
@@ -165,10 +168,13 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       : false,
   );
   const [isComposing, setIsComposing] = useState(false);
-  const [modelType, setModelType] = useState<SelectProps.Option>(
-    MODEL_TYPE_LIST[0],
-  );
+  
   const defaultConfig = {
+    modelType: {
+      label: 'Bedrock',
+      value: 'Bedrock',
+    },
+    model: LLM_BOT_COMMON_MODEL_LIST[0].options[0].value,
     temperature: '0.01',
     maxToken: '1000',
     maxRounds: '7',
@@ -176,11 +182,27 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     topKEmbedding: '5',
     topKRerank: '10',
     keywordScore: '0.4',
-    embeddingScore: '0.4',
+    embeddingScore: '0.4',           
     additionalConfig: '',
+    apiEndpoint: '',
+    apiKeyArn: '',
   };
 
   const [sessionId, setSessionId] = useState(historySessionId);
+
+  const [modelOption, setModelOption] = useState(localModel ?? defaultConfig.model);
+  // if (localModelType.value === 'SageMaker'){
+  const [sageMakerEndpointOption, setSageMakerEndpointOption] = useState<SelectProps.Option>(null as any);
+  
+    // if (localModelType.value === 'SageMaker'){
+
+    // }
+  // }
+  const [modelType, setModelType] = useState<SelectProps.Option>(
+    localModelType ?? defaultConfig.modelType,
+  );
+  const [apiEndpoint, setApiEndpoint] = useState(localApiEndpoint ?? defaultConfig.apiEndpoint);
+  const [apiKeyArn, setApiKeyArn] = useState(localApiKeyArn ?? defaultConfig.apiKeyArn);
 
   const [temperature, setTemperature] = useState<string>(
     localTemperature ?? defaultConfig.temperature,
@@ -228,8 +250,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [additionalConfigError, setAdditionalConfigError] = useState('');
   const [apiEndpointError, setApiEndpointError] = useState('');
   const [apiKeyArnError, setApiKeyArnError] = useState('');
-  const [apiEndpoint, setApiEndpoint] = useState(localApiEndpoint ?? '');
-  const [apiKeyArn, setApiKeyArn] = useState(localApiKeyArn ?? '');
+ 
   const [sageMakerEndpoints, setSageMakerEndpoints] = useState<{label: string, value: string}[]>([])
 
   const connectionStatus = {
@@ -240,15 +261,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     [ReadyState.UNINSTANTIATED]: 'pending',
   }[readyState];
 
-  // Define an async function to get the data
   const fetchData = useAxiosRequest();
-
-  // const [chatbotModelProvider, setChatbotModelProvider] = useState<{
-  //   [key: string]: string;
-  // }>({});
-
-  // const [modelProviderHint, setModelProviderHint] = useState('');
-
   const startNewChat = () => {
     [
       CURRENT_CHAT_BOT,
@@ -412,12 +425,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         });
       });
       setSageMakerEndpoints(tempModels)
-      setApiEndpointOption(tempModels[0])
+      setSageMakerEndpointOption(tempModels[0])
+      if(modelType.value === "SageMaker"){
+        setApiEndpoint(localApiEndpoint ?? tempModels[0].value)
+     }
     }
     fetchEndpoints();
-
     initializeChatbot();
-    setLoadingChatBots(false)
+    setLoadingChatBots(false);
   }, []);
 
   useEffect(() => {
@@ -820,30 +835,27 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   };
 
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false; 
+      return;
+    }
+    setApiEndpoint(modelType.value === 'SageMaker' ? sageMakerEndpoints[0].value:'');
+    setApiKeyArn('');
     if (modelType.value === 'Bedrock') {
       setModelList(LLM_BOT_COMMON_MODEL_LIST);
       setModelOption(LLM_BOT_COMMON_MODEL_LIST[0].options[0].value);
-      setApiEndpoint('');
-      setApiKeyArn('');
     } else if (modelType.value === 'Bedrock API') {
       setModelList(BR_API_MODEL_LIST);
       setModelOption(BR_API_MODEL_LIST[0].options[0].value);
-      setApiEndpoint('');
-      setApiKeyArn('');
     } else if (modelType.value === 'OpenAI API') {
       setModelList(OPENAI_API_MODEL_LIST);
       setModelOption(OPENAI_API_MODEL_LIST[0].options[0].value);
-      setApiEndpoint('');
-      setApiKeyArn('');
     } else if (modelType.value === 'siliconflow') {
       setModelList(SILICON_FLOW_API_MODEL_LIST);
       setModelOption(SILICON_FLOW_API_MODEL_LIST[0].options[0].value);
-      setApiEndpoint('');
-      setApiKeyArn('');
     } else if (modelType.value === 'SageMaker') {
       setModelList(SAGEMAKER_MODEL_LIST);
       setModelOption(SAGEMAKER_MODEL_LIST[0].options[0].value);
-      setApiEndpoint(sageMakerEndpoints[0].value);
     }
   }, [modelType]);
 
@@ -1107,26 +1119,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                             onChange={({ detail }) => {
                               setModelType(detail.selectedOption);
                               setModelOption('');
-
-
-                              // Check if the selected model provider matches the chatbot's model provider
-                              // const selectedChatbotId =
-                              //   chatbotOption.value ?? 'defaultId';
-                              // const expectedModelProvider =
-                              //   chatbotModelProvider[selectedChatbotId];
-
-                              // if (
-                              //   expectedModelProvider !==
-                              //   detail.selectedOption.value &&
-                              //   detail.selectedOption.value !== 'emd' &&
-                              //   detail.selectedOption.value !== 'siliconflow'
-                              // ) {
-                              //   setModelProviderHint(
-                              //     t('chatbotModelProviderError'),
-                              //   );
-                              // } else {
-                              //   setModelProviderHint(''); // Clear hint if the selection is valid
-                              // }
                             }}
                           />
                         </FormField>
@@ -1230,10 +1222,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                     onChange={({ detail }: { detail: any }) => {
                       setApiEndpointError('');
                       setApiEndpoint(detail.selectedOption.value);
-                      setApiEndpointOption(detail.selectedOption);
+                      setSageMakerEndpointOption(detail.selectedOption);
                     }}
                     loadingText={t('loadingEp')}
-                    selectedOption={apiEndpointOption}
+                    selectedOption={sageMakerEndpointOption}
                     options={sageMakerEndpoints}
                     placeholder={t('validation.requireModel')}
                     empty={t('noModelFound')}
