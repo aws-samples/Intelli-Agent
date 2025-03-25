@@ -113,8 +113,8 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
 
   private deployEmbeddingAndRerankerEndpoint(props: ModelConstructProps) {
     // Deploy Embedding and Reranker model
-    let embeddingAndRerankerModelPrefix = (props.config.model.embeddingsModels[0].id ?? "").replace(/_/g, "-");
-    let embeddingAndRerankerModelVersion = props.config.model.embeddingsModels[0].commitId ?? "";
+    let embeddingAndRerankerModelPrefix = "bce-embedding-and-bge-reranker";
+    let embeddingAndRerankerModelVersion = "43972580a35ceacacd31b95b9f430f695d07dde9";
     let embeddingAndRerankerEndpointInstanceType = "ml.g4dn.4xlarge";
     let embeddingAndRerankerModelName = embeddingAndRerankerModelPrefix + "-" + embeddingAndRerankerModelVersion.slice(0, 5)
     let embeddingAndRerankerImageUrl = this.modelPublicEcrAccount + this.modelRegion + this.modelImageUrlDomain + "djl-inference:0.21.0-deepspeed0.8.3-cu117";
