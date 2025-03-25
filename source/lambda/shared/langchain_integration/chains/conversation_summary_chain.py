@@ -153,9 +153,7 @@ class ConversationSummaryBaseChain(LLMChain):
         messages_chain = cls.create_messages_chain(
             **kwargs, enable_prefill=llm.enable_prefill)
         chain = messages_chain | RunnableLambda(lambda x: print_llm_messages(f"conversation summary messages: {x.messages}") or x.messages) \
-            | llm
-        # chain = messages_chain | RunnableLambda(lambda x: print_llm_messages(f"conversation summary messages: {x.messages}") or x.messages) \
-        #     | llm | RunnableLambda(lambda x: x.content.replace(cls.prefill, "").strip())
+            | llm | RunnableLambda(lambda x: x.text().replace(cls.prefill, "").strip())
         return chain
 
 
