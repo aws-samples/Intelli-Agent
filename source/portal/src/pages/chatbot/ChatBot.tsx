@@ -433,6 +433,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     fetchEndpoints();
     initializeChatbot();
     setLoadingChatBots(false);
+    setModelList(LLM_BOT_COMMON_MODEL_LIST)
   }, []);
 
   useEffect(() => {

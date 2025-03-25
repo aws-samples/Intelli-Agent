@@ -23,7 +23,6 @@ import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import AddIntention from '../components/AddIntention';
 import { ROUTES } from 'src/utils/const';
-// import { useAuth } from 'react-oidc-context';
 
 const parseDate = (item: IntentionsItem) => {
   return item.createTime ? new Date(item.createTime) : 0;
