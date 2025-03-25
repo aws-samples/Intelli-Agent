@@ -148,7 +148,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
         ],
       },
       endpointProps: {
-        endpointName: props.config.model.embeddingsModels[0].modelEndpoint,
+        endpointName: "bce-embedding-and-bge-reranker-43972-endpoint",
         endpointConfigName: embeddingAndRerankerModelName + "-endpoint-config",
         tags: [
           {
