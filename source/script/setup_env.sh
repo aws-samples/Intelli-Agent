@@ -35,9 +35,8 @@ echo "Python $(python3 --version)"
 echo "Node.js $(node --version)"
 echo "npm $(npm --version)"
 echo "Docker $(docker --version)"
-echo "TypeScript $(tsc --version)"
 # End of user data script
 
 echo "Create service linked role for Amazon Opensearch Service"
 # aws iam create-service-linked-role --aws-service-name es.amazonaws.com 2> /dev/null
-aws iam create-service-linked-role --aws-service-name opensearchservice.amazonaws.com
+aws iam create-service-linked-role --aws-service-name opensearchservice.amazonaws.com 2> /dev/null

@@ -58,21 +58,21 @@ When a large number of content injection requests are received, it can automatic
 
 #### Chunk Metadata
 Chunk metadata is defined as below shown:
-| Name | Description |
-| - | - |
-|file_path| S3 path to store the file |
-|file_type| File type, eg. pdf, html |
-|content_type| paragraph: paragraph content |
-|current_heading| The heading which the chunk belongs to |
-|chunk_id| Unique chunk id |
-|heading_hierarchy| Heading hierarchy which is used to locate the chunk in the whole file content |
-|title| The heading of current section|
-|level| Heading level, eg. H1 is #, H2 is ## in markdown |
-|parent| The chunk id of parent section, eg. H2's parent is its H1, H3's parent is its H2 |
-|previous| The chunk id of previous paragraph at the same Level |
-|child| The chunk ids of sub sections |
-|next|The chunk id of next paragraph at the same Level |
-|size| The number of the chunks when the paragraph is split by a fixed chunk size |
+| Name              | Description                                                                      |
+| ----------------- | -------------------------------------------------------------------------------- |
+| file_path         | S3 path to store the file                                                        |
+| file_type         | File type, eg. pdf, html                                                         |
+| content_type      | paragraph: paragraph content                                                     |
+| current_heading   | The heading which the chunk belongs to                                           |
+| chunk_id          | Unique chunk id                                                                  |
+| heading_hierarchy | Heading hierarchy which is used to locate the chunk in the whole file content    |
+| title             | The heading of current section                                                   |
+| level             | Heading level, eg. H1 is #, H2 is ## in markdown                                 |
+| parent            | The chunk id of parent section, eg. H2's parent is its H1, H3's parent is its H2 |
+| previous          | The chunk id of previous paragraph at the same Level                             |
+| child             | The chunk ids of sub sections                                                    |
+| next              | The chunk id of next paragraph at the same Level                                 |
+| size              | The number of the chunks when the paragraph is split by a fixed chunk size       |
 
 Here is an example
 
@@ -265,11 +265,11 @@ npx cdk deploy
 
 After deployment, you can find a stack containing `intelli-agent` in the CloudFormation console. On the Output tab of the stack, you can find key solution information, commonly explained as follows:
 
-| Name | Description |
-| - | - |
-| WebPortalURL | Link to the Intelli-Agent frontend website. |
-| APIEndpointAddress | RESTful API endpoint address primarily used for data preprocessing, chat history, etc. |
-| WebSocketEndpointAddress | WebSocket API endpoint address primarily used for chat functionality. |
+| Name                     | Description                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------- |
+| WebPortalURL             | Link to the Intelli-Agent frontend website.                                            |
+| APIEndpointAddress       | RESTful API endpoint address primarily used for data preprocessing, chat history, etc. |
+| WebSocketEndpointAddress | WebSocket API endpoint address primarily used for chat functionality.                  |
 
 
 ### Updating an Existing Deployment
@@ -317,7 +317,6 @@ Sample config.json:
   "chat": {
     "enabled": true,
     "bedrockRegion": "us-east-1",
-    "useOpenSourceLLM": true,
     "amazonConnect": {
       "enabled": true
     }
@@ -428,11 +427,11 @@ After CDK deployment, you can use a HTTP client such as Postman/cURL to invoke t
 ### Current Model Selection for Each Processing Stage
 The current models used in each stage are as follows, selected based on internal team testing and current effectiveness. Customers can customize and replace these models. Detailed model replacement is available.
 
-| Function | Model |
-| - | - |
-| Rerank | BGE-reranker-large |
-| Embedding | BCE |
-| LLM | Claude3/Claude3.5 |
+| Function  | Model              |
+| --------- | ------------------ |
+| Rerank    | BGE-reranker-large |
+| Embedding | BCE                |
+| LLM       | Claude3/Claude3.5  |
 
 ### How to Get Support
 Get support by creating an issue on GitHub.

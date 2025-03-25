@@ -15,6 +15,13 @@ import { LIB_VERSION } from "./version.js";
 
 const embeddingModels = [
   {
+    provider: "SageMaker",
+    id: "bce-embedding-base_v1",
+    commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
+    dimensions: 768,
+    modelEndpoint: "bce-embedding-and-bge-reranker-43972-endpoint",
+  },
+  {
     provider: "Bedrock",
     id: "amazon.titan-embed-text-v2:0",
     commitId: "",
@@ -33,13 +40,6 @@ const embeddingModels = [
     commitId: "",
     dimensions: 1024,
   },
-  {
-    provider: "SageMaker",
-    id: "bce-embedding-base_v1",
-    commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
-    dimensions: 768,
-    modelEndpoint: "bce-embedding-base-v1-43972-endpoint",
-  },
 ];
 
 let rerankModels = [
@@ -50,7 +50,7 @@ let rerankModels = [
   {
     provider: "SageMaker",
     id: "bge-reranker-large",
-    modelEndpoint: "bce-embedding-base-v1-43972-endpoint",
+    modelEndpoint: "bce-embedding-and-bge-reranker-43972-endpoint",
   },
 ]
 
@@ -154,7 +154,6 @@ async function getAwsAccountAndRegion() {
       options.enableChat = config.chat.enabled;
       options.bedrockRegion = config.chat.bedrockRegion;
       options.enableConnect = config.chat.amazonConnect.enabled;
-      options.useOpenSourceLLM = config.chat.useOpenSourceLLM;
       options.defaultEmbedding = config.model.embeddingsModels && config.model.embeddingsModels.length > 0
         ? config.model.embeddingsModels[0].id
         : embeddingModels[0].id;
@@ -382,15 +381,6 @@ async function processCreateOptions(options: any): Promise<void> {
     },
     {
       type: "confirm",
-      name: "useOpenSourceLLM",
-      message: "Do you want to use open source LLM(eg. Qwen, ChatGLM, IntermLM)?",
-      initial: options.useOpenSourceLLM ?? false,
-      skip(): boolean {
-        return (!(this as any).state.answers.enableChat || deployInChina);
-      },
-    },
-    {
-      type: "confirm",
       name: "enableConnect",
       message: "Do you want to integrate it with Amazon Connect?",
       initial: options.enableConnect ?? false,
@@ -550,7 +540,6 @@ async function processCreateOptions(options: any): Promise<void> {
     chat: {
       enabled: answers.enableChat,
       bedrockRegion: answers.bedrockRegion,
-      useOpenSourceLLM: answers.useOpenSourceLLM,
       amazonConnect: {
         enabled: answers.enableConnect,
       },
