@@ -17,11 +17,9 @@ Chatbot Portal with Agent offers a streamlined workflow for developing scalable,
 
 1. **Enterprise Knowledge Base Creation**: Users can upload private documents in various formats (PDF, DOCX, HTML, CSV, TXT, MD, JSON, JSONL, PNG, JPG, JPEG, WEBP) to construct a personalized knowledge base.
 
-2. **Flexible Mode Options**: Choose from multiple modes (Agent, Chat, RAG) to suit diverse requirements. For instance, the Agent model can interpret user intent, select appropriate tools, and act on iterative results.
+2. **Configurable Chat-Based UI**: Our React/Next.js chat interface is user-friendly, making it easy to configure, explore, and customize to meet your specific needs.
 
-3. **Configurable Chat-Based UI**: Our React/Next.js chat interface is user-friendly, making it easy to configure, explore, and customize to meet your specific needs.
-
-4. **Comprehensive RESTful API**: Our full-featured API facilitates easy integration with existing applications, enhancing functionality and user experience.
+3. **Comprehensive RESTful API**: Our full-featured API facilitates easy integration with existing applications, enhancing functionality and user experience.
 
 Chatbot Portal with Agent is designed to empower developers to rapidly deploy intelligent, context-aware applications with minimal overhead and maximum efficiency.
 
@@ -207,7 +205,7 @@ To deploy the solution, follow these steps:
 **Step 1**: Clone the GitHub repository
 
 ```bash
-git clone git@github.com:aws-samples/Intelli-Agent.git
+git clone <repo_url>
 ```
 
 **Step 2**: Navigate to the `source/infrastructure` directory
@@ -382,22 +380,15 @@ To uninstall the solution, follow these steps:
 
 ## Feature Overview
 
-![Portal](docs/images/portal-ui.png)
 
-### 1. Large Language Model Switching
-Currently supports the following LLMs:
-- Claude3 Haiku
-- Claude3 Sonnet
-- Claude3.5 Sonnet
-
-### 2. Chat Window
+### 1. Chat Window
 The chat area consists of two main functionalities: Chatbot and History.
 The Chatbot can initiate a new conversation based on supported LLM models.
 History -> The chat history ID that needs to be restarted will display past chat records on the page. Users can continue their conversation based on it.
 
 ![KB](docs/images/chat-history-ui.png)
 
-### 3. Document Library (Knowledge Base)
+### 2. Document Library (Knowledge Base)
 The Document Library (required for RAG) currently supports document creation (one upload at a time) and deletion (multiple deletions at a time).
 - Supports 12 document formats: pdf, docx, txt, csv, jsonl, json, html, md, png, jpg, jpeg, webp
 - UI upload document size limit: 10MB
@@ -408,10 +399,10 @@ Tips:
 - Example:
 ![KB](docs/images/kb-ui.png)
 
-### 4. User Management
+### 3. User Management
 The current username is displayed in the upper right corner. Click "Logout" to log out.
 
-### 5. Interface Display Language Switching
+### 4. Interface Display Language Switching
 Currently supports Simplified Chinese and English.
 
 
@@ -423,15 +414,6 @@ After CDK deployment, you can use a HTTP client such as Postman/cURL to invoke t
 
 
 ## FAQ
-
-### Current Model Selection for Each Processing Stage
-The current models used in each stage are as follows, selected based on internal team testing and current effectiveness. Customers can customize and replace these models. Detailed model replacement is available.
-
-| Function  | Model              |
-| --------- | ------------------ |
-| Rerank    | BGE-reranker-large |
-| Embedding | BCE                |
-| LLM       | Claude3/Claude3.5  |
 
 ### How to Get Support
 Get support by creating an issue on GitHub.
