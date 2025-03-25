@@ -409,15 +409,12 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "input",
       name: "sagemakerModelS3Bucket",
       message: "Please enter the name of the S3 Bucket for the sagemaker models assets",
-      initial: options.sagemakerModelS3Bucket ?? `intelli-agent-models-${AWS_ACCOUNT}-${mandatoryQuestionAnswers.intelliAgentDeployRegion}`,
+      initial: `intelli-agent-models-${AWS_ACCOUNT}-${mandatoryQuestionAnswers.intelliAgentDeployRegion}`,
       validate(sagemakerModelS3Bucket: string) {
         return (this as any).skipped ||
           RegExp(/^(?!(^xn--|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/i).test(sagemakerModelS3Bucket)
           ? true
           : "Enter a valid S3 Bucket Name in the specified format: (?!^xn--|.+-s3alias$)^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]";
-      },
-      skip(): boolean {
-        return (this as any).state.answers.defaultEmbedding !== "bce-embedding-and-bge-reranker";
       }
     },
     {
