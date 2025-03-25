@@ -148,6 +148,7 @@ async function getAwsAccountAndRegion() {
         : "unsupported";
       options.useCustomDomain = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.useCustomDomain;
       options.customDomainEndpoint = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.customDomainEndpoint;
+      options.customDomainSecretArn = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.customDomainSecretArn;
       options.enableIntelliAgentKbModel = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled;
       options.knowledgeBaseModelEcrRepository = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
       options.knowledgeBaseModelEcrImageTag = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
@@ -301,6 +302,27 @@ async function processCreateOptions(options: any): Promise<void> {
           RegExp(/^https:\/\/[a-z0-9-]+.[a-z0-9-]{2,}\.es\.amazonaws\.com/).test(customDomainEndpoint)
           ? true
           : "Enter a valid OpenSearch domain endpoint (e.g., https://search-domain-region-id.region.es.amazonaws.com)";
+      },
+      skip(): boolean {
+        if (!(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
+          (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch" ||
+          !(this as any).state.answers.useCustomDomain) {
+          return true;
+        }
+        return false;
+      },
+    },
+    {
+      type: "input",
+      name: "customDomainSecretArn",
+      message: "Please enter the secret arn containing the credentials for the custom domain",
+      initial: options.customDomainSecretArn ?? "",
+      validate(customDomainSecret: string) {
+        return (this as any).skipped ||
+          RegExp(/^arn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[a-zA-Z0-9/_+=.@-]+$/i).test(customDomainSecret)
+          ? true
+          : "Enter a valid secret arn (e.g., arn:aws:secretsmanager:region:account-id:secret:my-secret-name)";
       },
       skip(): boolean {
         if (!(this as any).state.answers.enableKnowledgeBase ||
@@ -524,6 +546,7 @@ async function processCreateOptions(options: any): Promise<void> {
               enabled: answers.intelliAgentKbVectorStoreType === "opensearch",
               useCustomDomain: answers.useCustomDomain,
               customDomainEndpoint: answers.customDomainEndpoint,
+              customDomainSecretArn: answers.customDomainSecretArn,
             },
           },
           knowledgeBaseModel: {
