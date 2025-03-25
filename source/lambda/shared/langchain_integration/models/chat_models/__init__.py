@@ -73,7 +73,7 @@ def _import_bedrock_models():
 
 
 def _import_brconnector_bedrock_models():
-    from . import bedrock_models
+    from . import brconnector_bedrock_models
 
 
 def _import_openai_models():
