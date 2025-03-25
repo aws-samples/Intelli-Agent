@@ -114,9 +114,9 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
   private deployEmbeddingAndRerankerEndpoint(props: ModelConstructProps) {
     // Deploy Embedding and Reranker model
     let embeddingAndRerankerModelPrefix = "bce-embedding-and-bge-reranker";
-    let embeddingAndRerankerModelVersion = "43972580a35ceacacd31b95b9f430f695d07dde9";
+    let embeddingAndRerankerModelVersion = "20250325";
     let embeddingAndRerankerEndpointInstanceType = "ml.g4dn.4xlarge";
-    let embeddingAndRerankerModelName = embeddingAndRerankerModelPrefix + "-" + embeddingAndRerankerModelVersion.slice(0, 5)
+    let embeddingAndRerankerModelName = embeddingAndRerankerModelPrefix + "-" + embeddingAndRerankerModelVersion;
     let embeddingAndRerankerImageUrl = this.modelPublicEcrAccount + this.modelRegion + this.modelImageUrlDomain + "djl-inference:0.21.0-deepspeed0.8.3-cu117";
     let embeddingAndRerankerModelDataUrl = `s3://${props.config.model.modelConfig.modelAssetsBucket}/bce-embedding-and-bge-reranker_deploy_code/`;
     let codePrefix = embeddingAndRerankerModelPrefix + "_deploy_code";
