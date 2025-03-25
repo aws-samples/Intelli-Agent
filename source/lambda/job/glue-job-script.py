@@ -50,6 +50,7 @@ args = getResolvedOptions(
         "BEDROCK_REGION",
         "MODEL_TABLE",
         "GROUP_NAME",
+        "CUSTOM_DOMAIN_SECRET_ARN",
     ],
 )
 
@@ -93,10 +94,10 @@ model_table_name = args["MODEL_TABLE"]
 index_type = args["INDEX_TYPE"]
 # Valid Operation types: "create", "delete", "update", "extract_only"
 operation_type = args["OPERATION_TYPE"]
-aos_secret = args.get("AOS_SECRET_NAME", "opensearch-master-user")
+aos_secret = args["CUSTOM_DOMAIN_SECRET_ARN"]
 
 s3_client = boto3.client("s3")
-sm_client = boto3.client("secretsmanager")
+secrets_manager_client = boto3.client("secretsmanager")
 smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
 etl_object_table = dynamodb.Table(etl_object_table_name)
@@ -129,7 +130,7 @@ embedding_model_info, vlm_model_info = get_model_info()
 
 def get_aws_auth():
     try:
-        master_user = sm_client.get_secret_value(SecretId=aos_secret)[
+        master_user = secrets_manager_client.get_secret_value(SecretId=aos_secret)[
             "SecretString"
         ]
         cred = json.loads(master_user)
@@ -137,11 +138,11 @@ def get_aws_auth():
         password = cred.get("password")
         aws_auth = (username, password)
 
-    except sm_client.exceptions.ResourceNotFoundException:
+    except secrets_manager_client.exceptions.ResourceNotFoundException:
         aws_auth = AWS4Auth(
             refreshable_credentials=credentials, region=region, service="es"
         )
-    except sm_client.exceptions.InvalidRequestException:
+    except secrets_manager_client.exceptions.InvalidRequestException:
         logger.info(
             "InvalidRequestException. It might caused by getting secret value from a deleting secret"
         )

@@ -137,6 +137,13 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
 
   private createKnowledgeBaseJob(props: any) {
     const deployRegion = props.config.deployRegion;
+    let customDomainSecretArn;
+    if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.useCustomDomain) {
+      customDomainSecretArn = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.customDomainSecretArn;
+    } else {
+      customDomainSecretArn = "-";
+    }
+
     const connection = new glue.Connection(this, "GlueJobConnection", {
       type: glue.ConnectionType.NETWORK,
       subnet: props.sharedConstructOutputs.vpc.privateSubnets[0],
@@ -208,6 +215,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
       "--ETL_OBJECT_TABLE": this.etlObjTableName || "-",
       "--PORTAL_BUCKET": this.uiPortalBucketName,
       "--CHATBOT_TABLE": props.sharedConstructOutputs.chatbotTable.tableName,
+      "--CUSTOM_DOMAIN_SECRET_ARN": customDomainSecretArn,
       "--additional-python-modules":
         "langchain==0.3.7,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.35.98,openai==1.63.2,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,pdfminer.six==20221105,smart-open==7.0.4,opensearch-py==2.2.0,lxml==5.2.2,pandas==2.1.2,openpyxl==3.1.5,xlrd==2.0.1,langchain_community==0.3.7,pillow==10.0.1,tiktoken==0.8.0,pypdf==3.17.0",
       // Add multiple extra python files
