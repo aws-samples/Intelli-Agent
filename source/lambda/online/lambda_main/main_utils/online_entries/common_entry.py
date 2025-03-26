@@ -163,6 +163,7 @@ def query_preprocess(state: ChatbotState):
 
 @node_monitor_wrapper
 def intention_detection(state: ChatbotState):
+    logger.info("#### QQ match")
     qq_match_config = state["chatbot_config"]["qq_match_config"]
     # retriever_params["query"] = state[
     #     retriever_params.get("retriever_config", {}).get("query_key", "query")
@@ -177,6 +178,7 @@ def intention_detection(state: ChatbotState):
     # qq_retriever = OpensearchHybridQueryQuestionRetriever.from_config(
     #     **retriever_params
     # )
+    logger.info("##### QQ match running")
     qq_retrievered: List[Document] = asyncio.run(
         qq_retriever.ainvoke(state["query"])
     )
@@ -287,6 +289,8 @@ def intention_detection(state: ChatbotState):
         #         "query_key", "query")
         # ]
 
+        logger.info("##### Intention QD")
+
         private_knowledge_config = state["chatbot_config"][
             "private_knowledge_config"
         ]
@@ -302,6 +306,8 @@ def intention_detection(state: ChatbotState):
         # qd_retriever = OpensearchHybridQueryDocumentRetriever.from_config(
         #     **retriever_params
         # )
+
+        logger.info("##### Intention QD running")
         qd_retrievered: List[Document] = asyncio.run(
             qd_retriever.ainvoke(state["query"])
         )
