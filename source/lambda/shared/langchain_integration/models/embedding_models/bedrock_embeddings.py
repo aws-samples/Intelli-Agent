@@ -54,6 +54,8 @@ class BedrockEmbeddingBaseModel(EmbeddingModel):
         }
 
         model_kwargs = model_kwargs or None
+
+        boto3.client()
         embedding_model = BedrockEmbeddings(
             model_kwargs=model_kwargs,
             client=client,
