@@ -158,6 +158,7 @@ class RagToolConfig(AllowBaseModel):
     )
     # rerankers: list[RerankConfig] = Field(default_factory=list)
     llm_config: LLMConfig = Field(default_factory=LLMConfig)
+    
 
 
 class AgentConfig(ForbidBaseModel):
