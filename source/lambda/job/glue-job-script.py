@@ -50,7 +50,7 @@ args = getResolvedOptions(
         "BEDROCK_REGION",
         "MODEL_TABLE",
         "GROUP_NAME",
-        "CUSTOM_DOMAIN_SECRET_ARN",
+        "AOS_SECRET_ARN",
     ],
 )
 
@@ -71,11 +71,11 @@ os.environ["NOUGAT_CHECKPOINT"] = "/tmp/nougat_checkpoint"
 if "BATCH_INDICE" not in args:
     args["BATCH_INDICE"] = "0"
 
-aosEndpoint = args["AOS_ENDPOINT"]
-batchFileNumber = args["BATCH_FILE_NUMBER"]
-batchIndice = args["BATCH_INDICE"]
+aos_endpoint = args["AOS_ENDPOINT"]
+batch_file_number = args["BATCH_FILE_NUMBER"]
+batch_indice = args["BATCH_INDICE"]
 document_language = args["DOCUMENT_LANGUAGE"]
-etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
+etl_endpoint_name = args["ETL_MODEL_ENDPOINT"]
 offline = args["OFFLINE"]
 etl_object_table_name = args["ETL_OBJECT_TABLE"]
 portal_bucket_name = args["PORTAL_BUCKET"]
@@ -94,7 +94,7 @@ model_table_name = args["MODEL_TABLE"]
 index_type = args["INDEX_TYPE"]
 # Valid Operation types: "create", "delete", "update", "extract_only"
 operation_type = args["OPERATION_TYPE"]
-aos_secret = args["CUSTOM_DOMAIN_SECRET_ARN"]
+aos_secret = args["AOS_SECRET_ARN"]
 
 s3_client = boto3.client("s3")
 secrets_manager_client = boto3.client("secretsmanager")
@@ -129,30 +129,36 @@ embedding_model_info, vlm_model_info = get_model_info()
 
 
 def get_aws_auth():
-    try:
-        master_user = secrets_manager_client.get_secret_value(SecretId=aos_secret)[
-            "SecretString"
-        ]
-        cred = json.loads(master_user)
-        username = cred.get("username")
-        password = cred.get("password")
-        aws_auth = (username, password)
+    if aos_secret != "-":
+        try:
+            master_user = secrets_manager_client.get_secret_value(
+                SecretId=aos_secret
+            )["SecretString"]
+            cred = json.loads(master_user)
+            username = cred.get("username")
+            password = cred.get("password")
+            aws_auth = (username, password)
 
-    except secrets_manager_client.exceptions.ResourceNotFoundException:
+        except secrets_manager_client.exceptions.ResourceNotFoundException:
+            logger.info(
+                "Can not find user specified secret, using IAM authentication"
+            )
+            aws_auth = AWS4Auth(
+                refreshable_credentials=credentials, region=region, service="es"
+            )
+        except secrets_manager_client.exceptions.InvalidRequestException:
+            logger.info("The secret is being deleted, using IAM authentication")
+            aws_auth = AWS4Auth(
+                refreshable_credentials=credentials, region=region, service="es"
+            )
+        except Exception as e:
+            logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
+            raise
+    else:
+        logger.info("No secret provided, using IAM authentication")
         aws_auth = AWS4Auth(
             refreshable_credentials=credentials, region=region, service="es"
         )
-    except secrets_manager_client.exceptions.InvalidRequestException:
-        logger.info(
-            "InvalidRequestException. It might caused by getting secret value from a deleting secret"
-        )
-        logger.info("Fallback to authentication with IAM")
-        aws_auth = AWS4Auth(
-            refreshable_credentials=credentials, region=region, service="es"
-        )
-    except Exception as e:
-        logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
-        raise
     return aws_auth
 
 
@@ -201,11 +207,11 @@ class S3FileIterator:
                 ):
                     continue
 
-                if current_indice < int(batchIndice) * int(batchFileNumber):
+                if current_indice < int(batch_indice) * int(batch_file_number):
                     current_indice += 1
                     continue
-                elif current_indice >= (int(batchIndice) + 1) * int(
-                    batchFileNumber
+                elif current_indice >= (int(batch_indice) + 1) * int(
+                    batch_file_number
                 ):
                     # Exit this nested loop
                     break
@@ -228,7 +234,7 @@ class S3FileIterator:
                     processing_params = ProcessingParameters(
                         source_bucket_name=self.bucket,
                         source_object_key=key,
-                        etl_endpoint_name=etlModelEndpoint,
+                        etl_endpoint_name=etl_endpoint_name,
                         result_bucket_name=res_bucket,
                         portal_bucket_name=portal_bucket_name,
                         document_language=document_language,
@@ -240,7 +246,9 @@ class S3FileIterator:
 
                     yield processing_params
 
-            if current_indice >= (int(batchIndice) + 1) * int(batchFileNumber):
+            if current_indice >= (int(batch_indice) + 1) * int(
+                batch_file_number
+            ):
                 # Exit the outer loop
                 break
 
@@ -651,7 +659,7 @@ def main():
         docsearch = OpenSearchVectorSearch(
             index_name=aos_index_name,
             embedding_function=embedding_function,
-            opensearch_url="https://{}".format(aosEndpoint),
+            opensearch_url="https://{}".format(aos_endpoint),
             http_auth=aws_auth,
             use_ssl=True,
             verify_certs=True,

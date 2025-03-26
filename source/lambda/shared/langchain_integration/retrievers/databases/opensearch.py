@@ -17,35 +17,42 @@ from pydantic import BaseModel, Field
 from shared.utils.logger_utils import get_logger
 
 aosEndpoint = os.environ.get("AOS_ENDPOINT")
-aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
+aos_secret = os.environ.get("AOS_SECRET_ARN", "")
 region = os.environ["AWS_REGION"]
 logger = get_logger(__name__)
 
 
 def get_client_kwargs():
     secrets_manager_client = boto3.client("secretsmanager")
-    try:
-        master_user = secrets_manager_client.get_secret_value(
-            SecretId=aos_secret
-        )["SecretString"]
-        cred = json.loads(master_user)
-        username = cred.get("username")
-        password = cred.get("password")
-        aws_auth = (username, password)
-        return {
-            "http_auth": aws_auth,
-            "use_ssl": True,
-            "verify_certs": True,
-        }
+    if aos_secret:
+        try:
+            master_user = secrets_manager_client.get_secret_value(
+                SecretId=aos_secret
+            )["SecretString"]
+            cred = json.loads(master_user)
+            username = cred.get("username")
+            password = cred.get("password")
+            aws_auth = (username, password)
+            return {
+                "http_auth": aws_auth,
+                "use_ssl": True,
+                "verify_certs": True,
+            }
 
-    except secrets_manager_client.exceptions.ResourceNotFoundException:
-        logger.info("Using IAM authentication to connect to OpenSearch Domain")
-    except secrets_manager_client.exceptions.InvalidRequestException:
-        logger.info("Using IAM authentication to connect to OpenSearch Domain")
-    except Exception as e:
-        logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
-        raise
-    return {}
+        except secrets_manager_client.exceptions.ResourceNotFoundException:
+            logger.info(
+                "Using IAM authentication to connect to OpenSearch Domain"
+            )
+        except secrets_manager_client.exceptions.InvalidRequestException:
+            logger.info(
+                "Using IAM authentication to connect to OpenSearch Domain"
+            )
+        except Exception as e:
+            logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
+            raise
+    else:
+        logger.info("No secret provided, using IAM authentication")
+        return {}
 
 
 class OpenSearchBase(BaseModel):

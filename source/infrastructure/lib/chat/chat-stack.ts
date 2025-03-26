@@ -106,6 +106,14 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         generateStringKey: "key",
       }
     });
+
+    // Add custom domain secret arn to environment variables
+    let customDomainSecretArn;
+    if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.useCustomDomain) {
+      customDomainSecretArn = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.customDomainSecretArn;
+    } else {
+      customDomainSecretArn = "";
+    }
     const lambdaOnlineMain = new LambdaFunction(this, "lambdaOnlineMain", {
       runtime: Runtime.PYTHON_3_12,
       handler: "lambda_main.main.lambda_handler",
@@ -123,6 +131,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
       securityGroups: securityGroups,
       environment: {
         AOS_ENDPOINT: domainEndpoint,
+        AOS_SECRET_ARN: customDomainSecretArn,
         RERANK_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
         EMBEDDING_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
         CHATBOT_TABLE_NAME: props.sharedConstructOutputs.chatbotTable.tableName,
