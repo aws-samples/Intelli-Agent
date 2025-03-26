@@ -58,7 +58,7 @@ python-dateutil==2.8.2
 pytz==2024.2
 PyYAML==6.0.1
 regex==2023.8.8
-requests==2.31.0
+requests==2.32.2
 rsa==4.7.2
 s3transfer==0.6.1
 safetensors==0.4.5
