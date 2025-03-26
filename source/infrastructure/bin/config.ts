@@ -22,7 +22,8 @@ export function getConfig(): SystemConfig {
             opensearch: {
               enabled: true,
               useCustomDomain: false,
-              customDomainEndpoint: ""
+              customDomainEndpoint: "",
+              customDomainSecretArn: ""
             },
           },
           knowledgeBaseModel: {

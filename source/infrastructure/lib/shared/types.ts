@@ -15,6 +15,7 @@ export interface SystemConfig {
             enabled: boolean;
             useCustomDomain: boolean;
             customDomainEndpoint: string;
+            customDomainSecretArn: string;
           };
         };
         knowledgeBaseModel: {

@@ -4,7 +4,6 @@ import logging
 from typing import Any, Dict, Iterator, List, Mapping, Optional
 
 import boto3
-from botocore.exceptions import ClientError
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain_community.embeddings import (
     BedrockEmbeddings,
@@ -56,29 +55,6 @@ def get_model_details(group_name: str, chatbot_id: str, model_table):
     except Exception as e:
         logger.error(f"Error retrieving model details: {str(e)}")
         raise Exception(f"Failed to get model details: {str(e)}")
-
-
-def get_secret_value(secret_arn: str):
-    """Get secret value from secret manager
-
-    Args:
-        secret_arn (str): secret arn
-
-    Returns:
-        str: secret value
-    """
-    try:
-        get_secret_value_response = secret_manager_client.get_secret_value(
-            SecretId=secret_arn
-        )
-    except ClientError as e:
-        raise Exception("Fail to retrieve the secret value: {}".format(e))
-    else:
-        if "SecretString" in get_secret_value_response:
-            secret = get_secret_value_response["SecretString"]
-            return secret
-        else:
-            raise Exception("Fail to retrieve the secret value")
 
 
 class vectorContentHandler(EmbeddingsContentHandler):

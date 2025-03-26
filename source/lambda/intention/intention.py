@@ -6,8 +6,8 @@ import re
 import time
 from io import BytesIO
 from typing import List
+
 import boto3
-from aos import sm_utils
 from aos.aos_utils import LLMBotOpenSearchClient
 from botocore.paginate import TokenEncoder
 from constant import (
@@ -21,7 +21,6 @@ from constant import (
     PRESIGNED_URL_RESOURCE,
     ModelDimensionMap,
 )
-from embeddings import get_embedding_info
 from langchain.docstore.document import Document
 from langchain.embeddings.bedrock import BedrockEmbeddings
 from langchain_community.vectorstores import OpenSearchVectorSearch
@@ -38,7 +37,6 @@ from opensearchpy import (
 from requests_aws4auth import AWS4Auth
 from shared.langchain_integration.models.embedding_models import EmbeddingModel
 
-
 logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
 
@@ -50,7 +48,7 @@ region = os.environ.get("AWS_REGION", "us-east-1")
 bedrock_region = os.environ.get("BEDROCK_REGION", "us-east-1")
 aos_domain_name = os.environ.get("AOS_DOMAIN_NAME", "smartsearch")
 aos_endpoint = os.environ.get("AOS_ENDPOINT", "")
-aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
+aos_secret = os.environ.get("AOS_SECRET_ARN", "")
 intention_table_name = os.getenv("INTENTION_TABLE_NAME", "intention")
 chatbot_table_name = os.getenv("CHATBOT_TABLE_NAME", "chatbot")
 index_table_name = os.getenv("INDEX_TABLE_NAME", "index")
@@ -65,40 +63,47 @@ sm_client = boto3.client("secretsmanager")
 credentials = boto3.Session().get_credentials()
 built_in_tools = ["chat", "get_weather"]
 
-try:
-    master_user = sm_client.get_secret_value(SecretId=aos_secret)[
-        "SecretString"
-    ]
-    secret = json.loads(master_user)
-    username = secret.get("username")
-    password = secret.get("password")
+if aos_secret:
+    try:
+        master_user = sm_client.get_secret_value(SecretId=aos_secret)[
+            "SecretString"
+        ]
+        secret = json.loads(master_user)
+        username = secret.get("username")
+        password = secret.get("password")
 
-    if not aos_endpoint:
-        opensearch_client = boto3.client("opensearch")
-        response = opensearch_client.describe_domain(DomainName=aos_domain_name)
-        aos_endpoint = response["DomainStatus"]["Endpoint"]
-    aos_client = LLMBotOpenSearchClient(
-        aos_endpoint, (username, password)
-    ).client
-    awsauth = (username, password)
-except sm_client.exceptions.ResourceNotFoundException:
-    logger.info("Secret '%s' not found in Secrets Manager", aos_secret)
+        if not aos_endpoint:
+            opensearch_client = boto3.client("opensearch")
+            response = opensearch_client.describe_domain(
+                DomainName=aos_domain_name
+            )
+            aos_endpoint = response["DomainStatus"]["Endpoint"]
+        aos_client = LLMBotOpenSearchClient(
+            aos_endpoint, (username, password)
+        ).client
+        awsauth = (username, password)
+    except sm_client.exceptions.ResourceNotFoundException:
+        logger.info(
+            "Can not find user specified secret, using IAM authentication"
+        )
+        aos_client = LLMBotOpenSearchClient(aos_endpoint).client
+        awsauth = AWS4Auth(
+            refreshable_credentials=credentials, region=region, service="es"
+        )
+    except sm_client.exceptions.InvalidRequestException:
+        logger.info("The secret is being deleted, using IAM authentication")
+        aos_client = LLMBotOpenSearchClient(aos_endpoint).client
+        awsauth = AWS4Auth(
+            refreshable_credentials=credentials, region=region, service="es"
+        )
+    except Exception as err:
+        logger.error("Error retrieving secret '%s': %s", aos_secret, str(err))
+        raise
+else:
     aos_client = LLMBotOpenSearchClient(aos_endpoint).client
     awsauth = AWS4Auth(
         refreshable_credentials=credentials, region=region, service="es"
     )
-except sm_client.exceptions.InvalidRequestException:
-    logger.info(
-        "InvalidRequestException. It might caused by getting secret value from a deleting secret"
-    )
-    logger.info("Fallback to authentication with IAM")
-    aos_client = LLMBotOpenSearchClient(aos_endpoint).client
-    awsauth = AWS4Auth(
-        refreshable_credentials=credentials, region=region, service="es"
-    )
-except Exception as err:
-    logger.error("Error retrieving secret '%s': %s", aos_secret, str(err))
-    raise
 
 dynamodb_client = boto3.client("dynamodb")
 s3_client = boto3.client("s3")
@@ -113,7 +118,8 @@ resp_header = {
     "Access-Control-Allow-Methods": "*",
 }
 
-def __format_model_info(model_params:dict):
+
+def __format_model_info(model_params: dict):
     return {
         "provider": model_params["modelProvider"],
         "model_id": model_params["modelId"],
@@ -123,7 +129,7 @@ def __format_model_info(model_params:dict):
         "api_key_arn": model_params.get("apiKeyArn"),
         "api_key": model_params.get("apiKey"),
         "dimension": model_params.get("modelDimension"),
-        "model_kwargs": model_params.get("modelKwargs",{})
+        "model_kwargs": model_params.get("modelKwargs", {}),
     }
 
 
@@ -171,7 +177,7 @@ def lambda_handler(event, context):
         if "use_api_key" in claims:
             group_name = __get_query_parameter(event, "GroupName", "Admin")
         else:
-            email = claims["cognito:username"] 
+            email = claims["cognito:username"]
             # Agree to only be in one group
             group_name = claims["cognito:groups"]
     else:
@@ -263,8 +269,8 @@ def __delete_documents_by_text_set(index_name, text_values):
     search_body = {
         "size": 10000,
         "query": {
-            "terms": {"text.keyword": list(text_values)}  # Convert set to list
-        },
+            "terms": {"text.keyword": list(text_values)}
+        },  # Convert set to list
     }
 
     # Perform the search
@@ -418,7 +424,7 @@ def __create_execution(event, context, email, group_name):
             bucket,
             prefix,
             group_name,
-            chatbot_item.get("embeddingModelId")
+            chatbot_item.get("embeddingModelId"),
         )
     except Exception as e:
         logger.error(f"Error saving to aos: {e}")
@@ -440,7 +446,11 @@ def __create_execution(event, context, email, group_name):
             )[0],
             "details": details,
             "error": error_msg,
-            "validRatio": f"{len(valid_qa_list)} / {len(qa_list)}" if result=="success" else f"0 / {len(qa_list)}",
+            "validRatio": (
+                f"{len(valid_qa_list)} / {len(qa_list)}"
+                if result == "success"
+                else f"0 / {len(qa_list)}"
+            ),
         }
     )
 
@@ -486,7 +496,7 @@ def __save_2_aos(
     bucket: str,
     prefix: str,
     group_name: str,
-    embedding_model_key: str
+    embedding_model_key: str,
 ):
     qaList = __deduplicate_by_key(qaListParam, "question")
     if kb_enabled:
@@ -506,7 +516,9 @@ def __save_2_aos(
                 "modelId": embedding_model_key,
             }
         )["Item"]
-        embedding_function = EmbeddingModel.get_model(**__format_model_info(model_response.get("parameter", {})))
+        embedding_function = EmbeddingModel.get_model(
+            **__format_model_info(model_response.get("parameter", {}))
+        )
         docsearch = OpenSearchVectorSearch(
             index_name=index,
             embedding_function=embedding_function,
@@ -646,7 +658,11 @@ def __get_execution(event, group_name):
             item_json["qaList"] = json.loads(value)
         elif key == "validRatio":
             result_list = value.split("/")
-            item_json["status"] = "COMPLETED" if result_list[0].strip() == result_list[1].strip() else "FAILED"
+            item_json["status"] = (
+                "COMPLETED"
+                if result_list[0].strip() == result_list[1].strip()
+                else "FAILED"
+            )
             item_json["detail"] = value
         else:
             continue
