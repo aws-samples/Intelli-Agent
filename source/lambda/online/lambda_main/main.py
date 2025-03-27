@@ -20,7 +20,6 @@ from shared.utils.secret_utils import get_secret_value
 import common_logic.common_utils.warmup_utils
 
 
-
 logger = get_logger("main")
 
 sessions_table_name = os.environ.get("SESSIONS_TABLE_NAME", "")

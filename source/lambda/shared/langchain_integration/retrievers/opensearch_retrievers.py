@@ -15,12 +15,13 @@ import traceback
 from shared.utils.logger_utils import get_logger
 from shared.constant import ContextExtendMethod,Threshold
 import asyncio
-from functools import lru_cache
-from cachetools import cached, LRUCache
-from asyncache import cached as async_cached
-import cachetools
+from shared.utils.cache_utils import alru_cache_with_logging
+# from functools import lru_cache
+# from cachetools import cached, LRUCache
+# from asyncache import cached as async_cached
+# import cachetools
 
-retriever_cache = LRUCache(maxsize=128)
+# retriever_cache = LRUCache(maxsize=128)
 
 # def custom_key(*args, **kwargs):
 #     return cachetools.keys.hashkey(str((args,kwargs)))
@@ -195,7 +196,7 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
         for doc in results:
             doc.metadata['search_by'] = 'vector'
         return results
-
+        
     async def _aget_embedding(self,query:str):
         return await self.embeddings.aembed_query(query)
 
@@ -247,20 +248,20 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
             ))
         
         if bm25_search_task is not None:
-            logger.info('await bm25 search...')
+            # logger.info('await bm25 search...')
             bm25_search_results = await bm25_search_task
-            logger.info('completed bm25 search...')
+            # logger.info('completed bm25 search...')
         if vector_search_task is not None:
-            logger.info('await vector search...')
+            # logger.info('await vector search...')
             vector_search_results = await vector_search_task   
-            logger.info('completed vector search...')
+            # logger.info('completed vector search...')
 
         # rerank
         if self.reranker is not None:
             output_docs = bm25_search_results + vector_search_results
-            logger.info('await rerank...')
+            # logger.info('await rerank...')
             ret = await self.acompress_documents(query,output_docs,**kwargs)
-            logger.info('completed rerank...')
+            # logger.info('completed rerank...')
             return ret
         else:
             # altertively to merge the retriverd docs
@@ -286,7 +287,7 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
                 ret.append(doc)
         return ret
     
-    @async_cached(cache=cache_settings,key=custom_key)
+    # @async_cached(cache=cache_settings,key=custom_key)
     async def _aget_relevant_documents(
         self, query: str, *, 
         run_manager: AsyncCallbackManagerForRetrieverRun,
@@ -302,7 +303,7 @@ class OpensearchHybridRetrieverBase(BaseRetriever):
 
         return result
 
-    @cached(cache=cache_settings,key=custom_key)
+    # @cached(cache=cache_settings,key=custom_key)
     def _get_relevant_documents(
             self, 
             query: str, *, 

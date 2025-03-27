@@ -1,6 +1,7 @@
 from ...constant import ModelProvider
 from cachetools import LRUCache
 import json
+import pickle
 from shared.utils.logger_utils import get_logger
 logger = get_logger(__name__)
 model_cache = LRUCache(maxsize=128)
@@ -41,22 +42,22 @@ class ModelBase(metaclass=ModelMeta):
 
     @staticmethod
     def get_model_cache_key(model_id, model_kwargs=None, **kwargs):
-        return json.dumps((model_id,model_kwargs,kwargs))
+        return pickle.dumps((model_id,model_kwargs,kwargs))
 
     
     @classmethod
     def get_model(cls, model_id, model_kwargs=None, **kwargs):
-        model_cache_key = cls.get_model_cache_key(model_id,model_kwargs=model_kwargs,**kwargs)
-        if model_cache_key in model_cache:
-            logger.info(f"Provider: {kwargs['provider']}, Model {model_id} found in cache") 
-            return model_cache[model_cache_key]
+        # model_cache_key = cls.get_model_cache_key(model_id,model_kwargs=model_kwargs,**kwargs)
+        # if model_cache_key in model_cache:
+        #     logger.info(f"Provider: {kwargs['provider']}, Model {model_id} found in cache") 
+        #     return model_cache[model_cache_key]
         model_provider = kwargs['provider']
         # dynamic load module
         cls.load_module(model_provider)
         model_identify = cls.get_model_id(
             model_id=model_id, model_provider=model_provider)
         ret = cls.model_map[model_identify].create_model(model_kwargs=model_kwargs, **kwargs)
-        model_cache[model_cache_key] = ret
+        # model_cache[model_cache_key] = ret
         return ret
 
     @classmethod
