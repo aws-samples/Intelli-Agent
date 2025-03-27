@@ -20,6 +20,7 @@ from ..model_config import (
 )
 from pydantic import Field
 from typing import Any
+from shared.utils.boto3_utils import get_boto3_client
 
 logger = get_logger("bedrock_model")
 
@@ -71,12 +72,16 @@ class BedrockBaseModel(ChatModelBase):
             logger.info(
                 f"Bedrock Using AWS AKSK from environment variables. Key ID: {br_aws_access_key_id}")
 
-            client = boto3.client("bedrock-runtime", region_name=region_name,
-                                  aws_access_key_id=br_aws_access_key_id, aws_secret_access_key=br_aws_secret_access_key)
+            client = get_boto3_client(
+                "bedrock-runtime", 
+                region_name=region_name,
+                aws_access_key_id=br_aws_access_key_id, 
+                aws_secret_access_key=br_aws_secret_access_key
+            )
 
             llm = ChatBedrockConverse(
                 client=client,
-                region_name=region_name,
+                # region_name=region_name,
                 model=model_name,
                 enable_any_tool_choice=cls.enable_any_tool_choice,
                 enable_prefill=cls.enable_prefill,
@@ -84,9 +89,15 @@ class BedrockBaseModel(ChatModelBase):
                 **model_kwargs,
             )
         else:
-            llm = ChatBedrockConverse(
-                credentials_profile_name=credentials_profile_name,
+            client = get_boto3_client(
+                "bedrock-runtime", 
+                profile_name=credentials_profile_name,
                 region_name=region_name,
+            )
+            llm = ChatBedrockConverse(
+                client=client,
+                # credentials_profile_name=credentials_profile_name,
+                # region_name=region_name,
                 model=model_name,
                 enable_any_tool_choice=cls.enable_any_tool_choice,
                 enable_prefill=cls.enable_prefill,

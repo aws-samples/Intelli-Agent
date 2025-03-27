@@ -7,4 +7,4 @@ pydantic==2.10.0
 datamodel-code-generator==0.26.2
 langchain-openai==0.3.7
 cachetools==5.5.2
-asyncache==0.3.1
+aiocache==0.12.3

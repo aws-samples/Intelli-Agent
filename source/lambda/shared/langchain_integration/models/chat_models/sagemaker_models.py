@@ -73,7 +73,7 @@ from pydantic import BaseModel as pydantic_basemodel
 from pydantic import model_validator
 from shared.constant import LLMModelType, ModelProvider
 from shared.utils.logger_utils import get_logger
-
+from shared.utils.boto3_utils import get_boto3_client
 from . import ChatModelBase
 
 # from sagemaker.async_inference
@@ -1305,7 +1305,15 @@ class SageMakerVllmModelBase(BaseModel):
     def validate_environment(cls, values: Dict) -> Dict:
         """Dont do anything if client provided externally"""
         if not values.get("sagemaker_client"):
+            region_name=values.get("region_name")
+            credentials_profile_name=values.get("credentials_profile_name")
+            client = get_boto3_client(
+                "sagemaker-runtime",
+                profile_name=credentials_profile_name,
+                region_name=region_name,
+            )
             values["sagemaker_client"] = SageMakerClient(
+                client=client,
                 region_name=values.get("region_name"),
                 endpoint_name=values.get("endpoint_name"),
                 endpoint_kwargs=values.get("endpoint_kwargs"),
@@ -1649,7 +1657,7 @@ class SageMakerDeepSeekR1DistillModelBase(ChatModelBase):
             or None
         )
         region_name = kwargs.get("region_name", None) or current_region
-
+        
         llm = SageMakerVllmChatModel(
             endpoint_name=kwargs["endpoint_name"],
             credentials_profile_name=credentials_profile_name,

@@ -7,19 +7,47 @@ from shared.constant import (
 from shared.utils.logger_utils import (
     get_logger
 )
+import pickle
+from shared.utils.boto3_utils import get_boto3_client
 from . import EmbeddingModel
 from ..model_config import (
     BEDROCK_EMBEDDING_CONFIGS
 )
-
-
+from shared.utils.cache_utils import (
+    lru_cache_with_logging,
+    alru_cache_with_logging
+)
 
 logger = get_logger("bedrock_embedding_model")
 
 
 class BedrockEmbeddings(_BedrockEmbeddings):
-    pass
+    
+    @staticmethod
+    def embed_query_key(self,text:str):
+        return pickle.dumps({
+            "cls":self.__class__.__name__,
+            "model_id":self.model_id,
+            "model_kwargs":self.model_kwargs,
+            "normalize":self.normalize,
+            'config':self.config,
+            "endpoint_url":self.endpoint_url,
+            "region_name":self.region_name,
+            "credentials_profile_name":self.credentials_profile_name,
+            "text":text
+        })
 
+    async def aembed_documents(self, texts):
+        return await super().aembed_documents(texts)
+    
+    @alru_cache_with_logging(key=embed_query_key)
+    async def aembed_query(self, text):
+        return await super().aembed_query(text)
+     
+    @lru_cache_with_logging(key=embed_query_key)
+    def embed_query(self, text):
+        return super().embed_query(text)
+    
 
 class BedrockEmbeddingBaseModel(EmbeddingModel):
     model_provider = ModelProvider.BEDROCK
@@ -47,8 +75,20 @@ class BedrockEmbeddingBaseModel(EmbeddingModel):
             logger.info(
                 f"Bedrock Using AWS AKSK from environment variables. Key ID: {br_aws_access_key_id}")
 
-            client = boto3.client("bedrock-runtime", region_name=region_name,
-                                  aws_access_key_id=br_aws_access_key_id, aws_secret_access_key=br_aws_secret_access_key)
+            client = get_boto3_client(
+                "bedrock-runtime", 
+                region_name=region_name,
+                aws_access_key_id=br_aws_access_key_id, 
+                aws_secret_access_key=br_aws_secret_access_key
+            )
+        
+        if client is None:
+            client = get_boto3_client(
+                "bedrock-runtime",
+                profile_name=credentials_profile_name,
+                region_name=region_name,
+                
+            )
 
         model_kwargs = {
             **default_model_kwargs,
@@ -57,12 +97,11 @@ class BedrockEmbeddingBaseModel(EmbeddingModel):
 
         model_kwargs = model_kwargs or None
 
-        boto3.client()
         embedding_model = BedrockEmbeddings(
             model_kwargs=model_kwargs,
             client=client,
-            credentials_profile_name=credentials_profile_name,
-            region_name=region_name,
+            # credentials_profile_name=credentials_profile_name,
+            # region_name=region_name,
             model_id=cls.model_id,
         )
         return embedding_model
