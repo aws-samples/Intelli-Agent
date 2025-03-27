@@ -524,11 +524,16 @@ def ingestion_pipeline(
                 documents, gen_chunk_flag
             )
 
+            ordered_chunk_id = 0
+
             for batch in batches:
                 if len(batch) == 0:
                     continue
 
                 for document in batch:
+                    document.metadata["ordered_chunk_id"] = ordered_chunk_id
+                    ordered_chunk_id += 1
+
                     if "complete_heading" in document.metadata:
                         document.page_content = (
                             document.metadata["complete_heading"]
