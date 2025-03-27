@@ -10,8 +10,11 @@ from shared.constant import (
     LLMModelType,
     ModelProvider
 )
+<<<<<<< HEAD
 from langchain_openai import ChatOpenAI as _ChatOpenAI
 from . import BedrockConverseReasonModelResult, BedrockConverseReasonModelStreamResult, ChatModelBase
+=======
+>>>>>>> 9602c23fb56d8ae6faa1b0292b5b090a1c0f5db3
 from shared.utils.logger_utils import get_logger,llm_messages_print_decorator
 from . import ChatModelBase
 from ..model_config import BEDROCK_MODEL_CONFIGS
