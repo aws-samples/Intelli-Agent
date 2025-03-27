@@ -242,7 +242,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
     // Add delay after initial setup
     const initialDelay = this.addDeploymentDelay('Initial');
 
-    
+
     const authDelay = this.addDeploymentDelay('Auth');
     authDelay.node.addDependency(initialDelay);
     new AuthHub(this, 'AuthHub', {
@@ -262,14 +262,14 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
     });
 
     this.customAuthorizerLambda.node.addDependency(authDelay);
-    
+
 
     this.auth = new apigw.RequestAuthorizer(this, 'ApiAuthorizer', {
       handler: this.customAuthorizerLambda.function,
-      identitySources: [apigw.IdentitySource.header('Authorization'),apigw.IdentitySource.header('Oidc-Info')],
+      identitySources: [apigw.IdentitySource.header('Authorization'), apigw.IdentitySource.header('Oidc-Info')],
     });
 
-   
+
 
     // Create all API resources and their methods
     if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
@@ -297,6 +297,34 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
           S3_BUCKET: s3Bucket.bucketName,
         },
         statements: [this.iamHelper.s3Statement],
+      });
+
+      let customDomainSecretArn;
+      if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.useCustomDomain) {
+        customDomainSecretArn = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.customDomainSecretArn;
+      } else {
+        customDomainSecretArn = "";
+      }
+
+      const kbSearchLambda = new LambdaFunction(this, "KbSearchLambda", {
+        code: Code.fromCustomCommand(
+          "/tmp/intention_lambda_function_codes",
+          ['bash', '-c', [
+            "mkdir -p /tmp/intention_lambda_function_codes",
+            `cp -r ${join(__dirname, "../../../lambda/etl/knowledge_base_search.py")} /tmp/intention_lambda_function_codes`,
+            `cp -r ${join(__dirname, "../../../lambda/shared")} /tmp/intention_lambda_function_codes/`,
+          ].join(' && ')
+          ]
+        ),
+        handler: "knowledge_base_search.lambda_handler",
+        environment: {
+          AOS_ENDPOINT: domainEndpoint,
+          AOS_SECRET_ARN: customDomainSecretArn,
+          INDEX_TABLE_NAME: props.sharedConstructOutputs.indexTable.tableName,
+          MODEL_TABLE_NAME: props.sharedConstructOutputs.modelTable.tableName,
+        },
+        statements: [this.iamHelper.dynamodbStatement, this.iamHelper.secretsManagerStatement, this.iamHelper.logStatement, this.iamHelper.esStatement, this.iamHelper.bedrockStatement],
+        layers: [sharedLayer],
       });
 
       const apiResourceStepFunction = this.api.root.addResource("knowledge-base");
@@ -327,7 +355,7 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
           this.genMethodOption(this.api, this.auth, null),
         );
       }
-      
+
       apiKBExecution.addMethod(
         "GET",
         new apigw.LambdaIntegration(executionManagementLambda.function),
@@ -355,6 +383,14 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
         this.genMethodOption(this.api, this.auth, null),
       );
       apiResourceStepFunction.node.addDependency(kbDelay);
+
+      const apiKBSearch = apiResourceStepFunction.addResource("search");
+      apiKBSearch.addMethod(
+        "POST",
+        new apigw.LambdaIntegration(kbSearchLambda.function),
+        this.genMethodOption(this.api, this.auth, null),
+      );
+
     }
 
     if (props.config.chat.enabled) {

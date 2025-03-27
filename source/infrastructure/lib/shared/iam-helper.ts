@@ -27,7 +27,6 @@ export class IAMHelper extends Construct {
   public cognitoStatement: PolicyStatement;
   public bedrockStatement: PolicyStatement;
   public esStatement: PolicyStatement;
-  public secretStatement: PolicyStatement;
   public codePipelineStatement: PolicyStatement;
   public cfnStatement: PolicyStatement;
   public serviceQuotaStatement: PolicyStatement;
@@ -160,12 +159,6 @@ export class IAMHelper extends Construct {
       ],
       ["*"],
     );
-    this.secretStatement = this.createPolicyStatement(
-      [
-        "secretsmanager:GetSecretValue",
-      ],
-      ["*"],
-    )
     this.codePipelineStatement = this.createPolicyStatement(
       [
         "codepipeline:GetPipeline",

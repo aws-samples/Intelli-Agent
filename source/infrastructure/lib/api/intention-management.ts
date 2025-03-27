@@ -117,7 +117,7 @@ export class IntentionApi extends Construct {
     const intentionLambdaFunction = intentionLambda.function;
     intentionLambdaFunction.addToRolePolicy(this.iamHelper.dynamodbStatement);
     intentionLambdaFunction.addToRolePolicy(this.iamHelper.logStatement);
-    intentionLambdaFunction.addToRolePolicy(this.iamHelper.secretStatement);
+    intentionLambdaFunction.addToRolePolicy(this.iamHelper.secretsManagerStatement);
     intentionLambdaFunction.addToRolePolicy(this.iamHelper.esStatement);
     intentionLambdaFunction.addToRolePolicy(this.iamHelper.s3Statement);
     intentionLambdaFunction.addToRolePolicy(this.iamHelper.bedrockStatement);
