@@ -531,9 +531,7 @@ def ingestion_pipeline(
                     continue
 
                 for document in batch:
-                    document.metadata["ordered_chunk_id"] = (
-                        f"{ordered_chunk_id}"
-                    )
+                    document.metadata["ordered_chunk_id"] = ordered_chunk_id
                     ordered_chunk_id += 1
 
                     if "complete_heading" in document.metadata:
