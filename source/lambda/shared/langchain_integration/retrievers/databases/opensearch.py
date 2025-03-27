@@ -4,23 +4,26 @@ import os
 import traceback
 import uuid
 from typing import Any, Iterable, List, Optional, Tuple, Union
-
+import pickle 
 import boto3
 from langchain_community.vectorstores.opensearch_vector_search import (
     _get_async_opensearch_client,
     _get_opensearch_client,
     _import_bulk,
     _is_aoss_enabled,
+    # _import_opensearch
 )
+from langchain_core.runnables import run_in_executor
 from langchain_core.pydantic_v1 import Field
 from pydantic import BaseModel, Field
 from shared.utils.logger_utils import get_logger
+from shared.utils.cache_utils import alru_cache_with_logging,lru_cache_with_logging
 
 aosEndpoint = os.environ.get("AOS_ENDPOINT")
 aos_secret = os.environ.get("AOS_SECRET_ARN", "")
 region = os.environ["AWS_REGION"]
 logger = get_logger(__name__)
-
+secrets_manager_client = boto3.client("secretsmanager")
 
 def get_client_kwargs():
     secrets_manager_client = boto3.client("secretsmanager")
@@ -220,15 +223,46 @@ class OpenSearchBase(BaseModel):
         if not self.is_aoss:
             self.client.indices.refresh(index=self.index_name)
         return return_ids
+    
+    def get_search_key(self,query_dict):
+        return pickle.dumps({
+            "opensearch_url":self.opensearch_url,
+            "index": self.index_name,
+            "client_kwargs":self.client_kwargs,
+            "is_aoss":self.is_aoss,
+            "body": query_dict
+        })
 
+    @lru_cache_with_logging(key=get_search_key)
     def search(self, query_dict: dict):
         res = self.client.search(index=self.index_name, body=query_dict)
         return res
+    
+    # @alru_cache_with_logging(key=get_search_key)
+    # async def asearch(self, query_dict: dict):
+    #     return await self.async_client.search(
+    #         index=self.index_name, body=query_dict
+    #     )
 
+    @alru_cache_with_logging(key=get_search_key)
     async def asearch(self, query_dict: dict):
-        return await self.async_client.search(
-            index=self.index_name, body=query_dict
+         return await run_in_executor(
+            None, self.search, query_dict=query_dict,
         )
+        # return await self.async_client.search(
+        #     index=self.index_name, body=query_dict
+        # )
+
+
+    # def __getstate__(self):
+    #     state = self.model_dump()
+    #     del state['client']  # 从序列化数据中移除
+        
+    #     return state
+
+    # def __setstate__(self, state):
+    #     self.__dict__.update(state)
+    #     self.secret = "Restored default"  # 反序列化时提供默认值
 
 
 class OpenSearchBM25Search(OpenSearchBase):

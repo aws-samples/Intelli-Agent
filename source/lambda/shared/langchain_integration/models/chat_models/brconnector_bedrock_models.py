@@ -10,9 +10,10 @@ from shared.constant import (
     LLMModelType,
     ModelProvider
 )
-from shared.utils.logger_utils import get_logger
 from langchain_openai import ChatOpenAI as _ChatOpenAI
 from . import BedrockConverseReasonModelResult, BedrockConverseReasonModelStreamResult, ChatModelBase
+from shared.utils.logger_utils import get_logger,llm_messages_print_decorator
+from . import ChatModelBase
 from ..model_config import BEDROCK_MODEL_CONFIGS
 
 
@@ -62,20 +63,21 @@ class BrconnectorBedrockBaseModel(ChatModelBase):
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
         base_url = kwargs.get("base_url", None) or os.environ.get(
             "BRCONNECTOR_API_URL", None)
-        api_key_arn = kwargs.get('api_key_arn', None) or os.environ.get(
-            "BR_API_KEY_ARN", None)
+        api_key = kwargs.get('api_key', None) or os.environ.get(
+            "BR_API_KEY", None)
 
         assert base_url, ("base_url is required", kwargs)
 
-        return ChatOpenAI(
+        llm = BrconnetorChatOpenAI(
             enable_any_tool_choice=cls.enable_any_tool_choice,
             enable_prefill=cls.enable_prefill,
             base_url=base_url,
-            api_key=json.loads(get_secret_value(api_key_arn)),
+            api_key=api_key,
             model=BRCONNECTOR_MODEL_MAP[cls.model_id],
             is_reasoning_model = cls.is_reasoning_model,
             **model_kwargs
         )
-
+        llm._get_request_payload = llm_messages_print_decorator(llm._get_request_payload)
+        return llm
 
 BrconnectorBedrockBaseModel.create_for_models(BEDROCK_MODEL_CONFIGS)

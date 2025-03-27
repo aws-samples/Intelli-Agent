@@ -11,7 +11,7 @@ from langchain_core.utils import pre_init
 from pydantic import ConfigDict, Field
 from shared.constant import ModelProvider, RerankModelType
 from shared.utils.logger_utils import get_logger
-
+from shared.utils.boto3_utils import get_boto3_client
 from . import RerankModelBase
 
 logger = get_logger("sagemaker_rerank_model")
@@ -219,11 +219,18 @@ class SageMakerMultiModelRerankModelBase(RerankModelBase):
                 f"Bedrock Using AWS AKSK from environment variables. Key ID: {aws_access_key_id}"
             )
 
-            client = boto3.client(
+            client = get_boto3_client(
                 "sagemaker-runtime",
                 region_name=region_name,
                 aws_access_key_id=aws_access_key_id,
                 aws_secret_access_key=aws_secret_access_key,
+            )
+        
+        if client is None:
+            client = get_boto3_client(
+                "sagemaker-runtime",
+                profile_name=credentials_profile_name,
+                region_name=region_name,
             )
         model_kwargs = {
             **default_model_kwargs,
@@ -251,8 +258,8 @@ class SageMakerMultiModelRerankModelBase(RerankModelBase):
             # model_kwargs=model_kwargs,
             endpoint_kwargs=endpoint_kwargs,
             client=client,
-            credentials_profile_name=credentials_profile_name,
-            region_name=region_name,
+            # credentials_profile_name=credentials_profile_name,
+            # region_name=region_name,
             endpoint_name=endpoint_name,
             content_handler=content_handler,
         )

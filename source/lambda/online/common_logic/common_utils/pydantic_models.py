@@ -18,6 +18,7 @@ from shared.constant import (
 from shared.utils.logger_utils import get_logger
 from shared.utils.python_utils import update_nest_dict
 from shared.utils.secret_utils import get_secret_value
+import json 
 
 logger = get_logger("pydantic_models")
 
@@ -46,7 +47,7 @@ class ModelConfig(AllowBaseModel):
 
     def model_post_init(self, __context: Any) -> None:
         if self.api_key_arn and not self.api_key:
-            self.api_key = get_secret_value(self.api_key_arn)
+            self.api_key = json.loads(get_secret_value(self.api_key_arn))['key']
 
 
 class LLMConfig(ModelConfig):
@@ -55,10 +56,6 @@ class LLMConfig(ModelConfig):
     model_kwargs: dict = Field(
         default_factory=lambda: {"temperature": 0.01, "max_tokens": 4096}
     )
-
-    def model_post_init(self, __context: Any) -> None:
-        if self.api_key_arn and not self.api_key:
-            self.api_key = get_secret_value(self.api_key_arn)
 
 
 class EmbeddingModelConfig(ModelConfig):
@@ -158,6 +155,7 @@ class RagToolConfig(AllowBaseModel):
     )
     # rerankers: list[RerankConfig] = Field(default_factory=list)
     llm_config: LLMConfig = Field(default_factory=LLMConfig)
+    
 
 
 class AgentConfig(ForbidBaseModel):

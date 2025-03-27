@@ -18,6 +18,8 @@ import sys
 from copy import deepcopy
 from langchain_core.callbacks.manager import Callbacks
 from ..model_config import BEDROCK_RERANK_CONFIGS
+from shared.utils.boto3_utils import get_boto3_client
+
 logger = get_logger("bedrock_rerank_model")
 
 
@@ -138,7 +140,6 @@ class BedrockRerank(BaseDocumentCompressor):
     
     
 
-
 class BedrockRerankBaseModel(RerankModelBase):
     model_provider = ModelProvider.BEDROCK
 
@@ -163,8 +164,19 @@ class BedrockRerankBaseModel(RerankModelBase):
             logger.info(
                 f"Bedrock Using AWS AKSK from environment variables. Key ID: {br_aws_access_key_id}")
 
-            client = boto3.client("bedrock-runtime", region_name=region_name,
-                                  aws_access_key_id=br_aws_access_key_id, aws_secret_access_key=br_aws_secret_access_key)
+            client = get_boto3_client(
+                "bedrock-runtime", 
+                region_name=region_name,
+                aws_access_key_id=br_aws_access_key_id, 
+                aws_secret_access_key=br_aws_secret_access_key
+            )
+        
+        if client is None:
+            client = get_boto3_client(
+                "bedrock-runtime", 
+                profile_name=credentials_profile_name,
+                region_name=region_name
+            )
 
         extra_kwargs = {k: kwargs[k] for k in ["top_n"] if k in kwargs}
 
@@ -174,17 +186,18 @@ class BedrockRerankBaseModel(RerankModelBase):
             **default_model_kwargs,
             **kwargs.get("model_kwargs", {})
         }
-
-                                                            
+                                          
         extra_kwargs.update({"model_kwargs": model_kwargs})
-        embedding_model = BedrockRerank(
+        logger.info('init BedrockRerank...')
+        rerank_model = BedrockRerank(
             client=client,
-            credentials_profile_name=credentials_profile_name,
-            region_name=region_name,
+            # credentials_profile_name=credentials_profile_name,
+            # region_name=region_name,
             model_id=cls.model_id,
             **extra_kwargs
         )
-        return embedding_model
+        logger.info('after init BedrockRerank...')
+        return rerank_model
 
 
 BedrockRerankBaseModel.create_for_models(BEDROCK_RERANK_CONFIGS)
